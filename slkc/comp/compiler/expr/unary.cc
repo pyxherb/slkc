@@ -57,6 +57,14 @@ SLKC_API peff::Option<CompilationError> slkc::compile_unary_expr(
 	ExprEvalPurpose eval_purpose,
 	CompileExprResult &result_out) {
 	AstNodePtr<TypeNameNode> operand_type, decayed_operand_type;
+	AstNodePtr<BoolTypeNameNode> bool_type;
+
+	if (!(bool_type = make_ast_node<BoolTypeNameNode>(
+			  compile_env->allocator.get(),
+			  compile_env->allocator.get(),
+			  compile_env->get_document()))) {
+		return gen_oom_comp_error();
+	}
 
 	SLKC_RETURN_IF_COMP_ERROR(
 		eval_expr_type(compile_env, compilation_context, path_env, expr->operand, operand_type));
@@ -77,7 +85,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_unary_expr(
 		case TypeNameKind::U64: {
 			switch (expr->unary_op) {
 				case UnaryOp::LNot:
-					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, decayed_operand_type, result_out, slake::Opcode::LNOT, sld_index));
+					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, bool_type.cast_to<TypeNameNode>(), result_out, slake::Opcode::NOT, sld_index));
 					result_out.evaluated_type = decayed_operand_type;
 					break;
 				case UnaryOp::Not:
@@ -97,7 +105,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_unary_expr(
 		case TypeNameKind::F64: {
 			switch (expr->unary_op) {
 				case UnaryOp::LNot:
-					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, decayed_operand_type, result_out, slake::Opcode::LNOT, sld_index));
+					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, bool_type.cast_to<TypeNameNode>(), result_out, slake::Opcode::NOT, sld_index));
 					result_out.evaluated_type = decayed_operand_type;
 					break;
 				case UnaryOp::Neg:
@@ -112,7 +120,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_unary_expr(
 		case TypeNameKind::Bool: {
 			switch (expr->unary_op) {
 				case UnaryOp::LNot:
-					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, decayed_operand_type, result_out, slake::Opcode::LNOT, sld_index));
+					SLKC_RETURN_IF_COMP_ERROR(_compile_simple_rvalue_unary_expr(compile_env, compilation_context, path_env, expr, eval_purpose, bool_type.cast_to<TypeNameNode>(), result_out, slake::Opcode::NOT, sld_index));
 					result_out.evaluated_type = decayed_operand_type;
 					break;
 				default:
