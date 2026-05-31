@@ -1697,6 +1697,26 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 
 						PathEnv root_path_env(compile_env->allocator.get());
 
+						if (compile_env->vars_to_be_inited) {
+							if (compile_env->this_node) {
+								for (auto j : *compile_env->vars_to_be_inited) {
+									AstNodePtr<MemberNode> var_chain[] = { compile_env->this_node.cast_to<MemberNode>(), j.second.cast_to<MemberNode>() };
+									VarChainView vcv = var_chain;
+
+									// TODO: Set the variable to be uninitialized instead.
+									SLKC_RETURN_IF_COMP_ERROR(root_path_env.set_local_var_nullity_override(vcv, NullOverrideType::Nullify));
+								}
+							} else {
+								for (auto j : *compile_env->vars_to_be_inited) {
+									AstNodePtr<MemberNode> var_chain[] = { j.second.cast_to<MemberNode>() };
+									VarChainView vcv = var_chain;
+
+									// TODO: Set the variable to be uninitialized instead.
+									SLKC_RETURN_IF_COMP_ERROR(root_path_env.set_local_var_nullity_override(vcv, NullOverrideType::Nullify));
+								}
+							}
+						}
+
 						for (auto j : cur_overloading->body->body) {
 							if ((e = compile_stmt(compile_env, &comp_context, &root_path_env, j))) {
 								if (e->error_kind == CompilationErrorKind::OutOfMemory)
@@ -1711,6 +1731,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 						// Check if all variables to be initialized are initialized by the constructor, etc.
 						if (compile_env->vars_to_be_inited) {
 							if (compile_env->this_node) {
+								// For instance constructors like module constructors, etc.
 								for (auto j : *compile_env->vars_to_be_inited) {
 									AstNodePtr<MemberNode> var_chain[] = { compile_env->this_node.cast_to<MemberNode>(), j.second.cast_to<MemberNode>() };
 									VarChainView vcv = var_chain;
@@ -1725,6 +1746,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 									}
 								}
 							} else {
+								// For static constructors like module constructors, etc.
 								for (auto j : *compile_env->vars_to_be_inited) {
 									AstNodePtr<MemberNode> var_chain[] = { j.second.cast_to<MemberNode>() };
 									VarChainView vcv = var_chain;

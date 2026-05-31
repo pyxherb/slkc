@@ -488,6 +488,17 @@ recheck:
 					break;
 			}
 			break;
+		case TypeNameKind::Array: {
+			switch (base_type->tn_kind) {
+				case TypeNameKind::Ref:
+					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(subtype, subtype));
+					goto recheck;
+				default:
+					SLKC_RETURN_IF_COMP_ERROR(is_same_type(subtype.cast_to<ArrayTypeNameNode>()->element_type, base_type.cast_to<ArrayTypeNameNode>()->element_type, result_out));
+					break;
+			}
+			break;
+		}
 		case TypeNameKind::Ref: {
 			switch (base_type->tn_kind) {
 				case TypeNameKind::Ref:
@@ -633,6 +644,20 @@ recheck:
 								}
 							}
 							break;
+						case AstNodeType::Struct:
+							switch (subtype_member->get_ast_node_type()) {
+								case AstNodeType::Struct:
+									if (type_member == subtype_member) {
+										result_out = true;
+									} else {
+										result_out = false;
+									}
+									break;
+								default:
+									result_out = false;
+									break;
+							}
+							break;
 						default:
 							result_out = false;
 							break;
@@ -679,6 +704,10 @@ recheck:
 SLKC_API peff::Option<CompilationError> slkc::is_unsigned(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
+	if (type->is_nullable) {
+		result_out = false;
+		return {};
+	}
 	switch (type->tn_kind) {
 		case TypeNameKind::U8:
 		case TypeNameKind::U16:
@@ -851,6 +880,10 @@ recurse:
 SLKC_API peff::Option<CompilationError> slkc::is_floating_point(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
+	if (type->is_nullable) {
+		result_out = false;
+		return {};
+	}
 	switch (type->tn_kind) {
 		case TypeNameKind::F32:
 		case TypeNameKind::F64:
@@ -865,6 +898,10 @@ SLKC_API peff::Option<CompilationError> slkc::is_floating_point(
 SLKC_API peff::Option<CompilationError> slkc::is_signed(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
+	if (type->is_nullable) {
+		result_out = false;
+		return {};
+	}
 	switch (type->tn_kind) {
 		case TypeNameKind::I8:
 		case TypeNameKind::I16:
@@ -1255,6 +1292,10 @@ recheck:
 		case TypeNameKind::U64:
 		case TypeNameKind::USize:
 			if (dest->is_nullable) {
+				if (src->tn_kind == TypeNameKind::Ref) {
+					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
+					goto recheck;
+				}
 				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
 			} else {
 				assert(!src->is_nullable);
@@ -1287,6 +1328,10 @@ recheck:
 		case TypeNameKind::F32:
 		case TypeNameKind::F64:
 			if (dest->is_nullable) {
+				if (src->tn_kind == TypeNameKind::Ref) {
+					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
+					goto recheck;
+				}
 				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
 			} else {
 				switch (src->tn_kind) {
@@ -1316,6 +1361,10 @@ recheck:
 			return {};
 		case TypeNameKind::Bool:
 			if (dest->is_nullable) {
+				if (src->tn_kind == TypeNameKind::Ref) {
+					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
+					goto recheck;
+				}
 				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
 			} else {
 				switch (src->tn_kind) {
@@ -1344,6 +1393,10 @@ recheck:
 			return {};
 		case TypeNameKind::Custom:
 			if (dest->is_nullable) {
+				if (src->tn_kind == TypeNameKind::Ref) {
+					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
+					goto recheck;
+				}
 				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
 			} else {
 				switch (src->tn_kind) {
@@ -1378,6 +1431,18 @@ recheck:
 					break;
 			}
 			return {};
+		case TypeNameKind::Array:
+			switch (src->tn_kind) {
+				case TypeNameKind::Array:
+					SLKC_RETURN_IF_COMP_ERROR(is_same_type(dest, src, result_out));
+					break;
+				case TypeNameKind::Ref:
+					SLKC_RETURN_IF_COMP_ERROR(is_same_type(dest.cast_to<RefTypeNameNode>()->referenced_type, src.cast_to<RefTypeNameNode>()->referenced_type, result_out));
+					break;
+				default:
+					result_out = false;
+					break;
+			}
 	}
 
 	if (result_out)

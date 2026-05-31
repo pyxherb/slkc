@@ -445,9 +445,6 @@ void dump_compilation_error(peff::SharedPtr<slkc::Parser> parser, const slkc::Co
 		case slkc::CompilationErrorKind::OutOfRuntimeMemory:
 			fprintf(stderr, "Slake runtime memory allocation limit exceeded\n");
 			break;
-		case slkc::CompilationErrorKind::ExpectingLValueExpr:
-			fprintf(stderr, "Expecting a lvalue expression\n");
-			break;
 		case slkc::CompilationErrorKind::TargetIsNotCallable:
 			fprintf(stderr, "Expression is not callable\n");
 			break;

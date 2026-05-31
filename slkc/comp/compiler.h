@@ -15,8 +15,7 @@ namespace slkc {
 		EvalTypeActual,	 // Evaluate type only, as lvalue
 		EvalType,		 // Evaluate type only, as rvalue
 		Stmt,			 // As a statement
-		LValue,			 // As a lvalue
-		RValue,			 // As a rvalue
+		Value,			 // As a value
 		Call,			 // As target of a calling expression
 		Unpacking,		 // For unpacking, note that it is used for notifying the expression compiler to prepare the expression to be unpacked, not actually to unpack it.
 	};

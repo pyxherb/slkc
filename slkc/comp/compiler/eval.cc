@@ -1019,7 +1019,7 @@ reeval:
 						{
 							NormalCompilationContext tmp_context(compile_env, compilation_context);
 							CompileExprResult lhs_result(compile_env->allocator.get());
-							SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, &tmp_context, path_env, e->lhs, ExprEvalPurpose::RValue, {}, lhs_result));
+							SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, &tmp_context, path_env, e->lhs, ExprEvalPurpose::Value, {}, lhs_result));
 							lhs_applied_path_env = std::move(lhs_result.guard_path_env);
 							lhs_type = lhs_result.evaluated_type;
 						}

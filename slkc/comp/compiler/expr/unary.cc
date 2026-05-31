@@ -20,16 +20,14 @@ static peff::Option<CompilationError> _compile_simple_rvalue_unary_expr(
 			SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 				CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
 			break;
-		case ExprEvalPurpose::LValue:
-			return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
-		case ExprEvalPurpose::RValue: {
+		case ExprEvalPurpose::Value: {
 			CompileExprResult result(compile_env->allocator.get());
 
 			uint32_t output_reg;
 
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(output_reg));
 
-			SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->operand, ExprEvalPurpose::RValue, desired_type, result));
+			SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->operand, ExprEvalPurpose::Value, desired_type, result));
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
 				idx_sld,
 				slake::Opcode::NEG,
@@ -150,9 +148,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_unary_expr(
 							SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 								CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
 							break;
-						case ExprEvalPurpose::LValue:
-							return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
-						case ExprEvalPurpose::RValue: {
+						case ExprEvalPurpose::Value: {
 							// The function argument compilation goes this way (?).
 							CompileExprResult result(compile_env->allocator.get());
 

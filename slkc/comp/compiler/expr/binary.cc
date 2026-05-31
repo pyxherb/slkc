@@ -61,6 +61,7 @@ using namespace slkc;
 	PathEnv *path_env,
 	AstNodePtr<BinaryExprNode> expr,
 	ExprEvalPurpose eval_purpose,
+	AstNodePtr<VoidTypeNameNode> void_type,
 	AstNodePtr<TypeNameNode> lhs_type,
 	AstNodePtr<TypeNameNode> rhs_type,
 	AstNodePtr<TypeNameNode> desired_rhs_type,
@@ -102,13 +103,11 @@ static peff::Option<CompilationError> _compile_simple_binary_expr(
 		case ExprEvalPurpose::EvalType:
 		case ExprEvalPurpose::EvalTypeActual:
 			break;
-		case ExprEvalPurpose::LValue:
-			return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
 		case ExprEvalPurpose::Stmt:
 			SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 				CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
 			[[fallthrough]];
-		case ExprEvalPurpose::RValue: {
+		case ExprEvalPurpose::Value: {
 			CompileExprResult lhs_result(compile_env->allocator.get()), rhs_result(compile_env->allocator.get());
 
 			uint32_t lhs_reg,
@@ -171,6 +170,7 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 	PathEnv *path_env,
 	AstNodePtr<BinaryExprNode> expr,
 	ExprEvalPurpose eval_purpose,
+	AstNodePtr<VoidTypeNameNode> void_type,
 	AstNodePtr<TypeNameNode> lhs_type,
 	AstNodePtr<TypeNameNode> desired_lhs_type,
 	AstNodePtr<TypeNameNode> rhs_type,
@@ -185,12 +185,13 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 		case ExprEvalPurpose::EvalType:
 		case ExprEvalPurpose::EvalTypeActual:
 			break;
-		case ExprEvalPurpose::LValue: {
+		case ExprEvalPurpose::Value:
+		case ExprEvalPurpose::Stmt: {
 			CompileExprResult lhs_result(compile_env->allocator.get()), rhs_result(compile_env->allocator.get());
 
 			uint32_t rhs_reg;
 
-			if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::LValue, desired_lhs_type, expr->lhs, lhs_type, lhs_result))) {
+			if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, desired_lhs_type, expr->lhs, lhs_type, lhs_result))) {
 				if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, decayed_rhs_type, rhs_result); re) {
 					if (!compile_env->errors.push_back(std::move(*e))) {
 						return gen_oom_comp_error();
@@ -208,7 +209,7 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 					remove_nullable_of_type(desired_rhs_type, desired_rhs_type));
 			}
 
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, decayed_rhs_type, rhs_result));
+			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, rhs_type, rhs_result));
 			rhs_reg = rhs_result.idx_result_reg_out;
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
 				idx_sld,
@@ -234,60 +235,7 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 				}
 				SLKC_RETURN_IF_COMP_ERROR(path_env->set_var_inited(lhs_result.evaluated_var_chain));
 			}
-			break;
-		}
-		case ExprEvalPurpose::Stmt:
-		case ExprEvalPurpose::RValue: {
-			CompileExprResult lhs_result(compile_env->allocator.get()), rhs_result(compile_env->allocator.get());
 
-			uint32_t lhs_reg,
-				rhs_reg;
-
-			if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::LValue, desired_lhs_type, expr->lhs, lhs_type, lhs_result))) {
-				if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, decayed_rhs_type, rhs_result); re) {
-					if (!compile_env->errors.push_back(std::move(*e))) {
-						return gen_oom_comp_error();
-					}
-					e.reset();
-					return re;
-				} else {
-					return e;
-				}
-			}
-			lhs_reg = lhs_result.idx_result_reg_out;
-
-			if (!(rhs_type->is_nullable) && (desired_rhs_type->is_nullable)) {
-				SLKC_RETURN_IF_COMP_ERROR(
-					remove_nullable_of_type(desired_rhs_type, desired_rhs_type));
-			}
-
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, decayed_rhs_type, rhs_result));
-			rhs_reg = rhs_result.idx_result_reg_out;
-			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
-				idx_sld,
-				slake::Opcode::STORE,
-				UINT32_MAX,
-				{ slake::Value(slake::ValueType::RegIndex, lhs_reg), slake::Value(slake::ValueType::RegIndex, rhs_reg) }));
-			result_out.idx_result_reg_out = rhs_reg;
-
-			if (lhs_result.evaluated_var_chain.size()) {
-				if (rhs_result.evaluated_type->tn_kind == TypeNameKind::Null) {
-					SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Nullify));
-				} else {
-					if (rhs_result.evaluated_type->is_nullable) {
-						if (rhs_result.evaluated_var_chain.size()) {
-							if (auto override_type = path_env->lookup_var_nullity_override(rhs_result.evaluated_var_chain); override_type.has_value()) {
-								SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, override_type.value()));
-							} else
-								SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
-						} else {
-							SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
-						}
-					} else
-						SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Denullify));
-				}
-				SLKC_RETURN_IF_COMP_ERROR(path_env->set_var_inited(lhs_result.evaluated_var_chain));
-			}
 			break;
 		}
 		case ExprEvalPurpose::Call:
@@ -295,6 +243,8 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 		case ExprEvalPurpose::Unpacking:
 			return CompilationError(expr->token_range, CompilationErrorKind::TargetIsNotUnpackable);
 	}
+
+	result_out.evaluated_type = void_type.cast_to<TypeNameNode>();
 
 	return {};
 }
@@ -317,10 +267,8 @@ static peff::Option<CompilationError> _compile_simple_land_binary_expr(
 		case ExprEvalPurpose::EvalType:
 		case ExprEvalPurpose::EvalTypeActual:
 			break;
-		case ExprEvalPurpose::LValue:
-			return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
 		case ExprEvalPurpose::Stmt:
-		case ExprEvalPurpose::RValue: {
+		case ExprEvalPurpose::Value: {
 			CompileExprResult lhs_result(compile_env->allocator.get()), rhs_result(compile_env->allocator.get());
 
 			uint32_t lhs_reg,
@@ -332,8 +280,8 @@ static peff::Option<CompilationError> _compile_simple_land_binary_expr(
 			uint32_t cmp_end_label_id;
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_label(cmp_end_label_id));
 
-			if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->lhs, lhs_type, lhs_result))) {
-				if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result); re) {
+			if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->lhs, lhs_type, lhs_result))) {
+				if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result); re) {
 					if (!compile_env->errors.push_back(std::move(*e))) {
 						return gen_oom_comp_error();
 					}
@@ -362,7 +310,7 @@ static peff::Option<CompilationError> _compile_simple_land_binary_expr(
 				PathEnv lhs_applied_path_env(compile_env->allocator.get());
 				lhs_applied_path_env.set_parent(path_env);
 				SLKC_RETURN_IF_COMP_ERROR(combine_path_env(lhs_applied_path_env, lhs_result.guard_path_env));
-				SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, &lhs_applied_path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result));
+				SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, &lhs_applied_path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result));
 			}
 			rhs_reg = rhs_result.idx_result_reg_out;
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
@@ -421,10 +369,8 @@ static peff::Option<CompilationError> _compile_simple_lor_binary_expr(
 		case ExprEvalPurpose::EvalType:
 		case ExprEvalPurpose::EvalTypeActual:
 			break;
-		case ExprEvalPurpose::LValue:
-			return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
 		case ExprEvalPurpose::Stmt:
-		case ExprEvalPurpose::RValue: {
+		case ExprEvalPurpose::Value: {
 			CompileExprResult lhs_result(compile_env->allocator.get()),
 				rhs_result(compile_env->allocator.get());
 
@@ -448,8 +394,8 @@ static peff::Option<CompilationError> _compile_simple_lor_binary_expr(
 			lhs_path_env.set_parent(path_env);
 			rhs_path_env.set_parent(path_env);
 
-			if ((e = compile_or_cast_operand(compile_env, compilation_context, &lhs_path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->lhs, lhs_type, lhs_result))) {
-				if (auto re = compile_or_cast_operand(compile_env, compilation_context, &rhs_path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result); re) {
+			if ((e = compile_or_cast_operand(compile_env, compilation_context, &lhs_path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->lhs, lhs_type, lhs_result))) {
+				if (auto re = compile_or_cast_operand(compile_env, compilation_context, &rhs_path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result); re) {
 					if (!compile_env->errors.push_back(std::move(*e))) {
 						return gen_oom_comp_error();
 					}
@@ -474,7 +420,7 @@ static peff::Option<CompilationError> _compile_simple_lor_binary_expr(
 
 			compilation_context->set_label_offset(post_branch_label_id, compilation_context->get_cur_ins_off());
 
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, &rhs_path_env, ExprEvalPurpose::RValue, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result));
+			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, &rhs_path_env, ExprEvalPurpose::Value, bool_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, rhs_result));
 			rhs_reg = rhs_result.idx_result_reg_out;
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
 				idx_sld,
@@ -526,6 +472,7 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 	PathEnv *path_env,
 	AstNodePtr<BinaryExprNode> expr,
 	ExprEvalPurpose eval_purpose,
+	AstNodePtr<VoidTypeNameNode> void_type,
 	AstNodePtr<TypeNameNode> lhs_type,
 	AstNodePtr<TypeNameNode> rhs_type,
 	AstNodePtr<TypeNameNode> desired_rhs_type,
@@ -537,7 +484,8 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 		case ExprEvalPurpose::EvalType:
 		case ExprEvalPurpose::EvalTypeActual:
 			break;
-		case ExprEvalPurpose::LValue: {
+		case ExprEvalPurpose::Value:
+		case ExprEvalPurpose::Stmt: {
 			CompileExprResult
 				lhs_result(compile_env->allocator.get()),
 				lhs_rvalue_result(compile_env->allocator.get()),
@@ -551,7 +499,7 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(lhs_value_reg));
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(result_value_reg));
 
-			SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->lhs, ExprEvalPurpose::RValue, lhs_type, lhs_rvalue_result));
+			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, desired_rhs_type, expr->lhs, lhs_type, lhs_rvalue_result));
 			lhs_value_reg = lhs_rvalue_result.idx_result_reg_out;
 
 			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, rhs_type, rhs_result));
@@ -562,7 +510,7 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 				result_value_reg,
 				{ slake::Value(slake::ValueType::RegIndex, lhs_value_reg), slake::Value(slake::ValueType::RegIndex, rhs_reg) }));
 
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::LValue, lhs_type, expr->lhs, lhs_type, lhs_result));
+			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, lhs_type, expr->lhs, lhs_type, lhs_result));
 			lhs_reg = lhs_result.idx_result_reg_out;
 
 			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
@@ -572,44 +520,7 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 				{ slake::Value(slake::ValueType::RegIndex, lhs_reg), slake::Value(slake::ValueType::RegIndex, result_value_reg) }));
 
 			result_out.idx_result_reg_out = lhs_reg;
-			break;
-		}
-		case ExprEvalPurpose::Stmt:
-		case ExprEvalPurpose::RValue: {
-			CompileExprResult
-				lhs_result(compile_env->allocator.get()),
-				lhs_rvalue_result(compile_env->allocator.get()),
-				rhs_result(compile_env->allocator.get());
 
-			uint32_t lhs_reg,
-				lhs_value_reg,
-				rhs_reg,
-				result_value_reg;
-
-			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(lhs_value_reg));
-			SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(result_value_reg));
-
-			SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->lhs, ExprEvalPurpose::RValue, lhs_type, lhs_rvalue_result));
-			lhs_value_reg = lhs_rvalue_result.idx_result_reg_out;
-
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, rhs_eval_purpose, desired_rhs_type, expr->rhs, rhs_type, rhs_result));
-			rhs_reg = rhs_result.idx_result_reg_out;
-			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
-				idx_sld,
-				opcode,
-				result_value_reg,
-				{ slake::Value(slake::ValueType::RegIndex, lhs_value_reg), slake::Value(slake::ValueType::RegIndex, rhs_reg) }));
-
-			SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::LValue, lhs_type, expr->lhs, lhs_type, lhs_result));
-			lhs_reg = lhs_result.idx_result_reg_out;
-
-			SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(
-				idx_sld,
-				slake::Opcode::STORE,
-				UINT32_MAX,
-				{ slake::Value(slake::ValueType::RegIndex, lhs_reg), slake::Value(slake::ValueType::RegIndex, result_value_reg) }));
-
-			result_out.idx_result_reg_out = result_value_reg;
 			break;
 		}
 		case ExprEvalPurpose::Call:
@@ -617,6 +528,8 @@ static peff::Option<CompilationError> _compile_simple_compound_assign_expr(
 		case ExprEvalPurpose::Unpacking:
 			return CompilationError(expr->token_range, CompilationErrorKind::TargetIsNotUnpackable);
 	}
+
+	result_out.evaluated_type = void_type.cast_to<TypeNameNode>();
 
 	return {};
 }
@@ -705,6 +618,7 @@ static peff::Option<CompilationError> compile_integral_binary_expr(
 	ExprEvalPurpose eval_purpose,
 	CompileExprResult &result_out,
 	uint32_t sld_index,
+	const AstNodePtr<VoidTypeNameNode> &void_type,
 	const AstNodePtr<TypeNameNode> &lhs_type,
 	const AstNodePtr<TypeNameNode> &rhs_type,
 	const AstNodePtr<TypeNameNode> &decayed_lhs_type,
@@ -756,481 +670,537 @@ static peff::Option<CompilationError> compile_integral_binary_expr(
 		return gen_oom_comp_error();
 	}
 
-	switch (expr->binary_op) {
-		case BinaryOp::Add:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					add_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Sub:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					sub_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Mul:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mul_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Div:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					div_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Mod:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mod_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::And:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					and_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Or:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					or_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Xor:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					xor_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::LAnd:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_land_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					bool_type,
-					decayed_lhs_type,
-					decayed_rhs_type,
-					result_out,
-					slake::Opcode::ANDBOOL,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::LOr:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_lor_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					bool_type,
-					decayed_lhs_type,
-					decayed_rhs_type,
-					result_out,
-					slake::Opcode::ORBOOL,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Shl:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_rhs_type,
-					u32_type.cast_to<TypeNameNode>(),
-					ExprEvalPurpose::RValue,
-					result_out,
-					shl_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Shr:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_rhs_type,
-					u32_type.cast_to<TypeNameNode>(),
-					ExprEvalPurpose::RValue,
-					result_out,
-					shr_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Assign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					actual_lhs_type, actual_lhs_type,
-					rhs_type,
-					decayed_rhs_type,
-					decayed_actual_lhs_type,
-					ExprEvalPurpose::RValue,
-					result_out,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::AddAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					add_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::SubAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					sub_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::MulAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mul_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::DivAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					div_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::ModAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mod_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::AndAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					and_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::OrAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					or_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::XorAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					xor_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::ShlAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_rhs_type,
-					peff::make_shared_with_control_block<U32TypeNameNode, AstNodeControlBlock<U32TypeNameNode>>(
-						compile_env->allocator.get(),
-						compile_env->allocator.get(),
-						compile_env->get_document())
-						.cast_to<TypeNameNode>(),
-					ExprEvalPurpose::RValue,
-					result_out,
-					shl_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::ShrAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_rhs_type,
-					peff::make_shared_with_control_block<U32TypeNameNode, AstNodeControlBlock<U32TypeNameNode>>(
-						compile_env->allocator.get(),
-						compile_env->allocator.get(),
-						compile_env->get_document())
-						.cast_to<TypeNameNode>(),
-					ExprEvalPurpose::RValue,
-					result_out,
-					shr_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::Eq:
-		case BinaryOp::StrictEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					eq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Neq:
-		case BinaryOp::StrictNeq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					neq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Lt:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					lt_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Gt:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					gt_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::LtEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					lteq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::GtEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					gteq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Cmp:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					cmp_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		default:
-			return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+	if (!main_operation_type->is_nullable) {
+		switch (expr->binary_op) {
+			case BinaryOp::Add:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						add_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Sub:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						sub_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Mul:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mul_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Div:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						div_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Mod:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mod_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::And:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						and_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Or:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						or_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Xor:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						xor_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::LAnd:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_land_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						bool_type,
+						lhs_type,
+						rhs_type,
+						result_out,
+						slake::Opcode::ANDBOOL,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::LOr:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_lor_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						bool_type,
+						lhs_type,
+						rhs_type,
+						result_out,
+						slake::Opcode::ORBOOL,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Shl:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type,
+						u32_type.cast_to<TypeNameNode>(),
+						ExprEvalPurpose::Value,
+						result_out,
+						shl_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Shr:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type,
+						u32_type.cast_to<TypeNameNode>(),
+						ExprEvalPurpose::Value,
+						result_out,
+						shr_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Assign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						actual_lhs_type, actual_lhs_type,
+						rhs_type,
+						decayed_rhs_type,
+						decayed_actual_lhs_type,
+						ExprEvalPurpose::Value,
+						result_out,
+						sld_index));
+				break;
+			case BinaryOp::AddAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						add_opcode,
+						sld_index));
+				break;
+			case BinaryOp::SubAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						sub_opcode,
+						sld_index));
+				break;
+			case BinaryOp::MulAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mul_opcode,
+						sld_index));
+				break;
+			case BinaryOp::DivAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						div_opcode,
+						sld_index));
+				break;
+			case BinaryOp::ModAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mod_opcode,
+						sld_index));
+				break;
+			case BinaryOp::AndAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						and_opcode,
+						sld_index));
+				break;
+			case BinaryOp::OrAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						or_opcode,
+						sld_index));
+				break;
+			case BinaryOp::XorAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						xor_opcode,
+						sld_index));
+				break;
+			case BinaryOp::ShlAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type,
+						peff::make_shared_with_control_block<U32TypeNameNode, AstNodeControlBlock<U32TypeNameNode>>(
+							compile_env->allocator.get(),
+							compile_env->allocator.get(),
+							compile_env->get_document())
+							.cast_to<TypeNameNode>(),
+						ExprEvalPurpose::Value,
+						result_out,
+						shl_opcode,
+						sld_index));
+				break;
+			case BinaryOp::ShrAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type,
+						peff::make_shared_with_control_block<U32TypeNameNode, AstNodeControlBlock<U32TypeNameNode>>(
+							compile_env->allocator.get(),
+							compile_env->allocator.get(),
+							compile_env->get_document())
+							.cast_to<TypeNameNode>(),
+						ExprEvalPurpose::Value,
+						result_out,
+						shr_opcode,
+						sld_index));
+				break;
+			case BinaryOp::Eq:
+			case BinaryOp::StrictEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						eq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Neq:
+			case BinaryOp::StrictNeq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						neq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Lt:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						lt_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Gt:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						gt_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::LtEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						lteq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::GtEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						gteq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Cmp:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						cmp_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			default:
+				return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+		}
+	} else {
+		switch (expr->binary_op) {
+			case BinaryOp::Assign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						actual_lhs_type, actual_lhs_type,
+						rhs_type,
+						decayed_rhs_type,
+						decayed_actual_lhs_type,
+						ExprEvalPurpose::Value,
+						result_out,
+						sld_index));
+				break;
+			case BinaryOp::Eq:
+			case BinaryOp::StrictEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						eq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Neq:
+			case BinaryOp::StrictNeq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						neq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			default:
+				return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+		}
 	}
 	return {};
 }
@@ -1243,6 +1213,7 @@ static peff::Option<CompilationError> compile_floating_point_binary_expr(
 	ExprEvalPurpose eval_purpose,
 	CompileExprResult &result_out,
 	uint32_t sld_index,
+	const AstNodePtr<VoidTypeNameNode> &void_type,
 	const AstNodePtr<TypeNameNode> &lhs_type,
 	const AstNodePtr<TypeNameNode> &rhs_type,
 	const AstNodePtr<TypeNameNode> &decayed_lhs_type,
@@ -1289,315 +1260,371 @@ static peff::Option<CompilationError> compile_floating_point_binary_expr(
 		return gen_oom_comp_error();
 	}
 
-	switch (expr->binary_op) {
-		case BinaryOp::Add:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					add_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Sub:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					sub_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Mul:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mul_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Div:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					div_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::Mod:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mod_opcode,
-					sld_index));
-			result_out.evaluated_type = decayed_lhs_type;
-			break;
-		case BinaryOp::LAnd:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_land_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					bool_type,
-					decayed_lhs_type,
-					decayed_rhs_type,
-					result_out,
-					slake::Opcode::ANDBOOL,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::LOr:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_lor_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					bool_type,
-					decayed_lhs_type,
-					decayed_rhs_type,
-					result_out,
-					slake::Opcode::ORBOOL,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Assign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					actual_lhs_type, actual_lhs_type,
-					rhs_type,
-					decayed_rhs_type,
-					decayed_actual_lhs_type,
-					ExprEvalPurpose::RValue,
-					result_out,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::AddAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					add_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::SubAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					sub_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::MulAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mul_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::DivAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					div_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::ModAssign:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_compound_assign_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					lhs_type,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					mod_opcode,
-					sld_index));
-			result_out.evaluated_type = lhs_type;
-			break;
-		case BinaryOp::Eq:
-		case BinaryOp::StrictEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					eq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Neq:
-		case BinaryOp::StrictNeq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					neq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Lt:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					lt_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Gt:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					gt_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::LtEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					lteq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::GtEq:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					gteq_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		case BinaryOp::Cmp:
-			SLKC_RETURN_IF_COMP_ERROR(
-				_compile_simple_binary_expr(
-					compile_env,
-					compilation_context,
-					path_env,
-					expr,
-					eval_purpose,
-					decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
-					result_out,
-					cmp_opcode,
-					sld_index));
-			result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
-			break;
-		default:
-			return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+	if (main_operation_type->is_nullable) {
+		switch (expr->binary_op) {
+			case BinaryOp::Add:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						add_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Sub:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						sub_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Mul:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mul_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Div:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						div_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::Mod:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mod_opcode,
+						sld_index));
+				result_out.evaluated_type = decayed_lhs_type;
+				break;
+			case BinaryOp::LAnd:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_land_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						bool_type,
+						lhs_type,
+						rhs_type,
+						result_out,
+						slake::Opcode::ANDBOOL,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::LOr:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_lor_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						bool_type,
+						lhs_type,
+						rhs_type,
+						result_out,
+						slake::Opcode::ORBOOL,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Assign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						actual_lhs_type, actual_lhs_type,
+						rhs_type,
+						decayed_rhs_type,
+						decayed_actual_lhs_type,
+						ExprEvalPurpose::Value,
+						result_out,
+						sld_index));
+				break;
+			case BinaryOp::AddAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						add_opcode,
+						sld_index));
+				break;
+			case BinaryOp::SubAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						sub_opcode,
+						sld_index));
+				break;
+			case BinaryOp::MulAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mul_opcode,
+						sld_index));
+				break;
+			case BinaryOp::DivAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						div_opcode,
+						sld_index));
+				break;
+			case BinaryOp::ModAssign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_compound_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						lhs_type,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						mod_opcode,
+						sld_index));
+				break;
+			case BinaryOp::Eq:
+			case BinaryOp::StrictEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						eq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Neq:
+			case BinaryOp::StrictNeq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						neq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Lt:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						lt_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Gt:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						gt_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::LtEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						lteq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::GtEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						gteq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Cmp:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						cmp_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			default:
+				return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+		}
+	} else {
+		switch (expr->binary_op) {
+			case BinaryOp::Assign:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_assign_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						void_type,
+						actual_lhs_type, actual_lhs_type,
+						rhs_type,
+						decayed_rhs_type,
+						decayed_actual_lhs_type,
+						ExprEvalPurpose::Value,
+						result_out,
+						sld_index));
+				break;
+			case BinaryOp::Eq:
+			case BinaryOp::StrictEq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						eq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			case BinaryOp::Neq:
+			case BinaryOp::StrictNeq:
+				SLKC_RETURN_IF_COMP_ERROR(
+					_compile_simple_binary_expr(
+						compile_env,
+						compilation_context,
+						path_env,
+						expr,
+						eval_purpose,
+						lhs_type, main_operation_type, ExprEvalPurpose::Value,
+						rhs_type, main_operation_type, ExprEvalPurpose::Value,
+						result_out,
+						neq_opcode,
+						sld_index));
+				result_out.evaluated_type = bool_type.cast_to<TypeNameNode>();
+				break;
+			default:
+				return CompilationError(expr->token_range, CompilationErrorKind::OperatorNotFound);
+		}
 	}
 	return {};
 }
@@ -1621,7 +1648,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 			{
 				NormalCompilationContext tmp_context(compile_env, compilation_context);
 				CompileExprResult lhs_result(compile_env->allocator.get());
-				if (auto e = compile_expr(compile_env, &tmp_context, path_env, expr->lhs, ExprEvalPurpose::RValue, {}, lhs_result); e) {
+				if (auto e = compile_expr(compile_env, &tmp_context, path_env, expr->lhs, ExprEvalPurpose::Value, {}, lhs_result); e) {
 					if (auto re = eval_expr_type(compile_env, compilation_context, path_env, expr->rhs, rhs_type); re) {
 						if (!compile_env->errors.push_back(std::move(*e))) {
 							return gen_oom_comp_error();
@@ -1669,18 +1696,19 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 		return {};
 	}
 
-	peff::SharedPtr<U32TypeNameNode> u32_type;
-	peff::SharedPtr<I32TypeNameNode> i32_type;
+	AstNodePtr<U32TypeNameNode> u32_type;
+	AstNodePtr<I32TypeNameNode> i32_type;
 	AstNodePtr<BoolTypeNameNode> bool_type;
+	AstNodePtr<VoidTypeNameNode> void_type;
 
-	if (!(u32_type = peff::make_shared_with_control_block<U32TypeNameNode, AstNodeControlBlock<U32TypeNameNode>>(
+	if (!(u32_type = make_ast_node<U32TypeNameNode>(
 			  compile_env->allocator.get(),
 			  compile_env->allocator.get(),
 			  compile_env->get_document()))) {
 		return gen_oom_comp_error();
 	}
 
-	if (!(i32_type = peff::make_shared_with_control_block<I32TypeNameNode, AstNodeControlBlock<I32TypeNameNode>>(
+	if (!(i32_type = make_ast_node<I32TypeNameNode>(
 			  compile_env->allocator.get(),
 			  compile_env->allocator.get(),
 			  compile_env->get_document()))) {
@@ -1688,6 +1716,13 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 	}
 
 	if (!(bool_type = make_ast_node<BoolTypeNameNode>(
+			  compile_env->allocator.get(),
+			  compile_env->allocator.get(),
+			  compile_env->get_document()))) {
+		return gen_oom_comp_error();
+	}
+
+	if (!(void_type = make_ast_node<VoidTypeNameNode>(
 			  compile_env->allocator.get(),
 			  compile_env->allocator.get(),
 			  compile_env->get_document()))) {
@@ -1798,7 +1833,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 				{
 					CompileExprResult arg_result(compile_env->allocator.get());
 
-					SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, ExprEvalPurpose::RValue, decayed_lhs_type, arg_result));
+					SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, ExprEvalPurpose::Value, decayed_lhs_type, arg_result));
 					rhs_reg = arg_result.idx_result_reg_out;
 				}
 
@@ -1865,7 +1900,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 					bool b = false;
 					SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->params.at(0)->type, b));
 
-					SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, b ? ExprEvalPurpose::LValue : ExprEvalPurpose::RValue, matched_overloading->params.at(0)->type, arg_result));
+					SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, ExprEvalPurpose::Value, matched_overloading->params.at(0)->type, arg_result));
 					reg = arg_result.idx_result_reg_out;
 				}
 
@@ -1878,13 +1913,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 					case ExprEvalPurpose::Stmt:
 						SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(sld_index, slake::Opcode::MCALL, UINT32_MAX, { slake::Value(slake::ValueType::RegIndex, operator_reg), slake::Value(slake::ValueType::RegIndex, rhs_reg) }));
 						break;
-					case ExprEvalPurpose::LValue: {
-						bool b = false;
-						SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->return_type, b));
-						if (!b) {
-							return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
-						}
-
+					case ExprEvalPurpose::Value: {
 						uint32_t output_reg;
 						SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(output_reg));
 
@@ -1892,7 +1921,6 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						result_out.idx_result_reg_out = output_reg;
 						break;
 					}
-					case ExprEvalPurpose::RValue:
 					case ExprEvalPurpose::Call: {
 						bool b = false;
 						SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->return_type, b));
@@ -1957,11 +1985,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 				default: {
 					do {
 						{
-							if ((decayed_lhs_type->tn_kind == TypeNameKind::Bool)) {
+							if (((!decayed_lhs_type->is_nullable) && (decayed_lhs_type->tn_kind == TypeNameKind::Bool))) {
 								main_operation_type = decayed_lhs_type;
 								break;
 							}
-							if ((decayed_rhs_type->tn_kind == TypeNameKind::Bool)) {
+							if ((!decayed_rhs_type->is_nullable) && (decayed_rhs_type->tn_kind == TypeNameKind::Bool)) {
 								main_operation_type = decayed_rhs_type;
 								break;
 							}
@@ -1969,22 +1997,32 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							SLKC_RETURN_IF_COMP_ERROR(is_unsigned(decayed_lhs_type, lhs_pre));
 							SLKC_RETURN_IF_COMP_ERROR(is_unsigned(decayed_rhs_type, rhs_pre));
 							if (lhs_pre && rhs_pre) {
-								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, decayed_actual_rhs_type, main_operation_type));
+								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, rhs_type, main_operation_type));
 								break;
 							}
 
 							SLKC_RETURN_IF_COMP_ERROR(is_signed(decayed_lhs_type, lhs_pre));
 							SLKC_RETURN_IF_COMP_ERROR(is_signed(decayed_rhs_type, rhs_pre));
 							if (lhs_pre && rhs_pre) {
-								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, decayed_actual_rhs_type, main_operation_type));
+								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, rhs_type, main_operation_type));
 								break;
 							}
 
 							SLKC_RETURN_IF_COMP_ERROR(is_floating_point(decayed_lhs_type, lhs_pre));
 							SLKC_RETURN_IF_COMP_ERROR(is_floating_point(decayed_rhs_type, rhs_pre));
 							if (lhs_pre && rhs_pre) {
-								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, decayed_actual_rhs_type, main_operation_type));
+								SLKC_RETURN_IF_COMP_ERROR(infer_common_type(decayed_lhs_type, rhs_type, main_operation_type));
 								break;
+							}
+
+							if (decayed_lhs_type->is_nullable) {
+								main_operation_type = decayed_lhs_type;
+								break;
+							} else {
+								if (decayed_rhs_type->is_nullable) {
+									main_operation_type = decayed_rhs_type;
+									break;
+								}
 							}
 						}
 
@@ -2009,11 +2047,12 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
 						actual_lhs_type, actual_rhs_type,
-						decayed_lhs_type, decayed_rhs_type,
+						decayed_actual_lhs_type, decayed_actual_rhs_type,
 						main_operation_type,
 						slake::Opcode::ADDI8,
 						slake::Opcode::SUBI8,
@@ -2043,11 +2082,12 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
 						actual_lhs_type, actual_rhs_type,
-						decayed_lhs_type, decayed_rhs_type,
+						decayed_actual_lhs_type, decayed_actual_rhs_type,
 						main_operation_type,
 						slake::Opcode::ADDI16,
 						slake::Opcode::SUBI16,
@@ -2077,6 +2117,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2111,6 +2152,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2145,6 +2187,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2179,6 +2222,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2213,6 +2257,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2247,6 +2292,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2281,6 +2327,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2310,6 +2357,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						eval_purpose,
 						result_out,
 						sld_index,
+						void_type,
 						lhs_type,
 						rhs_type,
 						decayed_lhs_type, decayed_rhs_type,
@@ -2340,8 +2388,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::ANDBOOL,
 								sld_index));
@@ -2355,8 +2403,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::ORBOOL,
 								sld_index));
@@ -2370,8 +2418,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::NEQBOOL,
 								sld_index));
@@ -2386,8 +2434,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								expr,
 								eval_purpose,
 								bool_type,
-								decayed_lhs_type,
-								decayed_rhs_type,
+								lhs_type,
+								rhs_type,
 								result_out,
 								slake::Opcode::ANDBOOL,
 								sld_index));
@@ -2402,8 +2450,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								expr,
 								eval_purpose,
 								bool_type,
-								decayed_lhs_type,
-								decayed_rhs_type,
+								lhs_type,
+								rhs_type,
 								result_out,
 								slake::Opcode::ORBOOL,
 								sld_index));
@@ -2417,11 +2465,12 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
+								void_type,
 								actual_lhs_type, actual_lhs_type,
 								rhs_type,
 								decayed_rhs_type,
 								decayed_actual_lhs_type,
-								ExprEvalPurpose::RValue,
+								ExprEvalPurpose::Value,
 								result_out,
 								sld_index));
 						result_out.evaluated_type = lhs_type;
@@ -2434,8 +2483,9 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
+								void_type,
 								lhs_type,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::ANDBOOL,
 								sld_index));
@@ -2449,8 +2499,9 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
+								void_type,
 								lhs_type,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::ORBOOL,
 								sld_index));
@@ -2464,8 +2515,9 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
+								void_type,
 								lhs_type,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::NEQBOOL,
 								sld_index));
@@ -2480,8 +2532,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::EQBOOL,
 								sld_index));
@@ -2496,8 +2548,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::NEQBOOL,
 								sld_index));
@@ -2518,8 +2570,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::EQREF,
 								sld_index));
@@ -2533,8 +2585,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::NEQREF,
 								sld_index));
@@ -2555,8 +2607,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::EQREF,
 								sld_index));
@@ -2570,8 +2622,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
-								decayed_actual_lhs_type, main_operation_type, ExprEvalPurpose::RValue,
-								decayed_actual_rhs_type, main_operation_type, ExprEvalPurpose::RValue,
+								lhs_type, main_operation_type, ExprEvalPurpose::Value,
+								rhs_type, main_operation_type, ExprEvalPurpose::Value,
 								result_out,
 								slake::Opcode::NEQREF,
 								sld_index));
@@ -2593,14 +2645,14 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							case ExprEvalPurpose::EvalType:
 							case ExprEvalPurpose::EvalTypeActual:
 								break;
-							case ExprEvalPurpose::LValue: {
+							case ExprEvalPurpose::Value: {
 								CompileExprResult result(compile_env->allocator.get());
 
 								uint32_t lhs_reg,
 									rhs_reg;
 
-								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, lhs_type, expr->lhs, lhs_type, result))) {
-									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result); re) {
+								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_lhs_type, expr->lhs, lhs_type, result))) {
+									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result); re) {
 										if (!compile_env->errors.push_back(std::move(*e))) {
 											return gen_oom_comp_error();
 										}
@@ -2611,7 +2663,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 									}
 								}
 								lhs_reg = result.idx_result_reg_out;
-								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result));
+								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result));
 								rhs_reg = result.idx_result_reg_out;
 
 								uint32_t output_reg;
@@ -2626,18 +2678,16 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 
 								break;
 							}
-							case ExprEvalPurpose::Stmt:
+							case ExprEvalPurpose::Stmt: {
 								SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 									CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
-								[[fallthrough]];
-							case ExprEvalPurpose::RValue: {
 								CompileExprResult result(compile_env->allocator.get());
 
 								uint32_t lhs_reg,
 									rhs_reg;
 
-								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, lhs_type, expr->lhs, lhs_type, result))) {
-									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result); re) {
+								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_lhs_type, expr->lhs, lhs_type, result))) {
+									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result); re) {
 										if (!compile_env->errors.push_back(std::move(*e))) {
 											return gen_oom_comp_error();
 										}
@@ -2648,7 +2698,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 									}
 								}
 								lhs_reg = result.idx_result_reg_out;
-								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result));
+								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, u32_type.cast_to<TypeNameNode>(), expr->rhs, rhs_type, result));
 								rhs_reg = result.idx_result_reg_out;
 
 								uint32_t tmp_reg;
@@ -2696,11 +2746,12 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								path_env,
 								expr,
 								eval_purpose,
+								void_type,
 								actual_lhs_type, actual_lhs_type,
 								rhs_type,
 								decayed_rhs_type,
 								decayed_actual_lhs_type,
-								ExprEvalPurpose::RValue,
+								ExprEvalPurpose::Value,
 								result_out,
 								sld_index));
 						result_out.evaluated_type = lhs_type;
@@ -2794,7 +2845,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 						{
 							CompileExprResult arg_result(compile_env->allocator.get());
 
-							SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->lhs, ExprEvalPurpose::RValue, decayed_lhs_type, arg_result));
+							SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_lhs_type, expr->lhs, lhs_type, arg_result));
 							lhs_reg = arg_result.idx_result_reg_out;
 						}
 
@@ -2862,7 +2913,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							bool b = false;
 							SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->params.at(0)->type, b));
 
-							SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, b ? ExprEvalPurpose::LValue : ExprEvalPurpose::RValue, matched_overloading->params.at(0)->type, arg_result));
+							SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, expr->rhs, ExprEvalPurpose::Value, matched_overloading->params.at(0)->type, arg_result));
 							reg = arg_result.idx_result_reg_out;
 						}
 
@@ -2875,20 +2926,13 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							case ExprEvalPurpose::Stmt:
 								SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(sld_index, slake::Opcode::MCALL, UINT32_MAX, { slake::Value(slake::ValueType::RegIndex, operator_reg), slake::Value(slake::ValueType::RegIndex, lhs_reg) }));
 								break;
-							case ExprEvalPurpose::LValue: {
-								bool b = false;
-								SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->return_type, b));
-								if (!b) {
-									return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
-								}
-
+							case ExprEvalPurpose::Value: {
 								uint32_t output_reg;
 								SLKC_RETURN_IF_COMP_ERROR(compilation_context->alloc_reg(output_reg));
 								SLKC_RETURN_IF_COMP_ERROR(compilation_context->emit_ins(sld_index, slake::Opcode::MCALL, output_reg, { slake::Value(slake::ValueType::RegIndex, operator_reg), slake::Value(slake::ValueType::RegIndex, lhs_reg) }));
 								result_out.idx_result_reg_out = output_reg;
 								break;
 							}
-							case ExprEvalPurpose::RValue:
 							case ExprEvalPurpose::Call: {
 								bool b = false;
 								SLKC_RETURN_IF_COMP_ERROR(is_lvalue_type(matched_overloading->return_type, b));
@@ -2923,13 +2967,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							case ExprEvalPurpose::EvalType:
 							case ExprEvalPurpose::EvalTypeActual:
 								break;
-							case ExprEvalPurpose::LValue:
-								return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
 							case ExprEvalPurpose::Stmt:
 								SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 									CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
 								[[fallthrough]];
-							case ExprEvalPurpose::RValue: {
+							case ExprEvalPurpose::Value: {
 								CompileExprResult lhs_result(compile_env->allocator.get()),
 									rhs_result(compile_env->allocator.get());
 
@@ -2938,8 +2980,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 
 								peff::Option<CompilationError> e;
 
-								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->lhs, decayed_lhs_type, lhs_result))) {
-									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->rhs, decayed_rhs_type, rhs_result); re) {
+								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->lhs, lhs_type, lhs_result))) {
+									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->rhs, rhs_type, rhs_result); re) {
 										if (!compile_env->errors.push_back(std::move(*e))) {
 											return gen_oom_comp_error();
 										}
@@ -2950,7 +2992,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 									}
 								}
 								lhs_reg = lhs_result.idx_result_reg_out;
-								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->rhs, decayed_rhs_type, rhs_result));
+								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->rhs, rhs_type, rhs_result));
 								rhs_reg = rhs_result.idx_result_reg_out;
 
 								uint32_t output_reg;
@@ -2978,13 +3020,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 							case ExprEvalPurpose::EvalType:
 							case ExprEvalPurpose::EvalTypeActual:
 								break;
-							case ExprEvalPurpose::LValue:
-								return CompilationError(expr->token_range, CompilationErrorKind::ExpectingLValueExpr);
 							case ExprEvalPurpose::Stmt:
 								SLKC_RETURN_IF_COMP_ERROR(compile_env->push_warning(
 									CompilationWarning(expr->token_range, CompilationWarningKind::UnusedExprResult)));
 								[[fallthrough]];
-							case ExprEvalPurpose::RValue: {
+							case ExprEvalPurpose::Value: {
 								CompileExprResult lhs_result(compile_env->allocator.get()),
 									rhs_result(compile_env->allocator.get());
 
@@ -2993,8 +3033,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 
 								peff::Option<CompilationError> e;
 
-								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->lhs, decayed_lhs_type, lhs_result))) {
-									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->rhs, decayed_rhs_type, rhs_result); re) {
+								if ((e = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->lhs, lhs_type, lhs_result))) {
+									if (auto re = compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->rhs, rhs_type, rhs_result); re) {
 										if (!compile_env->errors.push_back(std::move(*e))) {
 											return gen_oom_comp_error();
 										}
@@ -3005,7 +3045,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 									}
 								}
 								lhs_reg = lhs_result.idx_result_reg_out;
-								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::RValue, decayed_actual_lhs_type, expr->rhs, decayed_rhs_type, rhs_result));
+								SLKC_RETURN_IF_COMP_ERROR(compile_or_cast_operand(compile_env, compilation_context, path_env, ExprEvalPurpose::Value, decayed_actual_lhs_type, expr->rhs, rhs_type, rhs_result));
 								rhs_reg = rhs_result.idx_result_reg_out;
 
 								uint32_t output_reg;
