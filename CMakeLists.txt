@@ -3,6 +3,9 @@ project(slkc VERSION 0.1.0)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
+set(CXX_STANDARD_REQUIRED TRUE)
+set(CXX_STANDARD 20)
+
 #
 # Check for AddressSanitizer if user has chosen to enable it for debugging.
 #
