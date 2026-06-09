@@ -8,10 +8,11 @@
 #include "astnode.h"
 
 namespace slkc {
-#define SLKC_RETURN_IF_COMP_ERROR(...)                             \
-	if (peff::Option<slkc::CompilationError> _ = (__VA_ARGS__); _) \
-		return std::move(_);                                       \
-	else
+#define SLKC_RETURN_IF_COMP_ERROR(...)                                 \
+	do {                                                               \
+		if (peff::Option<slkc::CompilationError> _ = (__VA_ARGS__); _) \
+			return std::move(_);                                       \
+	} while (0)
 #define SLKC_RETURN_IF_COMP_ERROR_WITH_LVAR(lvar, ...) \
 	if ((lvar = (__VA_ARGS__)))                        \
 		return lvar;                                   \
@@ -133,7 +134,7 @@ namespace slkc {
 		AstNodePtr<MemberNode> parent_member;
 		AstNodePtr<MemberNode> member;
 
-		SLAKE_FORCEINLINE ConflictingWithParentMemberDefinitionsErrorExData (
+		SLAKE_FORCEINLINE ConflictingWithParentMemberDefinitionsErrorExData(
 			AstNodePtr<MemberNode> parent_member,
 			AstNodePtr<MemberNode> member)
 			: parent_member(parent_member),

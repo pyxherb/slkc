@@ -547,10 +547,12 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_equality_judgement_invol
 	if (lhs_result.evaluated_final_member && (lhs_result.evaluated_final_member->get_ast_node_type() == AstNodeType::Var)) {
 		AstNodePtr<VarNode> v = lhs_result.evaluated_final_member.cast_to<VarNode>();
 		if (v->type->is_nullable) {
-			if (rhs_type->tn_kind == TypeNameKind::Null) {
+			AstNodePtr<TypeNameNode> decayed_rhs_type;
+			SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(rhs_type, decayed_rhs_type));
+			if (decayed_rhs_type->tn_kind == TypeNameKind::Null) {
 				// v == null
 				SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Nullify));
-			} else if (rhs_type->is_nullable) {
+			} else if (decayed_rhs_type->is_nullable) {
 				// v == T?
 				SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
 			} else {
@@ -561,11 +563,13 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_equality_judgement_invol
 	} else {
 		if (rhs_result.evaluated_final_member && (rhs_result.evaluated_final_member->get_ast_node_type() == AstNodeType::Var)) {
 			AstNodePtr<VarNode> v = rhs_result.evaluated_final_member.cast_to<VarNode>();
+			AstNodePtr<TypeNameNode> decayed_lhs_type;
+			SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(rhs_type, decayed_lhs_type));
 			if (v->type->is_nullable) {
-				if (lhs_type->tn_kind == TypeNameKind::Null) {
+				if (decayed_lhs_type->tn_kind == TypeNameKind::Null) {
 					// null == v
 					SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(rhs_result.evaluated_var_chain, NullOverrideType::Nullify));
-				} else if (lhs_type->is_nullable) {
+				} else if (decayed_lhs_type->is_nullable) {
 					// T? == v
 					SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(rhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
 				} else {
