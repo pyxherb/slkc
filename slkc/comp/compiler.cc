@@ -133,13 +133,14 @@ SLKC_API peff::Option<CompilationError> slkc::combine_parallel_path_env(peff::Al
 		}
 
 		// Filter out the common local variable null overrides that are not always happen.
+		// This also filter the local variables inside the branches.
 		for (auto it = idx_may_paths.begin(); it != idx_may_paths.end(); ++it) {
 			const PathEnv &inner = *inners[*it];
 
 			for (auto i : common_local_var_nullity_overrides) {
 				// If a local variable null override is not always happen, its original assumption should be cancelled.
 				if (!inner.local_var_nullity_overrides.contains_alt(i.first)) {
-					SLKC_RETURN_IF_COMP_ERROR(outer.set_local_var_nullity_override(i.first, NullOverrideType::Uncertain));
+					outer.remove_var_nullity_override(i.first);
 				}
 			}
 		}

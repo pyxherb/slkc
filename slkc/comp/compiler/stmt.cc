@@ -549,15 +549,18 @@ SLKC_API peff::Option<CompilationError> slkc::compile_while_stmt(
 		SLKC_RETURN_IF_COMP_ERROR(eval_const_expr(compile_env, compilation_context, path_env, s->cond, const_cond_expr));
 	}
 
-	SLKC_RETURN_IF_COMP_ERROR(
-		compilation_context->emit_ins(
-			sld_index, slake::Opcode::ENTER,
-			UINT32_MAX,
-			{}));
-	SLKC_RETURN_IF_COMP_ERROR(compilation_context->enter_block());
 	peff::ScopeGuard pop_block_context_guard([compilation_context]() noexcept {
 		compilation_context->leave_block();
 	});
+	if (s->body->stmt_kind == StmtKind::VarDef) {
+		SLKC_RETURN_IF_COMP_ERROR(
+			compilation_context->emit_ins(
+				sld_index, slake::Opcode::ENTER,
+				UINT32_MAX,
+				{}));
+		SLKC_RETURN_IF_COMP_ERROR(compilation_context->enter_block());
+	} else
+		pop_block_context_guard.release();
 
 	{
 		compilation_context->set_label_offset(continue_label, compilation_context->get_cur_ins_off());
@@ -609,11 +612,12 @@ SLKC_API peff::Option<CompilationError> slkc::compile_while_stmt(
 			{ slake::Value(slake::ValueType::Label, continue_label) }));
 
 	compilation_context->set_label_offset(normal_exit_label, compilation_context->get_cur_ins_off());
-	SLKC_RETURN_IF_COMP_ERROR(
-		compilation_context->emit_ins(
-			sld_index, slake::Opcode::LEAVE,
-			UINT32_MAX,
-			{ slake::Value((uint32_t)1) }));
+	if (s->body->stmt_kind == StmtKind::VarDef)
+		SLKC_RETURN_IF_COMP_ERROR(
+			compilation_context->emit_ins(
+				sld_index, slake::Opcode::LEAVE,
+				UINT32_MAX,
+				{ slake::Value((uint32_t)1) }));
 	compilation_context->set_label_offset(break_label, compilation_context->get_cur_ins_off());
 
 	return {};
@@ -675,15 +679,18 @@ SLKC_API peff::Option<CompilationError> slkc::compile_do_while_stmt(
 		SLKC_RETURN_IF_COMP_ERROR(eval_const_expr(compile_env, compilation_context, path_env, s->cond, const_cond_expr));
 	}
 
-	SLKC_RETURN_IF_COMP_ERROR(
-		compilation_context->emit_ins(
-			sld_index, slake::Opcode::ENTER,
-			UINT32_MAX,
-			{}));
-	SLKC_RETURN_IF_COMP_ERROR(compilation_context->enter_block());
 	peff::ScopeGuard pop_block_context_guard([compilation_context]() noexcept {
 		compilation_context->leave_block();
 	});
+	if (s->body->stmt_kind == StmtKind::VarDef) {
+		SLKC_RETURN_IF_COMP_ERROR(
+			compilation_context->emit_ins(
+				sld_index, slake::Opcode::ENTER,
+				UINT32_MAX,
+				{}));
+		SLKC_RETURN_IF_COMP_ERROR(compilation_context->enter_block());
+	} else
+		pop_block_context_guard.release();
 
 	compilation_context->set_label_offset(body_label, compilation_context->get_cur_ins_off());
 
@@ -717,11 +724,13 @@ SLKC_API peff::Option<CompilationError> slkc::compile_do_while_stmt(
 				slake::Value(slake::ValueType::Label, break_label) }));
 
 	compilation_context->set_label_offset(normal_exit_label, compilation_context->get_cur_ins_off());
-	SLKC_RETURN_IF_COMP_ERROR(
-		compilation_context->emit_ins(
-			sld_index, slake::Opcode::LEAVE,
-			UINT32_MAX,
-			{ slake::Value((uint32_t)1) }));
+	if (s->body->stmt_kind == StmtKind::VarDef) {
+		SLKC_RETURN_IF_COMP_ERROR(
+			compilation_context->emit_ins(
+				sld_index, slake::Opcode::LEAVE,
+				UINT32_MAX,
+				{ slake::Value((uint32_t)1) }));
+	}
 	compilation_context->set_label_offset(break_label, compilation_context->get_cur_ins_off());
 
 	return {};
