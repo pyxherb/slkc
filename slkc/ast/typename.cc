@@ -718,7 +718,7 @@ SLKC_API AstNodePtr<AstNode> NullTypeNameNode::do_duplicate(peff::Alloc *new_all
 }
 
 SLKC_API NullTypeNameNode::NullTypeNameNode(peff::Alloc *self_allocator, const peff::SharedPtr<Document> &document) : TypeNameNode(TypeNameKind::Null, self_allocator, document) {
-	is_nullable = true;
+	set_nullable(true);
 }
 
 SLKC_API NullTypeNameNode::NullTypeNameNode(const NullTypeNameNode &rhs, peff::Alloc *allocator, DuplicationContext &context, bool &succeeded_out) : TypeNameNode(rhs, allocator, context) {

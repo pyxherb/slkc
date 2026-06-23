@@ -157,13 +157,13 @@ SLKC_API peff::Option<CompilationError> slkc::is_higher_ranked_cyclic_inherited(
 
 	peff::List<HigherRankedCyclicInheritanceWalkFrame> frames(document->allocator.get());
 
-	if (cls->scope->base_type && (cls->scope->base_type->tn_kind == TypeNameKind::Custom)) {
+	if (cls->scope->base_type && (cls->scope->base_type->get_typename_kind() == TypeNameKind::Custom)) {
 		if (!frames.push_back({ cls->scope->base_type.cast_to<CustomTypeNameNode>(), 0 }))
 			return gen_oom_comp_error();
 	}
 
 	for (auto i : cls->scope->impl_types) {
-		if (cls->scope->base_type->tn_kind == TypeNameKind::Custom) {
+		if (cls->scope->base_type->get_typename_kind() == TypeNameKind::Custom) {
 			if (!frames.push_back({ i.cast_to<CustomTypeNameNode>(), 0 }))
 				return gen_oom_comp_error();
 		}
@@ -185,7 +185,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_higher_ranked_cyclic_inherited(
 			++cur_frame.idx_cur_type_arg;
 		}
 
-		if (cur_type_arg->tn_kind == TypeNameKind::Custom) {
+		if (cur_type_arg->get_typename_kind() == TypeNameKind::Custom) {
 			auto ctn = cur_type_arg.cast_to<CustomTypeNameNode>();
 			AstNodePtr<MemberNode> m;
 
@@ -251,7 +251,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_higher_ranked_recursed(
 			++cur_frame.idx_cur_type_arg;
 		}
 
-		if (cur_type_arg->tn_kind == TypeNameKind::Custom) {
+		if (cur_type_arg->get_typename_kind() == TypeNameKind::Custom) {
 			auto converted_tn = cur_type_arg.cast_to<CustomTypeNameNode>();
 			AstNodePtr<MemberNode> m;
 
@@ -689,7 +689,7 @@ static peff::Option<CompilationError> _is_struct_recursed(
 
 					AstNodePtr<MemberNode> m;
 
-					if (auto t = var_member->type; t->tn_kind == TypeNameKind::Custom) {
+					if (auto t = var_member->type; t->get_typename_kind() == TypeNameKind::Custom) {
 						SLKC_RETURN_IF_COMP_ERROR(is_higher_ranked_recursed(document, cur_struct, t.cast_to<CustomTypeNameNode>(), whether_out));
 						if (whether_out)
 							return {};
@@ -765,7 +765,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_implemented_by_class(
 	AstNodePtr<TypeNameNode> current_type = derived->scope->base_type;
 
 	while (current_type) {
-		if (current_type->tn_kind != TypeNameKind::Custom) {
+		if (current_type->get_typename_kind() != TypeNameKind::Custom) {
 			goto malformed;
 		}
 
@@ -835,7 +835,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_base_of(
 	AstNodePtr<TypeNameNode> current_type;
 
 	while ((current_type = current_class->scope->base_type)) {
-		if (current_type->tn_kind != TypeNameKind::Custom) {
+		if (current_type->get_typename_kind() != TypeNameKind::Custom) {
 			goto malformed;
 		}
 

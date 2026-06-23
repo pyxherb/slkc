@@ -8,7 +8,7 @@ SLKC_API peff::Option<CompilationError> slkc::remove_ref_of_type(
 	AstNodePtr<TypeNameNode> &type_name_out) {
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(src, src));
 
-	switch (src->tn_kind) {
+	switch (src->get_typename_kind()) {
 		case TypeNameKind::Ref:
 			type_name_out = src.cast_to<RefTypeNameNode>()->referenced_type;
 			break;
@@ -24,11 +24,11 @@ SLKC_API peff::Option<CompilationError> slkc::remove_ref_of_type(
 	AstNodePtr<TypeNameNode> &type_name_out) {
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(src, src));
 
-	if (src->is_nullable) {
+	if (src->is_nullable()) {
 		auto new_node = src->duplicate<TypeNameNode>(src->self_allocator.get());
 		if (!new_node)
 			return gen_oom_comp_error();
-		new_node->is_nullable = false;
+		new_node->set_nullable(false);
 		type_name_out = new_node;
 	} else
 		type_name_out = src;
@@ -46,7 +46,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_lvalue_type(
 		return {};
 	}
 
-	switch (src->tn_kind) {
+	switch (src->get_typename_kind()) {
 		case TypeNameKind::Ref:
 			whether_out = true;
 			break;
@@ -69,22 +69,22 @@ SLKC_API peff::Option<CompilationError> slkc::is_same_type(
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(lhs, lhs));
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(rhs, rhs));
 
-	if (lhs->tn_kind != rhs->tn_kind) {
+	if (lhs->get_typename_kind() != rhs->get_typename_kind()) {
 		whether_out = false;
 		return {};
 	}
 
-	if (lhs->is_final != rhs->is_final) {
+	if (lhs->is_final() != rhs->is_final()) {
 		whether_out = false;
 		return {};
 	}
 
-	if (lhs->is_nullable != rhs->is_nullable) {
+	if (lhs->is_nullable() != rhs->is_nullable()) {
 		whether_out = false;
 		return {};
 	}
 
-	switch (lhs->tn_kind) {
+	switch (lhs->get_typename_kind()) {
 		case TypeNameKind::Custom: {
 			AstNodePtr<CustomTypeNameNode>
 				converted_lhs = lhs.cast_to<CustomTypeNameNode>(),
@@ -126,7 +126,7 @@ SLKC_API peff::Option<CompilationError> slkc::get_type_promotion_level(
 	int &level_out) {
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(type_name, type_name));
 
-	switch (type_name->tn_kind) {
+	switch (type_name->get_typename_kind()) {
 		case TypeNameKind::Bool:
 			level_out = 1;
 			break;
@@ -198,9 +198,9 @@ SLKC_API peff::Option<CompilationError> slkc::determine_promotional_type(
 	} else if (lhs_weight > rhs_weight) {
 		type_name_out = lhs;
 	} else {
-		switch (lhs->tn_kind) {
+		switch (lhs->get_typename_kind()) {
 			case TypeNameKind::Array: {
-				switch (rhs->tn_kind) {
+				switch (rhs->get_typename_kind()) {
 					case TypeNameKind::Array: {
 						AstNodePtr<ArrayTypeNameNode> lt = lhs.cast_to<ArrayTypeNameNode>(), rt = rhs.cast_to<ArrayTypeNameNode>();
 						AstNodePtr<TypeNameNode> final_type;
@@ -217,7 +217,7 @@ SLKC_API peff::Option<CompilationError> slkc::determine_promotional_type(
 				break;
 			}
 			case TypeNameKind::Custom: {
-				switch (rhs->tn_kind) {
+				switch (rhs->get_typename_kind()) {
 					case TypeNameKind::Custom: {
 						AstNodePtr<CustomTypeNameNode> lt = lhs.cast_to<CustomTypeNameNode>(), rt = rhs.cast_to<CustomTypeNameNode>();
 
@@ -251,21 +251,21 @@ SLKC_API peff::Option<CompilationError> slkc::is_subtype_of(
 	AstNodePtr<TypeNameNode> subtype,
 	AstNodePtr<TypeNameNode> base_type,
 	bool &result_out) {
-	if (!subtype->is_local) {
-		if (base_type->is_local) {
+	if (!subtype->is_local()) {
+		if (base_type->is_local()) {
 			result_out = false;
 			return {};
 		}
 	}
 
 recheck:
-	switch (subtype->tn_kind) {
+	switch (subtype->get_typename_kind()) {
 		case TypeNameKind::Null:
-			if (base_type->is_nullable)
+			if (base_type->is_nullable())
 				// Null is nullable.
 				result_out = true;
 			else
-				switch (base_type->tn_kind) {
+				switch (base_type->get_typename_kind()) {
 					case TypeNameKind::Null:
 						result_out = true;
 						break;
@@ -281,7 +281,7 @@ recheck:
 			result_out = false;
 			break;
 		case TypeNameKind::I8:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::I8:
 					result_out = true;
 					break;
@@ -294,7 +294,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::I16:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::I16:
 					result_out = true;
 					break;
@@ -307,7 +307,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::I32:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::I32:
 					result_out = true;
 					break;
@@ -320,7 +320,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::I64:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::I64:
 					result_out = true;
 					break;
@@ -333,7 +333,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::ISize:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::ISize:
 					result_out = true;
 					break;
@@ -346,7 +346,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::U8:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::U8:
 					result_out = true;
 					break;
@@ -359,7 +359,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::U16:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::U16:
 					result_out = true;
 					break;
@@ -372,7 +372,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::U32:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::U32:
 					result_out = true;
 					break;
@@ -385,7 +385,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::U64:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::U64:
 					result_out = true;
 					break;
@@ -398,7 +398,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::USize:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::USize:
 					result_out = true;
 					break;
@@ -411,7 +411,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::F32:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::F32:
 					result_out = true;
 					break;
@@ -424,7 +424,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::F64:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::F64:
 					result_out = true;
 					break;
@@ -437,7 +437,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::String:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Object:
 					result_out = true;
 					break;
@@ -453,7 +453,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::Bool:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Bool:
 					result_out = true;
 					break;
@@ -466,7 +466,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::Object:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Object:
 					result_out = true;
 					break;
@@ -479,7 +479,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::Any:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Any:
 					result_out = true;
 					break;
@@ -489,7 +489,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::Array: {
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Ref:
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(subtype, subtype));
 					goto recheck;
@@ -500,7 +500,7 @@ recheck:
 			break;
 		}
 		case TypeNameKind::Ref: {
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Ref:
 					SLKC_RETURN_IF_COMP_ERROR(is_same_type(subtype.cast_to<RefTypeNameNode>()->referenced_type, base_type.cast_to<RefTypeNameNode>()->referenced_type, result_out));
 					// Nullability is invalid in this context.
@@ -512,7 +512,7 @@ recheck:
 			break;
 		}
 		case TypeNameKind::Custom:
-			switch (base_type->tn_kind) {
+			switch (base_type->get_typename_kind()) {
 				case TypeNameKind::Object: {
 					AstNodePtr<MemberNode> stm;
 
@@ -678,8 +678,8 @@ recheck:
 	}
 
 	if (result_out) {
-		if (subtype->is_nullable) {
-			if (base_type->is_nullable)
+		if (subtype->is_nullable()) {
+			if (base_type->is_nullable())
 				// T? <: P?
 				// true
 				result_out = true;
@@ -688,7 +688,7 @@ recheck:
 				// false
 				result_out = false;
 		} else {
-			if (base_type->is_nullable)
+			if (base_type->is_nullable())
 				// T <: P?
 				// true
 				result_out = true;
@@ -704,11 +704,11 @@ recheck:
 SLKC_API peff::Option<CompilationError> slkc::is_unsigned(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	if (type->is_nullable) {
+	if (type->is_nullable()) {
 		result_out = false;
 		return {};
 	}
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::U8:
 		case TypeNameKind::U16:
 		case TypeNameKind::U32:
@@ -726,7 +726,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_class_type(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
 recurse:
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Object: {
 			AstNodePtr<MemberNode> stm;
 
@@ -776,7 +776,7 @@ recurse:
 [[nodiscard]] SLKC_API peff::Option<CompilationError> slkc::to_signed(
 	AstNodePtr<TypeNameNode> type,
 	AstNodePtr<TypeNameNode> &type_name_out) {
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::U8:
 			if (!(type_name_out = make_ast_node<I8TypeNameNode>(
 					  type->self_allocator.get(),
@@ -828,7 +828,7 @@ recurse:
 [[nodiscard]] SLKC_API peff::Option<CompilationError> slkc::to_unsigned(
 	AstNodePtr<TypeNameNode> type,
 	AstNodePtr<TypeNameNode> &type_name_out) {
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::I8:
 			if (!(type_name_out = make_ast_node<U8TypeNameNode>(
 					  type->self_allocator.get(),
@@ -880,11 +880,11 @@ recurse:
 SLKC_API peff::Option<CompilationError> slkc::is_floating_point(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	if (type->is_nullable) {
+	if (type->is_nullable()) {
 		result_out = false;
 		return {};
 	}
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::F32:
 		case TypeNameKind::F64:
 			result_out = true;
@@ -898,11 +898,11 @@ SLKC_API peff::Option<CompilationError> slkc::is_floating_point(
 SLKC_API peff::Option<CompilationError> slkc::is_signed(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	if (type->is_nullable) {
+	if (type->is_nullable()) {
 		result_out = false;
 		return {};
 	}
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::I8:
 		case TypeNameKind::I16:
 		case TypeNameKind::I32:
@@ -919,7 +919,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_signed(
 SLKC_API peff::Option<CompilationError> slkc::is_integral(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::I8:
 		case TypeNameKind::I16:
 		case TypeNameKind::I32:
@@ -941,7 +941,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_integral(
 SLKC_API peff::Option<CompilationError> slkc::is_basic_type(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Void:
 		case TypeNameKind::I8:
 		case TypeNameKind::I16:
@@ -970,7 +970,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_basic_type(
 SLKC_API peff::Option<CompilationError> slkc::is_object_type(
 	AstNodePtr<TypeNameNode> type,
 	bool &result_out) {
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Object:
 		case TypeNameKind::Fn:
 		case TypeNameKind::Array:
@@ -988,7 +988,7 @@ SLKC_API peff::Option<CompilationError> slkc::is_object_type(
 SLKC_API peff::Option<CompilationError> slkc::is_scoped_enum_base_type(
 	AstNodePtr<TypeNameNode> lhs,
 	bool &result_out) {
-	switch (lhs->tn_kind) {
+	switch (lhs->get_typename_kind()) {
 		case TypeNameKind::I8:
 		case TypeNameKind::I16:
 		case TypeNameKind::I32:
@@ -1058,7 +1058,7 @@ reconvert: {
 		SLKC_RETURN_IF_COMP_ERROR(is_floating_point(rhs, whether));
 		if (!whether) {
 			// l = FP, r = non-FP
-			switch (rhs->tn_kind) {
+			switch (rhs->get_typename_kind()) {
 				case TypeNameKind::I8:
 				case TypeNameKind::I16:
 				case TypeNameKind::I32:
@@ -1088,7 +1088,7 @@ reconvert: {
 		SLKC_RETURN_IF_COMP_ERROR(is_floating_point(rhs, whether));
 		if (whether) {
 			// l = FP, r = non-FP
-			switch (lhs->tn_kind) {
+			switch (lhs->get_typename_kind()) {
 				case TypeNameKind::I8:
 				case TypeNameKind::I16:
 				case TypeNameKind::I32:
@@ -1132,12 +1132,12 @@ SLKC_API peff::Option<CompilationError> slkc::is_same_type_in_signature(
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(lhs, lhs));
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(rhs, rhs));
 
-	if (lhs->tn_kind != rhs->tn_kind) {
+	if (lhs->get_typename_kind() != rhs->get_typename_kind()) {
 		whether_out = false;
 		return {};
 	}
 
-	switch (lhs->tn_kind) {
+	switch (lhs->get_typename_kind()) {
 		case TypeNameKind::Custom: {
 			AstNodePtr<CustomTypeNameNode>
 				converted_lhs = lhs.cast_to<CustomTypeNameNode>(),
@@ -1258,26 +1258,26 @@ SLKC_API peff::Option<CompilationError> slkc::is_convertible(
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(dest, dest));
 
 recheck:
-	if (!dest->is_nullable) {
-		if (src->is_nullable) {
+	if (!dest->is_nullable()) {
+		if (src->is_nullable()) {
 			// T? to T should be eliminated by null check expressions.
 			result_out = false;
 			return {};
 		}
 	}
 
-	if (!dest->is_local) {
-		if (src->is_local) {
+	if (!dest->is_local()) {
+		if (src->is_local()) {
 			result_out = false;
 			return {};
 		}
 	}
-	if (dest->is_final)
+	if (dest->is_final())
 		is_sealed = true;
 
 	// We only allow T to T? or null to T? below.
 	// T? to T is handled above.
-	switch (dest->tn_kind) {
+	switch (dest->get_typename_kind()) {
 		case TypeNameKind::Void:
 			result_out = false;
 			return {};
@@ -1291,15 +1291,15 @@ recheck:
 		case TypeNameKind::U32:
 		case TypeNameKind::U64:
 		case TypeNameKind::USize:
-			if (dest->is_nullable) {
-				if (src->tn_kind == TypeNameKind::Ref) {
+			if (dest->is_nullable()) {
+				if (src->get_typename_kind() == TypeNameKind::Ref) {
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
 					goto recheck;
 				}
-				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
+				result_out = (src->get_typename_kind() == TypeNameKind::Null) || (src->get_typename_kind() == dest->get_typename_kind());
 			} else {
-				assert(!src->is_nullable);
-				switch (src->tn_kind) {
+				assert(!src->is_nullable());
+				switch (src->get_typename_kind()) {
 					case TypeNameKind::I8:
 					case TypeNameKind::I16:
 					case TypeNameKind::I32:
@@ -1327,14 +1327,14 @@ recheck:
 			return {};
 		case TypeNameKind::F32:
 		case TypeNameKind::F64:
-			if (dest->is_nullable) {
-				if (src->tn_kind == TypeNameKind::Ref) {
+			if (dest->is_nullable()) {
+				if (src->get_typename_kind() == TypeNameKind::Ref) {
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
 					goto recheck;
 				}
-				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
+				result_out = (src->get_typename_kind() == TypeNameKind::Null) || (src->get_typename_kind() == dest->get_typename_kind());
 			} else {
-				switch (src->tn_kind) {
+				switch (src->get_typename_kind()) {
 					case TypeNameKind::I8:
 					case TypeNameKind::I16:
 					case TypeNameKind::I32:
@@ -1360,14 +1360,14 @@ recheck:
 			}
 			return {};
 		case TypeNameKind::Bool:
-			if (dest->is_nullable) {
-				if (src->tn_kind == TypeNameKind::Ref) {
+			if (dest->is_nullable()) {
+				if (src->get_typename_kind() == TypeNameKind::Ref) {
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
 					goto recheck;
 				}
-				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
+				result_out = (src->get_typename_kind() == TypeNameKind::Null) || (src->get_typename_kind() == dest->get_typename_kind());
 			} else {
-				switch (src->tn_kind) {
+				switch (src->get_typename_kind()) {
 					case TypeNameKind::I8:
 					case TypeNameKind::I16:
 					case TypeNameKind::I32:
@@ -1392,14 +1392,14 @@ recheck:
 			}
 			return {};
 		case TypeNameKind::Custom:
-			if (dest->is_nullable) {
-				if (src->tn_kind == TypeNameKind::Ref) {
+			if (dest->is_nullable()) {
+				if (src->get_typename_kind() == TypeNameKind::Ref) {
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
 					goto recheck;
 				}
-				result_out = (src->tn_kind == TypeNameKind::Null) || (src->tn_kind == dest->tn_kind);
+				result_out = (src->get_typename_kind() == TypeNameKind::Null) || (src->get_typename_kind() == dest->get_typename_kind());
 			} else {
-				switch (src->tn_kind) {
+				switch (src->get_typename_kind()) {
 					case TypeNameKind::Custom:
 						break;
 					case TypeNameKind::Ref:
@@ -1412,7 +1412,7 @@ recheck:
 			}
 			break;
 		case TypeNameKind::Any:
-			switch (src->tn_kind) {
+			switch (src->get_typename_kind()) {
 				case TypeNameKind::Ref:
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(src, src));
 					goto recheck;
@@ -1422,7 +1422,7 @@ recheck:
 			}
 			return {};
 		case TypeNameKind::Ref:
-			switch (src->tn_kind) {
+			switch (src->get_typename_kind()) {
 				case TypeNameKind::Ref:
 					SLKC_RETURN_IF_COMP_ERROR(is_same_type(dest.cast_to<RefTypeNameNode>()->referenced_type, src.cast_to<RefTypeNameNode>()->referenced_type, result_out));
 					break;
@@ -1432,7 +1432,7 @@ recheck:
 			}
 			return {};
 		case TypeNameKind::Array:
-			switch (src->tn_kind) {
+			switch (src->get_typename_kind()) {
 				case TypeNameKind::Array:
 					SLKC_RETURN_IF_COMP_ERROR(is_same_type(dest, src, result_out));
 					break;
@@ -1473,7 +1473,7 @@ SLKC_API peff::Option<CompilationError> slkc::_is_type_name_param_list_type_name
 
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(type, type));
 
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Unpacking: {
 			whether_out = true;
 			break;
@@ -1539,7 +1539,7 @@ SLKC_API peff::Option<CompilationError> slkc::_do_expand_param_list_type_name_tr
 
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(type, type));
 
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Unpacking: {
 			SLKC_RETURN_IF_COMP_ERROR(get_unpacked_type_of(type, type));
 			break;
@@ -1618,7 +1618,7 @@ SLKC_API peff::Option<CompilationError> slkc::unwrap_param_list_type_name_tree(
 		type_name_out = type;
 		return {};
 	}
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Custom: {
 			AstNodePtr<TypeNameNode> t;
 
@@ -1635,8 +1635,8 @@ SLKC_API peff::Option<CompilationError> slkc::unwrap_param_list_type_name_tree(
 	}
 
 	type_name_out = type;
-	if (type->is_nullable)
-		type_name_out->set_nullable();
+	if (type->is_nullable())
+		type_name_out->set_nullable(true);
 	return {};
 }
 
@@ -1646,7 +1646,7 @@ SLKC_API peff::Option<CompilationError> slkc::get_unpacked_type_of(
 	peff::SharedPtr<Document> document = type->document->shared_from_this();
 
 	SLKC_RETURN_IF_COMP_ERROR(unwrap_facade_type_name(type, type));
-	switch (type->tn_kind) {
+	switch (type->get_typename_kind()) {
 		case TypeNameKind::Custom: {
 			AstNodePtr<MemberNode> m;
 
@@ -1811,39 +1811,39 @@ SLKC_API peff::Option<slkc::CompilationError> slkc::type_name_cmp(AstNodePtr<Typ
 	if (doc != rhs->document->shared_from_this())
 		std::terminate();
 
-	if (((uint8_t)lhs->tn_kind) < ((uint8_t)rhs->tn_kind)) {
+	if (((uint8_t)lhs->get_typename_kind()) < ((uint8_t)rhs->get_typename_kind())) {
 		out = -1;
 		return {};
 	}
-	if (((uint8_t)lhs->tn_kind) > ((uint8_t)rhs->tn_kind)) {
+	if (((uint8_t)lhs->get_typename_kind()) > ((uint8_t)rhs->get_typename_kind())) {
 		out = 1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_final) < ((uint8_t)rhs->is_final)) {
+	if (((uint8_t)lhs->is_final()) < ((uint8_t)rhs->is_final())) {
 		out = -1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_final) > ((uint8_t)rhs->is_final)) {
+	if (((uint8_t)lhs->is_final()) > ((uint8_t)rhs->is_final())) {
 		out = 1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_local) < ((uint8_t)rhs->is_local)) {
+	if (((uint8_t)lhs->is_local()) < ((uint8_t)rhs->is_local())) {
 		out = -1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_local) > ((uint8_t)rhs->is_local)) {
+	if (((uint8_t)lhs->is_local()) > ((uint8_t)rhs->is_local())) {
 		out = 1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_nullable) < ((uint8_t)rhs->is_nullable)) {
+	if (((uint8_t)lhs->is_nullable()) < ((uint8_t)rhs->is_nullable())) {
 		out = -1;
 		return {};
 	}
-	if (((uint8_t)lhs->is_nullable) > ((uint8_t)rhs->is_nullable)) {
+	if (((uint8_t)lhs->is_nullable()) > ((uint8_t)rhs->is_nullable())) {
 		out = 1;
 		return {};
 	}
-	switch (lhs->tn_kind) {
+	switch (lhs->get_typename_kind()) {
 		case TypeNameKind::Custom: {
 			AstNodePtr<CustomTypeNameNode>
 				l = lhs.cast_to<CustomTypeNameNode>(),

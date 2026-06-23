@@ -5,7 +5,7 @@ using namespace slkc;
 SLKC_API peff::Option<CompilationError> slkc::check_null_member_deref(PathEnv *path_env, const VarChainView &var_chain, const TokenRange &token_range) {
 	auto m = var_chain.back();
 
-	if ((m->get_ast_node_type() == AstNodeType::Var) && m.cast_to<VarNode>()->type->is_nullable) {
+	if ((m->get_ast_node_type() == AstNodeType::Var) && m.cast_to<VarNode>()->type->is_nullable()) {
 		auto nullity_override = path_env->lookup_var_nullity_override(var_chain);
 
 		if (nullity_override) {
@@ -419,7 +419,7 @@ peff::Option<CompilationError> select_single_matching_overloading(CompileEnv *co
 				token_range,
 				CompilationErrorKind::MemberIsNotAccessible);
 	} else {
-		if (desired_type && (desired_type->tn_kind == TypeNameKind::Fn)) {
+		if (desired_type && (desired_type->get_typename_kind() == TypeNameKind::Fn)) {
 			AstNodePtr<FnTypeNameNode> tn = desired_type.cast_to<FnTypeNameNode>();
 			peff::DynArray<AstNodePtr<FnOverloadingNode>> matched_overloadings(compile_env->allocator.get());
 
@@ -481,7 +481,7 @@ static peff::Option<CompilationError> _determine_node_type(CompileEnv *compile_e
 
 			SLKC_RETURN_IF_COMP_ERROR(get_unpacked_type_of(original_type, unpacked_type_name_node));
 
-			if (original_type->tn_kind != TypeNameKind::Ref) {
+			if (original_type->get_typename_kind() != TypeNameKind::Ref) {
 				AstNodePtr<RefTypeNameNode> t;
 
 				if (!(t = make_ast_node<RefTypeNameNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), AstNodePtr<TypeNameNode>()))) {
@@ -499,12 +499,12 @@ static peff::Option<CompilationError> _determine_node_type(CompileEnv *compile_e
 							case NullOverrideType::Nullify:
 								if (!(t->referenced_type = t->referenced_type->duplicate<TypeNameNode>(compile_env->allocator.get())))
 									return gen_oom_comp_error();
-								t->referenced_type->is_nullable = true;
+								t->referenced_type->set_nullable(true);
 								break;
 							case NullOverrideType::Denullify:
 								if (!(t->referenced_type = t->referenced_type->duplicate<TypeNameNode>(compile_env->allocator.get())))
 									return gen_oom_comp_error();
-								t->referenced_type->is_nullable = false;
+								t->referenced_type->set_nullable(false);
 								break;
 							case NullOverrideType::Uncertain:
 								break;
@@ -526,12 +526,12 @@ static peff::Option<CompilationError> _determine_node_type(CompileEnv *compile_e
 							case NullOverrideType::Nullify:
 								if (!(type_name_out = type_name_out->duplicate<TypeNameNode>(compile_env->allocator.get())))
 									return gen_oom_comp_error();
-								type_name_out->is_nullable = true;
+								type_name_out->set_nullable(true);
 								break;
 							case NullOverrideType::Denullify:
 								if (!(type_name_out = type_name_out->duplicate<TypeNameNode>(compile_env->allocator.get())))
 									return gen_oom_comp_error();
-								type_name_out->is_nullable = false;
+								type_name_out->set_nullable(false);
 								break;
 							case NullOverrideType::Uncertain:
 								break;
@@ -629,9 +629,9 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 			AstNodePtr<TypeNameNode> tn = result.evaluated_type;
 
 		determine_initial_member:
-			if (tn->is_nullable)
+			if (tn->is_nullable())
 				return CompilationError(e->head->token_range, CompilationErrorKind::DereferencingNull);
-			switch (tn->tn_kind) {
+			switch (tn->get_typename_kind()) {
 				case TypeNameKind::Void:
 				case TypeNameKind::I8:
 				case TypeNameKind::I16:
@@ -781,7 +781,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(result_out.evaluated_type, decayed_target_type));
 
-					if (decayed_target_type->tn_kind != TypeNameKind::Fn) {
+					if (decayed_target_type->get_typename_kind() != TypeNameKind::Fn) {
 						return CompilationError(e->id_ref_ptr->token_range, CompilationErrorKind::TargetIsNotCallable);
 					}
 
@@ -1147,7 +1147,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 
 					SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(result_out.evaluated_type, decayed_target_type));
 
-					if (decayed_target_type->tn_kind != TypeNameKind::Fn) {
+					if (decayed_target_type->get_typename_kind() != TypeNameKind::Fn) {
 						return CompilationError(e->id_ref_ptr->token_range, CompilationErrorKind::TargetIsNotCallable);
 					}
 
@@ -1330,7 +1330,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 					return gen_oom_comp_error();
 				}
 			} else {
-				switch (desired_type->tn_kind) {
+				switch (desired_type->get_typename_kind()) {
 					case TypeNameKind::Array:
 						tn = desired_type.cast_to<ArrayTypeNameNode>()->element_type;
 						break;
@@ -1424,7 +1424,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 				for (size_t i = 0, j = 0; i < e->args.size(); ++i, ++j) {
 					SLKC_RETURN_IF_COMP_ERROR(eval_expr_type(compile_env, compilation_context, path_env, e->args.at(i), arg_types.at(j)));
 
-					if (arg_types.at(j)->tn_kind == TypeNameKind::UnpackedArgs) {
+					if (arg_types.at(j)->get_typename_kind() == TypeNameKind::UnpackedArgs) {
 						AstNodePtr<UnpackedArgsTypeNameNode> t = arg_types.at(i).cast_to<UnpackedArgsTypeNameNode>();
 
 						if (!arg_types.resize(arg_types.size() + t->param_types.size() - 1)) {
@@ -1461,10 +1461,10 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 				arg_types = std::move(fn_prototype->param_types);
 				fn_type = result.evaluated_type;
 
-				if (fn_type->is_nullable)
+				if (fn_type->is_nullable())
 					return CompilationError(e->target->token_range, CompilationErrorKind::TargetIsNotCallable);
 			} else {
-				if (fn_type->is_nullable)
+				if (fn_type->is_nullable())
 					return CompilationError(e->target->token_range, CompilationErrorKind::TargetIsNotCallable);
 				SLKC_RETURN_IF_COMP_ERROR(compile_expr(compile_env, compilation_context, path_env, e->target, ExprEvalPurpose::Call, {}, result));
 
@@ -1487,7 +1487,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 
 					// SLKC_RETURN_IF_COMP_ERROR(simplify_param_list_type_name_tree(arg_types.at(j), compile_env->allocator.get(), arg_types.at(j)));
 
-					if (arg_types.at(j)->tn_kind == TypeNameKind::UnpackedArgs) {
+					if (arg_types.at(j)->get_typename_kind() == TypeNameKind::UnpackedArgs) {
 						AstNodePtr<UnpackedArgsTypeNameNode> t = arg_types.at(i).cast_to<UnpackedArgsTypeNameNode>();
 
 						if (!arg_types.resize(arg_types.size() + t->param_types.size() - 1)) {
@@ -1570,7 +1570,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 
 			for (size_t i = e->args.size(); i; --i) {
 				const auto &passing_info = arg_passing_info.at(i - 1);
-				switch (passing_info.first->tn_kind) {
+				switch (passing_info.first->get_typename_kind()) {
 					case TypeNameKind::UnpackedArgs:
 						SLKC_RETURN_IF_COMP_ERROR_WITH_LVAR(compilation_error,
 							compilation_context->emit_ins(
@@ -1685,7 +1685,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 		case ExprKind::New: {
 			AstNodePtr<NewExprNode> e = expr.cast_to<NewExprNode>();
 
-			if (e->target_type->tn_kind != TypeNameKind::Custom) {
+			if (e->target_type->get_typename_kind() != TypeNameKind::Custom) {
 				return CompilationError(e->target_type->token_range, CompilationErrorKind::TypeIsNotConstructible);
 			}
 
@@ -1899,7 +1899,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_expr(
 				if (is_subtype_of(target_type, decayed_expr_type, subtype)) {
 					if (!(result_out.evaluated_type = result_out.evaluated_type->duplicate<TypeNameNode>(compile_env->allocator.get())))
 						return gen_oom_comp_error();
-					result_out.evaluated_type->is_nullable = true;
+					result_out.evaluated_type->set_nullable(true);
 				}
 
 				result_out.idx_result_reg_out = value_reg_out;

@@ -181,7 +181,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Sub: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -202,7 +202,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Mul: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -223,7 +223,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Div: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -244,7 +244,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Mod: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -265,7 +265,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::And: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -286,7 +286,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Or: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -307,7 +307,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Xor: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -368,7 +368,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 				expr_out = {};
 				return {};
 			}
-			if (rhs_type->is_nullable) {
+			if (rhs_type->is_nullable()) {
 				expr_out = {};
 				return {};
 			}
@@ -416,7 +416,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 				expr_out = {};
 				return {};
 			}
-			if (rhs_type->is_nullable) {
+			if (rhs_type->is_nullable()) {
 				expr_out = {};
 				return {};
 			}
@@ -424,7 +424,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Shl: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -451,7 +451,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Shr: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -487,7 +487,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 				return {};
 			}
 
-			if (lhs_type->is_nullable) {
+			if (lhs_type->is_nullable()) {
 				if (rhs->expr_kind == ExprKind::Null) {
 					if (!(expr_out = make_ast_node<BoolLiteralExprNode>(
 							  compile_env->allocator.get(),
@@ -532,7 +532,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 				return {};
 			}
 
-			if (lhs_type->is_nullable) {
+			if (lhs_type->is_nullable()) {
 				if (rhs->expr_kind == ExprKind::Null) {
 					if (!(expr_out = make_ast_node<BoolLiteralExprNode>(
 							  compile_env->allocator.get(),
@@ -568,7 +568,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Gt: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -589,7 +589,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Lt: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -610,7 +610,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::GtEq: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -631,7 +631,7 @@ static peff::Option<CompilationError> eval_integral_binary_op_expr(
 			break;
 		}
 		case BinaryOp::LtEq: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -719,7 +719,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Sub: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -740,7 +740,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Mul: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -761,7 +761,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Div: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -782,7 +782,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Mod: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -821,7 +821,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 				return {};
 			}
 
-			if (lhs_type->is_nullable) {
+			if (lhs_type->is_nullable()) {
 				if (rhs->expr_kind == ExprKind::Null) {
 					if (!(expr_out = make_ast_node<BoolLiteralExprNode>(
 							  compile_env->allocator.get(),
@@ -866,7 +866,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 				return {};
 			}
 
-			if (lhs_type->is_nullable) {
+			if (lhs_type->is_nullable()) {
 				if (rhs->expr_kind == ExprKind::Null) {
 					if (!(expr_out = make_ast_node<BoolLiteralExprNode>(
 							  compile_env->allocator.get(),
@@ -902,7 +902,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Gt: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -923,7 +923,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::Lt: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -944,7 +944,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::GtEq: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -965,7 +965,7 @@ static peff::Option<CompilationError> eval_floating_point_binary_op_expr(
 			break;
 		}
 		case BinaryOp::LtEq: {
-			if ((lhs_type->is_nullable) || (rhs_type->is_nullable)) {
+			if ((lhs_type->is_nullable()) || (rhs_type->is_nullable())) {
 				expr_out = {};
 				return {};
 			}
@@ -1071,7 +1071,7 @@ reeval:
 				}
 			}
 
-			switch (main_operation_type->tn_kind) {
+			switch (main_operation_type->get_typename_kind()) {
 				case TypeNameKind::I8:
 					SLKC_RETURN_IF_COMP_ERROR(eval_integral_binary_op_expr<I8LiteralExprNode>(
 						compile_env, compilation_context, path_env,
@@ -1201,11 +1201,11 @@ reeval:
 			}
 
 			// The type may be nullable, but the value will still be non-nullable.
-			switch (e->target_type->tn_kind) {
+			switch (e->target_type->get_typename_kind()) {
 				case TypeNameKind::I8: {
 					AstNodePtr<I8LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<I8LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1220,7 +1220,7 @@ reeval:
 				case TypeNameKind::I16: {
 					AstNodePtr<I16LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<I16LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1235,7 +1235,7 @@ reeval:
 				case TypeNameKind::I32: {
 					AstNodePtr<I32LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<I32LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1249,7 +1249,7 @@ reeval:
 				case TypeNameKind::I64: {
 					AstNodePtr<I64LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<I64LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1263,7 +1263,7 @@ reeval:
 				case TypeNameKind::U8: {
 					AstNodePtr<U8LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<U8LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1277,7 +1277,7 @@ reeval:
 				case TypeNameKind::U16: {
 					AstNodePtr<U16LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<U16LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1291,7 +1291,7 @@ reeval:
 				case TypeNameKind::U32: {
 					AstNodePtr<U32LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<U32LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1305,7 +1305,7 @@ reeval:
 				case TypeNameKind::U64: {
 					AstNodePtr<U64LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<U64LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1319,7 +1319,7 @@ reeval:
 				case TypeNameKind::F32: {
 					AstNodePtr<F32LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<F32LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1333,7 +1333,7 @@ reeval:
 				case TypeNameKind::F64: {
 					AstNodePtr<F64LiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<F64LiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {
@@ -1347,7 +1347,7 @@ reeval:
 				case TypeNameKind::Bool: {
 					AstNodePtr<BoolLiteralExprNode> l;
 
-					if ((e->target_type->is_nullable) && (e->source->expr_kind == ExprKind::Null)) {
+					if ((e->target_type->is_nullable()) && (e->source->expr_kind == ExprKind::Null)) {
 						expr_out = e->source;
 					} else {
 						if (!(l = make_ast_node<BoolLiteralExprNode>(compile_env->allocator.get(), compile_env->allocator.get(), compile_env->get_document(), 0))) {

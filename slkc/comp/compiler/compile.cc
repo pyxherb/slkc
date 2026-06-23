@@ -11,7 +11,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_type_name(
 	slake::TypeRef &type_out) {
 	type_out = slake::TypeId::Void;
 
-	switch (type_name->tn_kind) {
+	switch (type_name->get_typename_kind()) {
 		case TypeNameKind::Void:
 			type_out = slake::TypeRef(slake::TypeId::Void);
 			break;
@@ -454,11 +454,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_type_name(
 			std::terminate();
 	}
 
-	if (type_name->is_final)
+	if (type_name->is_final())
 		type_out.set_final();
-	if (type_name->is_local)
+	if (type_name->is_local())
 		type_out.set_local();
-	if (type_name->is_nullable)
+	if (type_name->is_nullable())
 		type_out.set_nullable();
 
 	return {};
@@ -986,7 +986,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 				if (cls_node->scope->base_type) {
 					AstNodePtr<MemberNode> base_type_node;
 
-					if (cls_node->scope->base_type->tn_kind == TypeNameKind::Custom) {
+					if (cls_node->scope->base_type->get_typename_kind() == TypeNameKind::Custom) {
 						if (!(compilation_error = resolve_custom_type_name(compile_env, cls_node->document->shared_from_this(), cls_node->scope->base_type.cast_to<CustomTypeNameNode>(), base_type_node))) {
 							if (base_type_node) {
 								if (base_type_node->get_ast_node_type() != AstNodeType::Class) {
@@ -1019,7 +1019,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 				for (auto &i : cls_node->scope->impl_types) {
 					AstNodePtr<MemberNode> implemented_type_node;
 
-					if (i->tn_kind == TypeNameKind::Custom) {
+					if (i->get_typename_kind() == TypeNameKind::Custom) {
 						if (!(compilation_error = resolve_custom_type_name(compile_env, cls_node->document->shared_from_this(), i.cast_to<CustomTypeNameNode>(), implemented_type_node))) {
 							if (implemented_type_node) {
 								if (implemented_type_node->get_ast_node_type() != AstNodeType::Interface) {
@@ -1232,7 +1232,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 				for (auto &i : interface_node->scope->impl_types) {
 					AstNodePtr<MemberNode> implemented_type_node;
 
-					if (i->tn_kind == TypeNameKind::Custom) {
+					if (i->get_typename_kind() == TypeNameKind::Custom) {
 						if (!(compilation_error = resolve_custom_type_name(compile_env, interface_node->document->shared_from_this(), i.cast_to<CustomTypeNameNode>(), implemented_type_node))) {
 							if (implemented_type_node) {
 								if (implemented_type_node->get_ast_node_type() != AstNodeType::Interface) {
@@ -1517,7 +1517,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_module_like_node(
 				for (auto &i : cls_node->scope->impl_types) {
 					AstNodePtr<MemberNode> implemented_type_node;
 
-					if (i->tn_kind == TypeNameKind::Custom) {
+					if (i->get_typename_kind() == TypeNameKind::Custom) {
 						if (!(compilation_error = resolve_custom_type_name(compile_env, cls_node->document->shared_from_this(), i.cast_to<CustomTypeNameNode>(), implemented_type_node))) {
 							if (implemented_type_node) {
 								if (implemented_type_node->get_ast_node_type() != AstNodeType::Interface) {

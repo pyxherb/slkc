@@ -281,7 +281,7 @@ SLKC_API peff::Option<CompilationError> Document::instantiate_generic_object(
 				for (auto &task : type_name_tasks) {
 					auto &type_name = task.type_name;
 
-					switch (type_name->tn_kind) {
+					switch (type_name->get_typename_kind()) {
 						case TypeNameKind::Array: {
 							AstNodePtr<ArrayTypeNameNode> tn = type_name.cast_to<ArrayTypeNameNode>();
 
@@ -320,9 +320,9 @@ SLKC_API peff::Option<CompilationError> Document::instantiate_generic_object(
 										it != task.context->mapped_generic_args.end()) {
 										if (it.value()->get_ast_node_type() != AstNodeType::TypeName)
 											return CompilationError(it.value()->token_range, CompilationErrorKind::ExpectingTypeName);
-										bool nullable = type_name->is_nullable;
+										bool nullable = type_name->is_nullable();
 										type_name = it.value().cast_to<TypeNameNode>();
-										type_name->is_nullable = nullable;
+										type_name->set_nullable(nullable);
 										break;
 									}
 								}
@@ -576,10 +576,10 @@ SLKC_API peff::Option<CompilationError> Document::instantiate_generic_object(
 					AstNodePtr<TypeNameNode> cur_param_type = fn_slot->params.at(i)->type;
 
 					if (cur_param_type) {
-						if (cur_param_type->tn_kind == TypeNameKind::Unpacking) {
+						if (cur_param_type->get_typename_kind() == TypeNameKind::Unpacking) {
 							AstNodePtr<UnpackingTypeNameNode> unpacking_type = cur_param_type.cast_to<UnpackingTypeNameNode>();
 
-							if (unpacking_type->inner_type_name->tn_kind == TypeNameKind::ParamTypeList) {
+							if (unpacking_type->inner_type_name->get_typename_kind() == TypeNameKind::ParamTypeList) {
 								AstNodePtr<ParamTypeListTypeNameNode> inner_type_name = unpacking_type->inner_type_name.cast_to<ParamTypeListTypeNameNode>();
 
 								if (!fn_slot->params.erase_range_and_shrink(i, i + 1))

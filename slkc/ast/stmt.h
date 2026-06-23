@@ -28,12 +28,17 @@ namespace slkc {
 	};
 
 	class StmtNode : public AstNode {
-	public:
+	private:
 		StmtKind stmt_kind;
 
+	public:
 		SLKC_API StmtNode(StmtKind stmt_kind, peff::Alloc *self_allocator, const peff::SharedPtr<Document> &document);
 		SLKC_API StmtNode(const StmtNode &rhs, peff::Alloc *allocator, DuplicationContext &context);
 		SLKC_API virtual ~StmtNode();
+
+		SLAKE_FORCEINLINE StmtKind get_stmt_kind() const noexcept {
+			return stmt_kind;
+		}
 	};
 
 	class ExprStmtNode : public StmtNode {

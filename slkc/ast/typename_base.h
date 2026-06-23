@@ -43,64 +43,88 @@ namespace slkc {
 	};
 
 	class TypeNameNode : public AstNode {
-	public:
+	private:
 		const TypeNameKind tn_kind;
-		bool is_final = false;
-		bool is_local = false;
-		bool is_nullable = false;
 
+		bool _is_final = false;
+		bool _is_local = false;
+		bool _is_nullable = false;
+
+	public:
 		size_t idx_final_token = SIZE_MAX, idx_local_token = SIZE_MAX, idx_nullable_token = SIZE_MAX;
 
 		SLKC_API TypeNameNode(TypeNameKind tn_kind, peff::Alloc *self_allocator, const peff::SharedPtr<Document> &document);
 		SLKC_API TypeNameNode(const TypeNameNode &rhs, peff::Alloc *self_allocator, DuplicationContext &context);
 		SLKC_API virtual ~TypeNameNode();
 
-		SLAKE_FORCEINLINE void set_final() noexcept {
-			is_final = true;
+		/// @brief Get typename kind of the type name node.
+		///
+		/// @return Type name kind of the type name node.
+		SLAKE_FORCEINLINE TypeNameKind get_typename_kind() const noexcept {
+			return tn_kind;
 		}
 
-		SLAKE_FORCEINLINE void set_local() noexcept {
-			is_local = true;
+		/// @brief Check if the type name node is with `final` modifier.
+		///
+		/// @return Whether the type name node is with `final` modifier.
+		SLAKE_FORCEINLINE bool is_final() const noexcept {
+			return _is_final;
 		}
 
-		SLAKE_FORCEINLINE void set_nullable() noexcept {
-			is_nullable = true;
+		/// @brief Set if the type name node is with `final` modifier.
+		///
+		/// @param b Whether the type name node will be set to be with `final` modifier.
+		SLAKE_FORCEINLINE void set_final(bool b) noexcept {
+			_is_final = b;
 		}
 
-		SLAKE_FORCEINLINE void clear_final() noexcept {
-			is_final = false;
+		/// @brief Check if the type name node is with `local` modifier.
+		///
+		/// @return Whether the type name node is with `local` modifier.
+		SLAKE_FORCEINLINE bool is_local() const noexcept {
+			return _is_local;
 		}
 
-		SLAKE_FORCEINLINE void clear_local() noexcept {
-			is_local = false;
+		/// @brief Set if the type name node is with `local` modifier.
+		///
+		/// @param b Whether the type name node is with `local` modifier.
+		SLAKE_FORCEINLINE void set_local(bool b) noexcept {
+			_is_local = b;
 		}
 
-		SLAKE_FORCEINLINE void clear_nullable() noexcept {
-			is_nullable = false;
+		/// @brief Check if the type name node is nullable.
+		///
+		/// @return Whether the type name node is nullable.
+		SLAKE_FORCEINLINE bool is_nullable() const noexcept {
+			return _is_nullable;
 		}
 
+		/// @brief Set if the type name node is nullable.
+		///
+		/// @param b Whether the type name node will be set to be nullable.
+		SLAKE_FORCEINLINE void set_nullable(bool b) noexcept {
+			_is_nullable = b;
+		}
+
+		/// @brief Check if the type name node is explicitly marked as `final` in the source.
+		///
+		/// @return Whether the type name node is explicitly marked as `final` in the source.
 		SLAKE_FORCEINLINE bool is_explicit_final() const noexcept {
 			return idx_final_token != SIZE_MAX;
 		}
 
+		/// @brief Check if the type name node is explicitly marked as `local` in the source.
+		///
+		/// @return Whether the type name node is explicitly marked as `local in the source.
 		SLAKE_FORCEINLINE bool is_explicit_local() const noexcept {
 			return idx_local_token != SIZE_MAX;
 		}
 
+		/// @brief Check if the type name node is explicitly marked as nullable in the source.
+		///
+		/// @return Whether the type name node is explicitly marked as nullable in the source.
 		SLAKE_FORCEINLINE bool is_explicit_nullable() const noexcept {
 			return idx_nullable_token != SIZE_MAX;
-		}
-
-		SLAKE_FORCEINLINE bool is_implicit_final() const noexcept {
-			return idx_final_token == SIZE_MAX;
-		}
-
-		SLAKE_FORCEINLINE bool is_implicit_local() const noexcept {
-			return idx_local_token == SIZE_MAX;
-		}
-
-		SLAKE_FORCEINLINE bool is_implicit_nullable() const noexcept {
-			return idx_nullable_token == SIZE_MAX;
 		}
 	};
 }

@@ -552,7 +552,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_while_stmt(
 	peff::ScopeGuard pop_block_context_guard([compilation_context]() noexcept {
 		compilation_context->leave_block();
 	});
-	if (s->body->stmt_kind == StmtKind::VarDef) {
+	if (s->body->get_stmt_kind() == StmtKind::VarDef) {
 		SLKC_RETURN_IF_COMP_ERROR(
 			compilation_context->emit_ins(
 				sld_index, slake::Opcode::ENTER,
@@ -612,7 +612,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_while_stmt(
 			{ slake::Value(slake::ValueType::Label, continue_label) }));
 
 	compilation_context->set_label_offset(normal_exit_label, compilation_context->get_cur_ins_off());
-	if (s->body->stmt_kind == StmtKind::VarDef)
+	if (s->body->get_stmt_kind() == StmtKind::VarDef)
 		SLKC_RETURN_IF_COMP_ERROR(
 			compilation_context->emit_ins(
 				sld_index, slake::Opcode::LEAVE,
@@ -682,7 +682,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_do_while_stmt(
 	peff::ScopeGuard pop_block_context_guard([compilation_context]() noexcept {
 		compilation_context->leave_block();
 	});
-	if (s->body->stmt_kind == StmtKind::VarDef) {
+	if (s->body->get_stmt_kind() == StmtKind::VarDef) {
 		SLKC_RETURN_IF_COMP_ERROR(
 			compilation_context->emit_ins(
 				sld_index, slake::Opcode::ENTER,
@@ -724,7 +724,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_do_while_stmt(
 				slake::Value(slake::ValueType::Label, break_label) }));
 
 	compilation_context->set_label_offset(normal_exit_label, compilation_context->get_cur_ins_off());
-	if (s->body->stmt_kind == StmtKind::VarDef) {
+	if (s->body->get_stmt_kind() == StmtKind::VarDef) {
 		SLKC_RETURN_IF_COMP_ERROR(
 			compilation_context->emit_ins(
 				sld_index, slake::Opcode::LEAVE,
@@ -971,7 +971,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_switch_stmt(
 	for (size_t i = 0; i < s->body.size(); ++i) {
 		AstNodePtr<StmtNode> cur_stmt = s->body.at(i);
 
-		if (cur_stmt->stmt_kind == StmtKind::CaseLabel) {
+		if (cur_stmt->get_stmt_kind() == StmtKind::CaseLabel) {
 			compilation_context->set_label_offset(match_value_eval_labels.at(i), compilation_context->get_cur_ins_off());
 			continue;
 		}
@@ -1062,7 +1062,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_return_stmt(
 	uint32_t reg;
 
 	if (s->value) {
-		if (compile_env->cur_overloading->return_type->tn_kind == TypeNameKind::Void)
+		if (compile_env->cur_overloading->return_type->get_typename_kind() == TypeNameKind::Void)
 			return CompilationError(s->value->token_range, CompilationErrorKind::ReturnValueTypeDoesNotMatch);
 		CompileExprResult result(compile_env->allocator.get());
 
@@ -1155,7 +1155,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_stmt(
 	uint32_t sld_index;
 	SLKC_RETURN_IF_COMP_ERROR(compilation_context->register_source_loc_desc(token_range_to_sld(stmt->token_range), sld_index));
 
-	switch (stmt->stmt_kind) {
+	switch (stmt->get_stmt_kind()) {
 		case StmtKind::Expr: {
 			SLKC_RETURN_IF_COMP_ERROR(compile_expr_stmt(compile_env, compilation_context, path_env, stmt.cast_to<ExprStmtNode>(), sld_index));
 			break;

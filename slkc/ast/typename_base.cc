@@ -8,9 +8,9 @@ SLKC_API TypeNameNode::TypeNameNode(TypeNameKind tn_kind, peff::Alloc *self_allo
 SLKC_API TypeNameNode::TypeNameNode(const TypeNameNode &rhs, peff::Alloc *self_allocator, DuplicationContext &context)
 	: AstNode(rhs, self_allocator, context),
 	  tn_kind(rhs.tn_kind),
-	  is_final(rhs.is_final),
-	  is_local(rhs.is_local),
-	  is_nullable(rhs.is_nullable),
+	  _is_final(rhs._is_final),
+	  _is_local(rhs._is_local),
+	  _is_nullable(rhs._is_nullable),
 	  idx_final_token(rhs.idx_final_token),
 	  idx_local_token(rhs.idx_local_token) {
 }

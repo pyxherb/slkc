@@ -627,7 +627,7 @@ SLKC_API ParseCoroutine Parser::parse_switch_stmt(peff::Alloc *allocator, AstNod
 
 		if (cur_stmt) {
 			// We detect and push case labels in advance to deal with them easier.
-			if (cur_stmt->stmt_kind == StmtKind::CaseLabel) {
+			if (cur_stmt->get_stmt_kind() == StmtKind::CaseLabel) {
 				if (!stmt->case_offsets.push_back(stmt->body.size()))
 					co_return gen_oom_syntax_error();
 			}

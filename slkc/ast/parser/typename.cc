@@ -397,21 +397,21 @@ SLKC_API ParseCoroutine Parser::parse_type_name(peff::Alloc *allocator, AstNodeP
 				case TokenId::FinalKeyword: {
 					next_token();
 
-					type_name_out->is_final = true;
+					type_name_out->set_final(true);
 					type_name_out->idx_final_token = t->index;
 					break;
 				}
 				case TokenId::LocalKeyword: {
 					next_token();
 
-					type_name_out->is_local = true;
+					type_name_out->set_final(true);
 					type_name_out->idx_local_token = t->index;
 					break;
 				}
 				case TokenId::Question: {
 					next_token();
 
-					type_name_out->is_nullable = true;
+					type_name_out->set_nullable(true);
 					type_name_out->idx_nullable_token = t->index;
 					break;
 				}

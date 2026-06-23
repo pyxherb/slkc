@@ -204,7 +204,7 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 			}
 			result_out.idx_result_reg_out = lhs_result.idx_result_reg_out;
 
-			if (!(rhs_type->is_nullable) && (desired_rhs_type->is_nullable)) {
+			if (!(rhs_type->is_nullable()) && (desired_rhs_type->is_nullable())) {
 				SLKC_RETURN_IF_COMP_ERROR(
 					remove_nullable_of_type(desired_rhs_type, desired_rhs_type));
 			}
@@ -218,10 +218,10 @@ static peff::Option<CompilationError> _compile_simple_assign_expr(
 				{ slake::Value(slake::ValueType::RegIndex, result_out.idx_result_reg_out), slake::Value(slake::ValueType::RegIndex, rhs_reg) }));
 
 			if (lhs_result.evaluated_var_chain.size()) {
-				if (rhs_result.evaluated_type->tn_kind == TypeNameKind::Null) {
+				if (rhs_result.evaluated_type->get_typename_kind() == TypeNameKind::Null) {
 					SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Nullify));
 				} else {
-					if (rhs_result.evaluated_type->is_nullable) {
+					if (rhs_result.evaluated_type->is_nullable()) {
 						if (rhs_result.evaluated_var_chain.size()) {
 							if (auto override_type = path_env->lookup_var_nullity_override(rhs_result.evaluated_var_chain); override_type.has_value()) {
 								SLKC_RETURN_IF_COMP_ERROR(path_env->set_local_var_nullity_override(lhs_result.evaluated_var_chain, override_type.value()));
@@ -546,13 +546,13 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_equality_judgement_invol
 	//
 	if (lhs_result.evaluated_final_member && (lhs_result.evaluated_final_member->get_ast_node_type() == AstNodeType::Var)) {
 		AstNodePtr<VarNode> v = lhs_result.evaluated_final_member.cast_to<VarNode>();
-		if (v->type->is_nullable) {
+		if (v->type->is_nullable()) {
 			AstNodePtr<TypeNameNode> decayed_rhs_type;
 			SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(rhs_type, decayed_rhs_type));
-			if (decayed_rhs_type->tn_kind == TypeNameKind::Null) {
+			if (decayed_rhs_type->get_typename_kind() == TypeNameKind::Null) {
 				// v == null
 				SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Nullify));
-			} else if (decayed_rhs_type->is_nullable) {
+			} else if (decayed_rhs_type->is_nullable()) {
 				// v == T?
 				SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
 			} else {
@@ -565,11 +565,11 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_equality_judgement_invol
 			AstNodePtr<VarNode> v = rhs_result.evaluated_final_member.cast_to<VarNode>();
 			AstNodePtr<TypeNameNode> decayed_lhs_type;
 			SLKC_RETURN_IF_COMP_ERROR(remove_ref_of_type(rhs_type, decayed_lhs_type));
-			if (v->type->is_nullable) {
-				if (decayed_lhs_type->tn_kind == TypeNameKind::Null) {
+			if (v->type->is_nullable()) {
+				if (decayed_lhs_type->get_typename_kind() == TypeNameKind::Null) {
 					// null == v
 					SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(rhs_result.evaluated_var_chain, NullOverrideType::Nullify));
-				} else if (decayed_lhs_type->is_nullable) {
+				} else if (decayed_lhs_type->is_nullable()) {
 					// T? == v
 					SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(rhs_result.evaluated_var_chain, NullOverrideType::Uncertain));
 				} else {
@@ -590,8 +590,8 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_inequality_judgement_inv
 	CompileExprResult &result_out) {
 	if (lhs_result.evaluated_final_member && (lhs_result.evaluated_final_member->get_ast_node_type() == AstNodeType::Var)) {
 		AstNodePtr<VarNode> v = lhs_result.evaluated_final_member.cast_to<VarNode>();
-		if (v->type->is_nullable) {
-			if (rhs_type->tn_kind == TypeNameKind::Null) {
+		if (v->type->is_nullable()) {
+			if (rhs_type->get_typename_kind() == TypeNameKind::Null) {
 				// v != null
 				SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(lhs_result.evaluated_var_chain, NullOverrideType::Denullify));
 			} else {
@@ -601,8 +601,8 @@ PEFF_FORCEINLINE peff::Option<CompilationError> _update_inequality_judgement_inv
 	} else {
 		if (rhs_result.evaluated_final_member && (rhs_result.evaluated_final_member->get_ast_node_type() == AstNodeType::Var)) {
 			AstNodePtr<VarNode> v = rhs_result.evaluated_final_member.cast_to<VarNode>();
-			if (v->type->is_nullable) {
-				if (lhs_type->tn_kind == TypeNameKind::Null) {
+			if (v->type->is_nullable()) {
+				if (lhs_type->get_typename_kind() == TypeNameKind::Null) {
 					// null != v
 					SLKC_RETURN_IF_COMP_ERROR(result_out.guard_path_env.set_local_var_nullity_override(rhs_result.evaluated_var_chain, NullOverrideType::Denullify));
 				} else {
@@ -674,7 +674,7 @@ static peff::Option<CompilationError> compile_integral_binary_expr(
 		return gen_oom_comp_error();
 	}
 
-	if (!main_operation_type->is_nullable) {
+	if (!main_operation_type->is_nullable()) {
 		switch (expr->binary_op) {
 			case BinaryOp::Add:
 				SLKC_RETURN_IF_COMP_ERROR(
@@ -1264,7 +1264,7 @@ static peff::Option<CompilationError> compile_floating_point_binary_expr(
 		return gen_oom_comp_error();
 	}
 
-	if (main_operation_type->is_nullable) {
+	if (main_operation_type->is_nullable()) {
 		switch (expr->binary_op) {
 			case BinaryOp::Add:
 				SLKC_RETURN_IF_COMP_ERROR(
@@ -1734,8 +1734,8 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 	}
 
 	// Deal with the RHS to LHS user binary operator.
-	if ((decayed_rhs_type->tn_kind == TypeNameKind::Custom) &&
-		(decayed_lhs_type->tn_kind != TypeNameKind::Custom)) {
+	if ((decayed_rhs_type->get_typename_kind() == TypeNameKind::Custom) &&
+		(decayed_lhs_type->get_typename_kind() != TypeNameKind::Custom)) {
 		switch (expr->binary_op) {
 			case BinaryOp::Add:
 			case BinaryOp::Sub:
@@ -1972,7 +1972,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 	{
 		AstNodePtr<TypeNameNode> main_operation_type;
 
-		if (decayed_lhs_type->tn_kind == TypeNameKind::Custom) {
+		if (decayed_lhs_type->get_typename_kind() == TypeNameKind::Custom) {
 			main_operation_type = decayed_lhs_type;
 		} else {
 			switch (expr->binary_op) {
@@ -1989,11 +1989,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 				default: {
 					do {
 						{
-							if (((!decayed_lhs_type->is_nullable) && (decayed_lhs_type->tn_kind == TypeNameKind::Bool))) {
+							if (((!decayed_lhs_type->is_nullable()) && (decayed_lhs_type->get_typename_kind() == TypeNameKind::Bool))) {
 								main_operation_type = decayed_lhs_type;
 								break;
 							}
-							if ((!decayed_rhs_type->is_nullable) && (decayed_rhs_type->tn_kind == TypeNameKind::Bool)) {
+							if ((!decayed_rhs_type->is_nullable()) && (decayed_rhs_type->get_typename_kind() == TypeNameKind::Bool)) {
 								main_operation_type = decayed_rhs_type;
 								break;
 							}
@@ -2019,11 +2019,11 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 								break;
 							}
 
-							if (decayed_lhs_type->is_nullable) {
+							if (decayed_lhs_type->is_nullable()) {
 								main_operation_type = decayed_lhs_type;
 								break;
 							} else {
-								if (decayed_rhs_type->is_nullable) {
+								if (decayed_rhs_type->is_nullable()) {
 									main_operation_type = decayed_rhs_type;
 									break;
 								}
@@ -2040,7 +2040,7 @@ SLKC_API peff::Option<CompilationError> slkc::compile_binary_expr(
 			}
 		}
 
-		switch (main_operation_type->tn_kind) {
+		switch (main_operation_type->get_typename_kind()) {
 			case TypeNameKind::I8:
 				SLKC_RETURN_IF_COMP_ERROR(
 					compile_integral_binary_expr(
