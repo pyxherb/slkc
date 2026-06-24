@@ -5,6 +5,23 @@
 
 namespace slkc {
 	namespace ast {
+		class ArrayTypeDefNode : public Node {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *value_out, bool deep_dump) const noexcept override;
+
+			friend Global;
+
+		public:
+			TypeName element_type;
+
+			SLKC_API ArrayTypeDefNode(Global *global);
+			SLKC_API ArrayTypeDefNode(const ArrayTypeDefNode &other, DuplicationContext &context, peff::Option<DuplicationResult> &result_out);
+			SLKC_API virtual ~ArrayTypeDefNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
 	}
 }
 
