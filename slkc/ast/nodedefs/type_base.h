@@ -162,6 +162,8 @@ namespace slkc {
 				return idx_nullable_token != SIZE_MAX;
 			}
 		};
+
+		SLKC_API DumpResult dump_typename(wandjson::ObjectValue *target_object, DumpContext &dump_context, const TypeName &tn, bool deep_dump);
 	}
 }
 

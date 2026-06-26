@@ -39,6 +39,7 @@ namespace slkc {
 			PEFF_FORCEINLINE OwnedIdRef(peff::Alloc *self_allocator) : entries(self_allocator) {}
 			PEFF_FORCEINLINE OwnedIdRef(OwnedIdRef &&rhs) : entries(std::move(rhs.entries)) {
 			}
+			OwnedIdRef &operator=(OwnedIdRef &&) = default;
 
 			PEFF_FORCEINLINE operator IdRefView() noexcept {
 				return entries;
@@ -50,6 +51,9 @@ namespace slkc {
 
 			SLKC_API peff::Option<OwnedIdRef> duplicate(peff::Alloc *new_allocator) const noexcept;
 		};
+
+		SLKC_API DumpResult dump_id_ref_entry(wandjson::ObjectValue *target_object, DumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump);
+		SLKC_API DumpResult dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const IdRefView &id_ref, bool deep_dump);
 	}
 }
 

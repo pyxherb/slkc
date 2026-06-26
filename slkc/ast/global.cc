@@ -5,49 +5,6 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()) {
-}
-
-SLKC_API peff::Option<NodeIndex> DuplicationContext::push_task(NodeIndex node_index) noexcept {
-	if (!task_list.push_back({ INVALID_NODE_INDEX, node_index }))
-		return peff::NULL_OPTION;
-
-	peff::ScopeGuard sg([this]() noexcept {
-		task_list.pop_back();
-	});
-
-	auto result = global->map_node(nullptr);
-
-	if (!result.has_value())
-		return peff::NULL_OPTION;
-
-	if (*result == INVALID_NODE_INDEX)
-		return INVALID_NODE_INDEX;
-
-	task_list.back().dest = *result;
-
-	sg.release();
-
-	return result;
-}
-
-SLKC_API peff::Option<TypeName> DuplicationContext::push_task(const TypeName &type_name) noexcept {
-	auto def = type_name.get_def();
-	if (!def)
-		return type_name;
-
-	auto result_index = this->push_task(def.get_index());
-
-	if (!result_index.has_value())
-		return peff::NULL_OPTION;
-
-	TypeName tn = type_name;
-
-	tn.set_def(NodePtr<TypeNameDefNode>(global, *result_index));
-
-	return tn;
-}
-
 SLKC_API void Global::_clear_zero_ref_node_registry_list() noexcept {
 	while (_zero_ref_node_registry_list) {
 		for (NodeRegistry *i = _zero_ref_node_registry_list; i; i = i->next_zero_ref) {

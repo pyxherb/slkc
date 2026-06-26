@@ -83,13 +83,33 @@ namespace slkc {
 			}
 		};
 
-		enum class DumpResult {
-			Ok,
-			OutOfMemory,
-			PinningFailed
-		};
+		struct DumpContext {
+		private:
+			struct DumpTask {
+				NodeIndex src;
+				wandjson::ObjectValue *dest;
+			};
 
-		struct DumpContext;
+			Global *global;
+			peff::RcObjectPtr<peff::Alloc> allocator;
+			peff::List<DumpTask> task_list;
+
+			wandjson::ObjectValue *root_value;
+
+			friend class Global;
+
+		public:
+			SLKC_API DumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
+			SLKC_API bool push_task(wandjson::ObjectValue *dest, NodeIndex src) noexcept;
+
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
+				return global;
+			}
+
+			SLAKE_FORCEINLINE peff::Alloc *get_allocator() const noexcept {
+				return allocator.get();
+			}
+		};
 
 		class Node {
 		private:
@@ -130,17 +150,21 @@ namespace slkc {
 	}
 }
 
+/// @brief Macro used for declaring a simple instance of the deallocation method for an AST node class.
 #define SLKC_SIMPLE_AST_DEALLOC_FN_DECL() \
 	SLKC_API void dealloc() noexcept override
 
+/// @brief Macro used for defining a simple instance of the deallocation method for an AST node class.
 #define SLKC_SIMPLE_AST_DEALLOC_FN_DEF(name)                                                       \
 	SLKC_API void name::dealloc() noexcept {                                                       \
 		peff::destroy_and_release<name>(this->get_global()->get_allocator(), this, alignof(name)); \
 	}
 
+/// @brief Macro used for declaring a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DECL() \
 	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationResult> do_duplicate(DuplicationContext &duplication_context) const noexcept override;
 
+/// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                               \
 	SLKC_API peff::Result<Node *, DuplicationResult> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                            \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node<name>(duplication_context.get_global(), *this, duplication_context)); \
@@ -151,6 +175,7 @@ namespace slkc {
 		return ptr.release();                                                                                                                                \
 	}
 
+/// @brief Macro used for defining a simple instance of the duplication method with a result output for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                               \
 	SLKC_API peff::Result<Node *, DuplicationResult> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                                        \
 		peff::Option<DuplicationResult> result;                                                                                                                          \
