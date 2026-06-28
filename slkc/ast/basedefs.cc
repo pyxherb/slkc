@@ -1,4 +1,4 @@
-#include "nodeutil.h"
+#include "utils.h"
 
 using namespace slkc;
 using namespace slkc::ast;
@@ -22,4 +22,8 @@ SLKC_API DumpResult slkc::ast::dump_token_range(wandjson::ObjectValue *target_ob
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
+}
+
+SLKC_API wandjson::StringValue *slkc::ast::dump_string(DumpContext &dump_context, std::string_view sv) noexcept {
+	return wandjson::StringValue::alloc(dump_context.get_allocator(), sv);
 }

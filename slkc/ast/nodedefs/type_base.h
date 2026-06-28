@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_NODEDEFS_TYPE_BASE_H_
 #define _SLKC_AST_NODEDEFS_TYPE_BASE_H_
 
-#include "../nodeutil.h"
+#include "../utils.h"
 
 namespace slkc {
 	namespace ast {
@@ -49,7 +49,7 @@ namespace slkc {
 			SLKC_API virtual ~TypeNameDefNode();
 		};
 
-		struct TypeName {
+		struct TypeName final {
 		private:
 			NodePtr<TypeNameDefNode> _typename_def;
 

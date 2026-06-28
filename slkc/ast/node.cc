@@ -17,23 +17,23 @@ SLKC_API Node::Node(const Node &other, DuplicationContext &context)
 SLKC_API Node::~Node() {
 }
 
-SLKC_API DumpResult Node::do_dump(DumpContext &dump_context, wandjson::ObjectValue *value_out, bool deep_dump) const noexcept {
+SLKC_API DumpResult Node::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_ast_node_type())))))
 		return DumpResult::OutOfMemory;
-	if (!value_out->insert("node_type", v.release()))
+	if (!target_object->insert("node_type", v.release()))
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
 }
 
-SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()) {
+SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()), post_run_hooks(global->get_allocator()) {
 }
 
-SLKC_API peff::Option<NodeIndex> DuplicationContext::push_task(NodeIndex node_index) noexcept {
+SLKC_API peff::Result<NodeIndex, DuplicationResult> DuplicationContext::push_task(NodeIndex node_index) noexcept {
 	if (!task_list.push_back({ INVALID_NODE_INDEX, node_index }))
-		return peff::NULL_OPTION;
+		return DuplicationResult::OutOfMemory;
 
 	peff::ScopeGuard sg([this]() noexcept {
 		task_list.pop_back();
@@ -42,31 +42,32 @@ SLKC_API peff::Option<NodeIndex> DuplicationContext::push_task(NodeIndex node_in
 	auto result = global->map_node(nullptr);
 
 	if (!result.has_value())
-		return peff::NULL_OPTION;
+		return DuplicationResult::OutOfMemory;
 
 	if (*result == INVALID_NODE_INDEX)
-		return INVALID_NODE_INDEX;
+		return DuplicationResult::NoSlot;
 
 	task_list.back().dest = *result;
 
 	sg.release();
 
-	return result;
+	return result.move();
 }
 
-SLKC_API peff::Option<TypeName> DuplicationContext::push_task(const TypeName &type_name) noexcept {
+SLKC_API peff::Result<TypeName, DuplicationResult> DuplicationContext::push_task(const TypeName &type_name) noexcept {
 	auto def = type_name.get_def();
 	if (!def)
-		return type_name;
+		return TypeName(type_name);
 
 	auto result_index = this->push_task(def.get_index());
 
-	if (!result_index.has_value())
-		return peff::NULL_OPTION;
+	if(result_index.has_error()) {
+		return std::move(result_index).error();
+	}
 
 	TypeName tn = type_name;
 
-	tn.set_def(NodePtr<TypeNameDefNode>(global, *result_index));
+	tn.set_def(NodePtr<TypeNameDefNode>(global, result_index.value()));
 
 	return tn;
 }

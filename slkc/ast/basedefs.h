@@ -27,6 +27,7 @@ namespace slkc {
 		struct DumpContext;
 
 		SLKC_API DumpResult dump_token_range(wandjson::ObjectValue *target_object, DumpContext &dump_context, const TokenRange &token_range);
+		SLKC_API wandjson::StringValue *dump_string(DumpContext &dump_context, std::string_view sv) noexcept;
 	}
 }
 

@@ -52,7 +52,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 	return DumpResult::Ok;
 }
 
-SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const IdRefView &id_ref, bool deep_dump) {
+SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	for (const auto &i : id_ref) {

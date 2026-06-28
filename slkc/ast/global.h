@@ -7,9 +7,9 @@
 
 namespace slkc {
 	namespace ast {
-		struct NodeRegistry {
+		struct NodeRegistry final {
 			NodeRegistry *next_zero_ref = nullptr;
-			std::atomic_size_t ref_count = 0, pin_count = 0;
+			size_t ref_count = 0, pin_count = 0;
 			std::unique_ptr<Node, peff::DeallocableDeleter<Node>> in_memory;
 			NodeIndex self_index;
 
@@ -22,10 +22,39 @@ namespace slkc {
 			}
 		};
 
-		class Global {
+		struct GlobalSharedString {
+		private:
+			Global *_global;
+			char *_ptr;
+			size_t _length;
+			std::atomic_size_t _ref_count = 0;
+
+			friend class Global;
+			friend struct GlobalSharedStringRef;
+
+		public:
+			SLKC_API GlobalSharedString() noexcept;
+			PEFF_FORCEINLINE GlobalSharedString(GlobalSharedString &&rhs) noexcept
+				: _global(rhs._global),
+				  _ptr(rhs._ptr),
+				  _length(rhs._length),
+				  _ref_count(+rhs._ref_count) {
+				rhs._ptr = nullptr;
+			}
+			SLKC_API ~GlobalSharedString();
+
+			PEFF_FORCEINLINE operator std::string_view() const noexcept {
+				return std::string_view(_ptr, _length);
+			}
+		};
+
+		class Global final {
 		private:
 			peff::RcObjectPtr<peff::Alloc> resource_allocator;
 			peff::Map<NodeIndex, NodeRegistry> _node_registries;
+			// TODO: Use HashMap instead after the alt version of functions are done.
+			peff::Set<GlobalSharedString, std::less<std::string_view>> _shared_strings;
+			std::mutex _shared_strings_mutex;
 			NodeRegistry *_zero_ref_node_registry_list = nullptr;
 			std::recursive_mutex _node_registries_mutex;
 			NodeIndex _min_free_node_index = 0;
@@ -86,6 +115,69 @@ namespace slkc {
 
 			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_node(NodeIndex node_index) noexcept;
 			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_node(NodeIndex node_index) noexcept;
+
+			SLKC_API GlobalSharedString *register_shared_string(std::string_view sv) noexcept;
+			SLKC_API void unregister_shared_string(std::string_view s) noexcept;
+		};
+
+		struct GlobalSharedStringRef {
+		private:
+			GlobalSharedString *_string;
+
+			PEFF_FORCEINLINE void _reset() {
+				if (_string) {
+					if (!--_string->_ref_count) {
+						_string->_global->unregister_shared_string(*_string);
+					}
+					_string = nullptr;
+				}
+			}
+
+		public:
+			PEFF_FORCEINLINE GlobalSharedStringRef() noexcept : _string(nullptr) {
+			}
+			PEFF_FORCEINLINE GlobalSharedStringRef(GlobalSharedString *string) noexcept : _string(string) {
+				++_string->_ref_count;
+			}
+			PEFF_FORCEINLINE GlobalSharedStringRef(const GlobalSharedStringRef &rhs) noexcept : _string(rhs._string) {
+				++_string->_ref_count;
+			}
+			PEFF_FORCEINLINE GlobalSharedStringRef(GlobalSharedStringRef &&rhs) noexcept : _string(rhs._string) {
+				rhs._string = nullptr;
+			}
+
+			PEFF_FORCEINLINE GlobalSharedStringRef &operator=(const GlobalSharedStringRef &rhs) noexcept {
+				_reset();
+				if (rhs._string) {
+					_string = rhs._string;
+					++_string->_ref_count;
+				}
+				return *this;
+			}
+			PEFF_FORCEINLINE GlobalSharedStringRef &operator=(GlobalSharedStringRef &&rhs) noexcept {
+				_reset();
+				if (rhs._string) {
+					_string = rhs._string;
+					rhs._string = nullptr;
+				}
+				return *this;
+			}
+
+			PEFF_FORCEINLINE std::string_view get() const noexcept {
+				return *_string;
+			}
+
+			PEFF_FORCEINLINE operator std::string_view() const noexcept {
+				return *_string;
+			}
+
+			PEFF_FORCEINLINE std::strong_ordering operator<=>(const GlobalSharedStringRef &rhs) const noexcept {
+				return _string <=> rhs._string;
+			}
+
+			bool operator<(const GlobalSharedStringRef &) const noexcept = default;
+			bool operator>(const GlobalSharedStringRef &) const noexcept = default;
+			bool operator==(const GlobalSharedStringRef &) const noexcept = default;
 		};
 
 		template <typename T, typename... Args>
@@ -109,6 +201,21 @@ namespace slkc {
 			return peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), std::forward<Args>(args)...);
 		}
 	}
+}
+
+namespace peff {
+	template <>
+	struct Hasher<slkc::ast::GlobalSharedStringRef> {
+		peff::Hasher<std::string_view> _impl;
+
+		PEFF_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) {
+			return _impl(rhs);
+		}
+
+		PEFF_FORCEINLINE size_t operator()(const std::string_view &rhs) {
+			return _impl(rhs);
+		}
+	};
 }
 
 #endif

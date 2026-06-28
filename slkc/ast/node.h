@@ -49,7 +49,9 @@ namespace slkc {
 
 			This,
 
-			TypeNameDef
+			TypeNameDef,
+
+			Scope
 		};
 
 		class Global;
@@ -62,7 +64,13 @@ namespace slkc {
 
 		struct TypeName;
 
-		struct DuplicationContext {
+		class DuplicationContextHook {
+		public:
+			virtual DuplicationResult run() = 0;
+			virtual void dealloc() noexcept = 0;
+		};
+
+		struct DuplicationContext final {
 		private:
 			struct DuplicationTask {
 				NodeIndex dest, src;
@@ -70,20 +78,23 @@ namespace slkc {
 
 			Global *global;
 			peff::List<DuplicationTask> task_list;
+			peff::List<std::unique_ptr<DuplicationContextHook, peff::DeallocableDeleter<DuplicationContextHook>>> post_run_hooks;
 
 			friend class Global;
 
 		public:
 			SLKC_API DuplicationContext(Global *global);
-			SLKC_API peff::Option<NodeIndex> push_task(NodeIndex node_index) noexcept;
-			SLKC_API peff::Option<TypeName> push_task(const TypeName &type_name) noexcept;
+			SLKC_API peff::Result<NodeIndex, DuplicationResult> push_task(NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<TypeName, DuplicationResult> push_task(const TypeName &type_name) noexcept;
+
+			[[nodiscard]] SLKC_API bool push_post_run_hook(DuplicationContextHook *hook) noexcept;
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return global;
 			}
 		};
 
-		struct DumpContext {
+		struct DumpContext final {
 		private:
 			struct DumpTask {
 				NodeIndex src;
@@ -113,14 +124,14 @@ namespace slkc {
 
 		class Node {
 		private:
-			const NodeType _ast_node_type;
 			Global *const _global;
 			TokenRange _token_range;
+			const NodeType _ast_node_type;
 
 		protected:
 			[[nodiscard]] virtual peff::Result<Node *, DuplicationResult> do_duplicate(DuplicationContext &duplication_context) const noexcept = 0;
 
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *value_out, bool deep_dump) const noexcept;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
 			friend Global;
 

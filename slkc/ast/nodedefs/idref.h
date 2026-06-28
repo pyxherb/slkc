@@ -7,7 +7,7 @@
 
 namespace slkc {
 	namespace ast {
-		struct IdRefEntry {
+		struct IdRefEntry final {
 			peff::String name;
 			peff::DynArray<TypeName> generic_args;
 
@@ -33,7 +33,7 @@ namespace slkc {
 		using IdRefView = std::span<IdRefEntry>;
 		using ConstIdRefView = std::span<const IdRefEntry>;
 
-		struct OwnedIdRef {
+		struct OwnedIdRef final {
 			peff::DynArray<IdRefEntry> entries;
 
 			PEFF_FORCEINLINE OwnedIdRef(peff::Alloc *self_allocator) : entries(self_allocator) {}
@@ -53,7 +53,7 @@ namespace slkc {
 		};
 
 		SLKC_API DumpResult dump_id_ref_entry(wandjson::ObjectValue *target_object, DumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump);
-		SLKC_API DumpResult dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const IdRefView &id_ref, bool deep_dump);
+		SLKC_API DumpResult dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump);
 	}
 }
 

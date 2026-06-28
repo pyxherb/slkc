@@ -1,9 +1,17 @@
 #include "global.h"
-#include "nodeutil.h"
+#include "utils.h"
 #include "nodedefs/type_base.h"
 
 using namespace slkc;
 using namespace slkc::ast;
+
+SLKC_API GlobalSharedString::GlobalSharedString() noexcept {
+}
+
+SLKC_API GlobalSharedString::~GlobalSharedString() {
+	if (_ptr)
+		_global->get_allocator()->release(_ptr, _length, alignof(char));
+}
 
 SLKC_API void Global::_clear_zero_ref_node_registry_list() noexcept {
 	while (_zero_ref_node_registry_list) {
@@ -17,6 +25,8 @@ SLKC_API void Global::_clear_zero_ref_node_registry_list() noexcept {
 }
 
 SLKC_API void Global::unref_node(NodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
 	auto &reg = _node_registries.at(index);
 	if ((!--reg.ref_count) && (!reg.pin_count)) {
 		reg.next_zero_ref = _zero_ref_node_registry_list;
@@ -25,6 +35,8 @@ SLKC_API void Global::unref_node(NodeIndex index) noexcept {
 }
 
 SLKC_API Node *Global::pin_node(NodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
 	auto &reg = _node_registries.at(index);
 
 	++reg.pin_count;
@@ -33,6 +45,8 @@ SLKC_API Node *Global::pin_node(NodeIndex index) noexcept {
 }
 
 SLKC_API void Global::unpin_node(NodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
 	auto &reg = _node_registries.at(index);
 	if ((!reg.ref_count) && (!--reg.pin_count)) {
 		reg.next_zero_ref = _zero_ref_node_registry_list;
@@ -169,4 +183,31 @@ SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::shallow_dump_node(N
 }
 
 SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::deep_dump_node(NodeIndex node_index) noexcept {
+}
+
+SLKC_API GlobalSharedString *Global::register_shared_string(std::string_view sv) noexcept {
+	std::lock_guard g(_shared_strings_mutex);
+	if (auto it = _shared_strings.find_alt(sv); it != _shared_strings.end())
+		return &*it;
+	char *s = static_cast<char *>(resource_allocator->alloc(sv.size(), alignof(char)));
+
+	if (!s)
+		return nullptr;
+
+	GlobalSharedString ss;
+
+	ss._global = this;
+	ss._length = sv.size();
+	ss._ptr = s;
+	ss._ref_count = 0;
+
+	if (!_shared_strings.insert(std::move(ss)))
+		return nullptr;
+
+	return &_shared_strings.at_alt(sv);
+}
+
+SLKC_API void Global::unregister_shared_string(std::string_view s) noexcept {
+	std::lock_guard g(_shared_strings_mutex);
+	_shared_strings.remove_alt(s);
 }

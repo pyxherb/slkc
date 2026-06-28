@@ -1,12 +1,12 @@
-#ifndef _SLKC_AST_NODEUTIL_H_
-#define _SLKC_AST_NODEUTIL_H_
+#ifndef _SLKC_AST_UTILS_H_
+#define _SLKC_AST_UTILS_H_
 
 #include "global.h"
 
 namespace slkc {
 	namespace ast {
 		template <typename T>
-		class NodePin {
+		class NodePin final {
 		private:
 			using ThisType = NodePin<T>;
 			Global *_global;
@@ -107,7 +107,7 @@ namespace slkc {
 		};
 
 		template <typename T>
-		class NodePtr {
+		class NodePtr final {
 		private:
 			using ThisType = NodePtr<T>;
 			Global *_global;
@@ -213,6 +213,28 @@ namespace slkc {
 				return NodePtr<T1>(_global, _node_index);
 			}
 		};
+
+		template <typename T>
+		class LambdaDuplicationContextHook : public DuplicationContextHook {
+		public:
+			Global *global;
+			T impl;
+
+			using This = LambdaDuplicationContextHook;
+
+			PEFF_FORCEINLINE LambdaDuplicationContextHook(Global *global, T &&impl) : global(global), impl(impl) {}
+			virtual inline DuplicationResult run() override {
+				impl();
+			}
+			virtual inline void dealloc() noexcept override {
+				peff::destroy_and_release<This>(global->get_allocator(), this, alignof(This));
+			}
+		};
+
+		template <typename T>
+		LambdaDuplicationContextHook<T> *alloc_lambda_duplication_context_hook(DuplicationContext &context, T &&impl) {
+			return peff::alloc_and_construct<LambdaDuplicationContextHook<T>>(context.get_global()->get_allocator(), alignof(LambdaDuplicationContextHook<T>), std::move(impl));
+		}
 	}
 }
 
