@@ -31,9 +31,9 @@ SLKC_API DumpResult Node::do_dump(DumpContext &dump_context, wandjson::ObjectVal
 SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()), post_run_hooks(global->get_allocator()) {
 }
 
-SLKC_API peff::Result<NodeIndex, DuplicationResult> DuplicationContext::push_task(NodeIndex node_index) noexcept {
+SLKC_API peff::Result<NodeIndex, DuplicationError> DuplicationContext::push_task(NodeIndex node_index) noexcept {
 	if (!task_list.push_back({ INVALID_NODE_INDEX, node_index }))
-		return DuplicationResult::OutOfMemory;
+		return DuplicationError::OutOfMemory;
 
 	peff::ScopeGuard sg([this]() noexcept {
 		task_list.pop_back();
@@ -42,10 +42,10 @@ SLKC_API peff::Result<NodeIndex, DuplicationResult> DuplicationContext::push_tas
 	auto result = global->map_node(nullptr);
 
 	if (!result.has_value())
-		return DuplicationResult::OutOfMemory;
+		return DuplicationError::OutOfMemory;
 
 	if (*result == INVALID_NODE_INDEX)
-		return DuplicationResult::NoSlot;
+		return DuplicationError::NoSlot;
 
 	task_list.back().dest = *result;
 
@@ -54,7 +54,7 @@ SLKC_API peff::Result<NodeIndex, DuplicationResult> DuplicationContext::push_tas
 	return result.move();
 }
 
-SLKC_API peff::Result<TypeName, DuplicationResult> DuplicationContext::push_task(const TypeName &type_name) noexcept {
+SLKC_API peff::Result<TypeName, DuplicationError> DuplicationContext::push_task(const TypeName &type_name) noexcept {
 	auto def = type_name.get_def();
 	if (!def)
 		return TypeName(type_name);

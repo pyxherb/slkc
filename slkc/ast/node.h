@@ -16,8 +16,10 @@ namespace slkc {
 			Bad = 0,
 
 			Class,
-
 			Struct,
+			Except,
+			Interface,
+			Trait,
 
 			ConstEnum,
 			ScopedEnum,
@@ -27,9 +29,6 @@ namespace slkc {
 			UnionEnumItem,
 
 			Attribute,
-
-			Except,
-			Interface,
 
 			AppliedAttribute,
 
@@ -56,7 +55,7 @@ namespace slkc {
 
 		class Global;
 
-		enum class DuplicationResult : uint8_t {
+		enum class DuplicationError : uint8_t {
 			NoSlot,
 			OutOfMemory,
 			PinningFailed
@@ -66,7 +65,7 @@ namespace slkc {
 
 		class DuplicationContextHook {
 		public:
-			virtual DuplicationResult run() = 0;
+			virtual DuplicationError run() = 0;
 			virtual void dealloc() noexcept = 0;
 		};
 
@@ -84,8 +83,8 @@ namespace slkc {
 
 		public:
 			SLKC_API DuplicationContext(Global *global);
-			SLKC_API peff::Result<NodeIndex, DuplicationResult> push_task(NodeIndex node_index) noexcept;
-			SLKC_API peff::Result<TypeName, DuplicationResult> push_task(const TypeName &type_name) noexcept;
+			SLKC_API peff::Result<NodeIndex, DuplicationError> push_task(NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<TypeName, DuplicationError> push_task(const TypeName &type_name) noexcept;
 
 			[[nodiscard]] SLKC_API bool push_post_run_hook(DuplicationContextHook *hook) noexcept;
 
@@ -129,7 +128,7 @@ namespace slkc {
 			const NodeType _ast_node_type;
 
 		protected:
-			[[nodiscard]] virtual peff::Result<Node *, DuplicationResult> do_duplicate(DuplicationContext &duplication_context) const noexcept = 0;
+			[[nodiscard]] virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context) const noexcept = 0;
 
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
@@ -173,27 +172,27 @@ namespace slkc {
 
 /// @brief Macro used for declaring a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DECL() \
-	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationResult> do_duplicate(DuplicationContext &duplication_context) const noexcept override;
+	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context) const noexcept override;
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationResult> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                            \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                            \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node<name>(duplication_context.get_global(), *this, duplication_context)); \
                                                                                                                                                              \
 		if (!ptr)                                                                                                                                            \
-			return slkc::ast::DuplicationResult::OutOfMemory;                                                                                                \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                \
                                                                                                                                                              \
 		return ptr.release();                                                                                                                                \
 	}
 
 /// @brief Macro used for defining a simple instance of the duplication method with a result output for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationResult> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                                        \
-		peff::Option<DuplicationResult> result;                                                                                                                          \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                                        \
+		peff::Option<DuplicationError> result;                                                                                                                          \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node_dup<name>(duplication_context.get_global(), *this, duplication_context, result)); \
                                                                                                                                                                          \
 		if (!ptr)                                                                                                                                                        \
-			return slkc::ast::DuplicationResult::OutOfMemory;                                                                                                            \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                            \
                                                                                                                                                                          \
 		if (result.has_value())                                                                                                                                          \
 			return std::move(result).value();                                                                                                                            \

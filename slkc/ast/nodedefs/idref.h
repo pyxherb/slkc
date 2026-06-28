@@ -11,21 +11,21 @@ namespace slkc {
 			peff::String name;
 			peff::DynArray<TypeName> generic_args;
 
-			size_t sti_access_op_token_index = SIZE_MAX,
-				   sti_name_token_index = SIZE_MAX,
-				   sti_generic_scope_token_index = SIZE_MAX,
-				   sti_left_angle_bracket_token_index = SIZE_MAX,
-				   sti_right_angle_bracket_token_index = SIZE_MAX;
+			TokenIndex sti_access_op = INVALID_TOKEN_INDEX,
+				   sti_name = INVALID_TOKEN_INDEX,
+				   sti_generic_scope = INVALID_TOKEN_INDEX,
+				   sti_left_angle_bracket = INVALID_TOKEN_INDEX,
+				   sti_right_angle_bracket = INVALID_TOKEN_INDEX;
 			peff::DynArray<size_t> sti_generic_args_comma_token_indices;
 
 			PEFF_FORCEINLINE IdRefEntry(peff::Alloc *self_allocator) : name(self_allocator), generic_args(self_allocator), sti_generic_args_comma_token_indices(self_allocator) {}
 			PEFF_FORCEINLINE IdRefEntry(IdRefEntry &&rhs)
 				: name(std::move(rhs.name)),
 				  generic_args(std::move(rhs.generic_args)),
-				  sti_access_op_token_index(rhs.sti_access_op_token_index),
-				  sti_name_token_index(rhs.sti_name_token_index),
-				  sti_left_angle_bracket_token_index(rhs.sti_left_angle_bracket_token_index),
-				  sti_right_angle_bracket_token_index(rhs.sti_right_angle_bracket_token_index),
+				  sti_access_op(rhs.sti_access_op),
+				  sti_name(rhs.sti_name),
+				  sti_left_angle_bracket(rhs.sti_left_angle_bracket),
+				  sti_right_angle_bracket(rhs.sti_right_angle_bracket),
 				  sti_generic_args_comma_token_indices(std::move(rhs.sti_generic_args_comma_token_indices)) {
 			}
 		};

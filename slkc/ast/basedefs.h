@@ -12,6 +12,7 @@ namespace slkc {
 		using TokenIndex = uint32_t;
 
 		constexpr NodeIndex INVALID_NODE_INDEX = std::numeric_limits<NodeIndex>::max();
+		constexpr TokenIndex INVALID_TOKEN_INDEX = std::numeric_limits<TokenIndex>::max();
 
 		struct TokenRange {
 			NodeIndex source_node;

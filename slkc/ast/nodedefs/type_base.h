@@ -55,7 +55,7 @@ namespace slkc {
 
 		public:
 			TokenRange token_range;
-			size_t idx_final_token = SIZE_MAX, idx_local_token = SIZE_MAX, idx_nullable_token = SIZE_MAX;
+			TokenIndex sti_final_token = INVALID_TOKEN_INDEX, sti_local_token = INVALID_TOKEN_INDEX, sti_nullable_token = INVALID_TOKEN_INDEX;
 
 		private:
 			TypeNameKind _tn_kind;
@@ -145,21 +145,21 @@ namespace slkc {
 			///
 			/// @return Whether the type name is explicitly marked as `final` in the source.
 			PEFF_FORCEINLINE bool is_explicit_final() const noexcept {
-				return idx_final_token != SIZE_MAX;
+				return sti_final_token != INVALID_TOKEN_INDEX;
 			}
 
 			/// @brief Check if the type name is explicitly marked as `local` in the source.
 			///
 			/// @return Whether the type name is explicitly marked as `local in the source.
 			PEFF_FORCEINLINE bool is_explicit_local() const noexcept {
-				return idx_local_token != SIZE_MAX;
+				return sti_local_token != INVALID_TOKEN_INDEX;
 			}
 
 			/// @brief Check if the type name is explicitly marked as nullable in the source.
 			///
 			/// @return Whether the type name is explicitly marked as nullable in the source.
 			PEFF_FORCEINLINE bool is_explicit_nullable() const noexcept {
-				return idx_nullable_token != SIZE_MAX;
+				return sti_nullable_token != INVALID_TOKEN_INDEX;
 			}
 		};
 

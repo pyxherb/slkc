@@ -9,6 +9,13 @@ namespace slkc {
 		class ImportNode;
 		class GenericParamNode;
 
+		struct ImplementItem {
+			TypeName type;
+			bool is_trait = false;
+
+			TokenIndex sti_trait_keyword = INVALID_TOKEN_INDEX;
+		};
+
 		class Scope {
 		private:
 			Global *_global;
@@ -22,7 +29,7 @@ namespace slkc {
 			peff::DynArray<NodePtr<ImportNode>> anonymous_imports;
 
 			peff::Option<TypeName> inherited_type;
-			peff::DynArray<TypeName> implemented_types;
+			peff::DynArray<ImplementItem> implemented_types;
 
 			peff::DynArray<NodePtr<GenericParamNode>> generic_params;
 			peff::HashMap<GlobalSharedStringRef, size_t> generic_params_index;
@@ -35,7 +42,7 @@ namespace slkc {
 			Scope &operator=(const Scope &) = delete;
 			Scope &operator=(Scope &&) = default;
 
-			SLKC_API peff::Result<Scope *, DuplicationResult> deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context);
+			SLKC_API peff::Result<Scope *, DuplicationError> deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context);
 
 			SLAKE_FORCEINLINE static Scope *alloc(NodeIndex owner_node, Global *global) noexcept {
 				return peff::alloc_and_construct<Scope>(global->get_allocator(), alignof(Scope), owner_node, global);

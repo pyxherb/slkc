@@ -111,7 +111,7 @@ namespace slkc {
 
 			SLKC_API void unmap_node(NodeIndex node_index) noexcept;
 
-			SLKC_API peff::Result<NodeIndex, DuplicationResult> duplicate_node(NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<NodeIndex, DuplicationError> duplicate_node(NodeIndex node_index) noexcept;
 
 			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_node(NodeIndex node_index) noexcept;
 			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_node(NodeIndex node_index) noexcept;

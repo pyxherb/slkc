@@ -125,7 +125,7 @@ SLKC_API void Global::unmap_node(NodeIndex node_index) noexcept {
 	this->_node_registries.remove(node_index);
 }
 
-SLKC_API peff::Result<NodeIndex, DuplicationResult> Global::duplicate_node(NodeIndex node_index) noexcept {
+SLKC_API peff::Result<NodeIndex, DuplicationError> Global::duplicate_node(NodeIndex node_index) noexcept {
 	DuplicationContext context(this);
 
 	NodePtr<Node> node(this, node_index);
@@ -135,9 +135,9 @@ SLKC_API peff::Result<NodeIndex, DuplicationResult> Global::duplicate_node(NodeI
 	{
 		auto map_result = this->map_node(nullptr);
 		if (!map_result.has_value())
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 		if (map_result.value() == INVALID_NODE_INDEX)
-			return DuplicationResult::NoSlot;
+			return DuplicationError::NoSlot;
 		new_index = map_result.value();
 	}
 

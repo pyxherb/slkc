@@ -17,16 +17,16 @@ SLKC_API Scope::Scope(NodeIndex owner_node, Global *global)
 SLKC_API Scope::~Scope() {
 }
 
-SLKC_API peff::Result<Scope *, DuplicationResult> Scope::deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context) {
+SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context) {
 	std::unique_ptr<Scope, peff::DeallocableDeleter<Scope>> new_scope(Scope::alloc(new_owner_node, _global));
 
 	if (!new_scope)
-		return DuplicationResult::OutOfMemory;
+		return DuplicationError::OutOfMemory;
 
 	// Duplicate members.
 	{
 		if (!new_scope->members.resize(this->members.size()))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 
 		const size_t limit = members.size();
 		for (size_t i = 0; i < limit; ++i) {
@@ -40,13 +40,13 @@ SLKC_API peff::Result<Scope *, DuplicationResult> Scope::deep_duplicate(NodeInde
 	// Duplicate members index.
 	for (auto [k, v] : members_index) {
 		if (!new_scope->members_index.insert(GlobalSharedStringRef(k), +v))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 	}
 
 	// Duplicate anonymous imports.
 	{
 		if (!new_scope->anonymous_imports.resize(this->anonymous_imports.size()))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 
 		const size_t limit = anonymous_imports.size();
 		for (size_t i = 0; i < limit; ++i) {
@@ -68,21 +68,23 @@ SLKC_API peff::Result<Scope *, DuplicationResult> Scope::deep_duplicate(NodeInde
 	// Duplicate implemented types.
 	{
 		if (!new_scope->implemented_types.resize(this->implemented_types.size()))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 
 		const size_t limit = implemented_types.size();
 		for (size_t i = 0; i < limit; ++i) {
-			auto result = duplication_context.push_task(implemented_types[i]);
+			new_scope->implemented_types[i] = implemented_types[i];
+
+			auto result = duplication_context.push_task(implemented_types[i].type);
 			if (!result.has_error())
 				return std::move(result).error();
-			new_scope->implemented_types[i] = std::move(result).value();
+			new_scope->implemented_types[i].type = std::move(result).value();
 		}
 	}
 
 	// Duplicate generic parameters.
 	{
 		if (!new_scope->generic_params.resize(this->generic_params.size()))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 
 		const size_t limit = generic_params.size();
 		for (size_t i = 0; i < limit; ++i) {
@@ -96,7 +98,7 @@ SLKC_API peff::Result<Scope *, DuplicationResult> Scope::deep_duplicate(NodeInde
 	// Duplicate generic_params index.
 	for (auto [k, v] : generic_params_index) {
 		if (!new_scope->generic_params_index.insert(GlobalSharedStringRef(k), +v))
-			return DuplicationResult::OutOfMemory;
+			return DuplicationError::OutOfMemory;
 	}
 
 	return new_scope.release();

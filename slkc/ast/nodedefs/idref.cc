@@ -15,11 +15,11 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 		auto &ne = new_id_ref.entries.at(i);
 		auto &oe = this->entries.at(i);
 
-		ne.sti_access_op_token_index = oe.sti_access_op_token_index;
-		ne.sti_name_token_index = oe.sti_name_token_index;
-		ne.sti_generic_scope_token_index = oe.sti_generic_scope_token_index;
-		ne.sti_left_angle_bracket_token_index = oe.sti_left_angle_bracket_token_index;
-		ne.sti_right_angle_bracket_token_index = oe.sti_right_angle_bracket_token_index;
+		ne.sti_access_op = oe.sti_access_op;
+		ne.sti_name = oe.sti_name;
+		ne.sti_generic_scope = oe.sti_generic_scope;
+		ne.sti_left_angle_bracket = oe.sti_left_angle_bracket;
+		ne.sti_right_angle_bracket = oe.sti_right_angle_bracket;
 
 		if (!ne.name.build(oe.name))
 			return peff::NULL_OPTION;

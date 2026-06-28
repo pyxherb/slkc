@@ -223,7 +223,7 @@ namespace slkc {
 			using This = LambdaDuplicationContextHook;
 
 			PEFF_FORCEINLINE LambdaDuplicationContextHook(Global *global, T &&impl) : global(global), impl(impl) {}
-			virtual inline DuplicationResult run() override {
+			virtual inline DuplicationError run() override {
 				impl();
 			}
 			virtual inline void dealloc() noexcept override {

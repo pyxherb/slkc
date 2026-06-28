@@ -26,14 +26,14 @@ SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	const CustomTypeDefNode &other,
 	DuplicationContext &context,
-	peff::Option<DuplicationResult> &result_out)
+	peff::Option<DuplicationError> &error_out)
 	: Node(other, context),
 	  referred_name(context.get_global()->get_allocator()) {
 	{
 		auto result = other.referred_name.duplicate(context.get_global()->get_allocator());
 
 		if (!result.has_value()) {
-			result_out = DuplicationResult::OutOfMemory;
+			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
 
@@ -69,12 +69,12 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	const ArrayTypeDefNode &other,
 	DuplicationContext &context,
-	peff::Option<DuplicationResult> &result_out)
+	peff::Option<DuplicationError> &error_out)
 	: Node(other, context) {
 	{
 		auto element_type_result = context.push_task(other.element_type);
 		if (!element_type_result.has_error()) {
-			result_out = std::move(element_type_result).error();
+			error_out = std::move(element_type_result).error();
 			return;
 		}
 		this->element_type = std::move(element_type_result).value();

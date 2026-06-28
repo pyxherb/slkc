@@ -15,8 +15,8 @@ namespace slkc {
 			GlobalSharedStringRef self_name;
 			std::unique_ptr<Scope, peff::DeallocableDeleter<Scope>> self_scope;
 
-			SLKC_API MemberNode(Global *global);
-			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, peff::Option<DuplicationResult> &result_out);
+			SLKC_API MemberNode(NodeType ast_node_type, Global *global);
+			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MemberNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
