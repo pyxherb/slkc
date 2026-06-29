@@ -7,8 +7,6 @@ namespace slkc {
 	namespace ast {
 		class MemberNode : public Node {
 		protected:
-			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:

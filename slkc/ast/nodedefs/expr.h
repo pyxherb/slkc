@@ -1,0 +1,369 @@
+#ifndef _SLKC_AST_NODEDEFS_EXPR_H_
+#define _SLKC_AST_NODEDEFS_EXPR_H_
+
+#include "idref.h"
+
+namespace slkc {
+	namespace ast {
+		enum class ExprKind {
+			Unary,	  // Unary operation
+			Binary,	  // Binary operation
+			Ternary,  // Ternary operation
+			IdRef,	  // Identifier reference
+
+			HeadedIdRef,  // Headed identifier reference
+
+			I8,		 // i8 literal
+			I16,	 // i16 literal
+			I32,	 // i32 literal
+			I64,	 // i64 literal
+			U8,		 // u8 literal
+			U16,	 // u16 literal
+			U32,	 // u32 literal
+			U64,	 // u64 literal
+			F32,	 // f32 literal
+			F64,	 // f64 literal
+			String,	 // String literal
+			Bool,	 // bool literal
+			Null,	 // null
+
+			InitializerList,  // Initializer list
+
+			Call,  // Call
+
+			New,  // New
+
+			Alloca,	 // Alloca
+
+			Cast,  // Cast
+
+			Match,	// Match expression
+
+			Wrapper,  // Expression wrapper
+
+			Bad,  // Bad expression
+		};
+
+		class ExprNode : public Node {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		private:
+			const ExprKind _expr_kind;
+
+		public:
+			SLKC_API ExprNode(ExprKind expr_kind, Global *global);
+			SLKC_API virtual ~ExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+
+			PEFF_FORCEINLINE ExprKind get_expr_kind() const noexcept {
+				return _expr_kind;
+			}
+		};
+
+		enum class UnaryOp : uint8_t {
+			LNot,	   // Logical NOT !
+			Not,	   // Bitwise NOT ~
+			Neg,	   // Negation -
+			Unpacking  // Unpacking ...
+		};
+
+		class UnaryExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> operand;
+			UnaryOp unary_op;
+			TokenIndex sti_operator = INVALID_TOKEN_INDEX;
+
+			SLKC_API UnaryExprNode(Global *global);
+			SLKC_API virtual ~UnaryExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		enum class BinaryOp : uint8_t {
+			Add = 0,  // Adding +
+			Sub,	  // Subtraction -
+			Mul,	  // Multiplicaton *
+			Div,	  // Division /
+			Mod,	  // Modulo %
+			And,	  // Bitwise AND &
+			Or,		  // Bitwise OR |
+			Xor,	  // Bitwise XOR ^
+			LAnd,	  // Logical AND &&
+			LOr,	  // Logical OR ||
+			Shl,	  // Left-shift <<
+			Shr,	  // Right-shift >>
+
+			Assign,		// Assignment =
+			AddAssign,	// Adding then asignment +=
+			SubAssign,	// Subtraction then assignment -=
+			MulAssign,	// Multiplication then assignment *=
+			DivAssign,	// Divison then assignment /=
+			ModAssign,	// Modulo then assignment %=
+			AndAssign,	// Bitwise AND then assignment &=
+			OrAssign,	// Bitwise OR then assignment |=
+			XorAssign,	// Bitwise XOR then assignment ^=
+			ShlAssign,	// Left-shift then assignment <<=
+			ShrAssign,	// Right-shift then assignment >>=
+
+			Eq,			// Equality ==
+			Neq,		// Inequality !=
+			PhyEq,		// Physical Equality ===
+			PhyNeq,		// Physical Inequality !==
+			Lt,			// Less than <
+			Gt,			// Greater than >
+			LtEq,		// Less than or equal <=
+			GtEq,		// Greater than or equal >=
+			Cmp,		// Three-way comparison <=>
+			Subscript,	// Subscript []
+
+			Comma,	// Comma ,
+		};
+
+		class BinaryExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> lhs, rhs;
+			BinaryOp binary_op;
+			TokenIndex sti_operator_prefix = INVALID_TOKEN_INDEX, sti_operator_infix = INVALID_TOKEN_INDEX, sti_operator_suffix = INVALID_TOKEN_INDEX;
+
+			SLKC_API BinaryExprNode(Global *global);
+			SLKC_API virtual ~BinaryExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class TernaryExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> condition, true_branch, false_branch;
+			TokenIndex sti_operator_question = INVALID_TOKEN_INDEX, sti_operator_colon = INVALID_TOKEN_INDEX;
+
+			SLKC_API TernaryExprNode(Global *global);
+			SLKC_API virtual ~TernaryExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class IdRefExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			OwnedIdRef id_ref;
+
+			SLKC_API IdRefExprNode(Global *global);
+			SLKC_API virtual ~IdRefExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class HeadedIdRefExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> head_expr;
+			OwnedIdRef id_ref;
+			TokenIndex sti_separator = INVALID_TOKEN_INDEX;
+
+			SLKC_API HeadedIdRefExprNode(Global *global);
+			SLKC_API virtual ~HeadedIdRefExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class I8LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			int8_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API I8LiteralExprNode(Global *global);
+			SLKC_API virtual ~I8LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class I16LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			int16_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API I16LiteralExprNode(Global *global);
+			SLKC_API virtual ~I16LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class I32LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			int32_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API I32LiteralExprNode(Global *global);
+			SLKC_API virtual ~I32LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class I64LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			int64_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API I64LiteralExprNode(Global *global);
+			SLKC_API virtual ~I64LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class U8LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			uint8_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API U8LiteralExprNode(Global *global);
+			SLKC_API virtual ~U8LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class U16LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			uint16_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API U16LiteralExprNode(Global *global);
+			SLKC_API virtual ~U16LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class U32LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			uint32_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API U32LiteralExprNode(Global *global);
+			SLKC_API virtual ~U32LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class U64LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			uint64_t literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API U64LiteralExprNode(Global *global);
+			SLKC_API virtual ~U64LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class F32LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			float literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API F32LiteralExprNode(Global *global);
+			SLKC_API virtual ~F32LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class F64LiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			double literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API F64LiteralExprNode(Global *global);
+			SLKC_API virtual ~F64LiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class StringLiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			peff::String literal;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API StringLiteralExprNode(Global *global);
+			SLKC_API virtual ~StringLiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class BoolLiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			bool literal = 0;
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API BoolLiteralExprNode(Global *global);
+			SLKC_API virtual ~BoolLiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class NullLiteralExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
+
+			SLKC_API NullLiteralExprNode(Global *global);
+			SLKC_API virtual ~NullLiteralExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+	}
+}
+
+#endif

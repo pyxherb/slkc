@@ -32,6 +32,9 @@ SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global)
 }
 
 SLKC_API peff::Result<NodeIndex, DuplicationError> DuplicationContext::push_task(NodeIndex node_index) noexcept {
+	if (node_index == INVALID_NODE_INDEX)
+		return +INVALID_NODE_INDEX;
+
 	if (!task_list.push_back({ INVALID_NODE_INDEX, node_index }))
 		return DuplicationError::OutOfMemory;
 
@@ -61,7 +64,7 @@ SLKC_API peff::Result<TypeName, DuplicationError> DuplicationContext::push_task(
 
 	auto result_index = this->push_task(def.get_index());
 
-	if(result_index.has_error()) {
+	if (result_index.has_error()) {
 		return std::move(result_index).error();
 	}
 
@@ -82,9 +85,9 @@ SLKC_API DumpContext::DumpContext(
 	  allocator(allocator) {
 }
 
-SLKC_API bool DumpContext::push_task(wandjson::ObjectValue *dest, NodeIndex src) noexcept {
-	if (!task_list.push_back({ src, dest }))
-		return false;
+SLKC_API DumpResult DumpContext::push_task(wandjson::ObjectValue *dest, NodeIndex src, bool deep) noexcept {
+	if (!task_list.push_back({ src, dest, deep }))
+		return DumpResult::OutOfMemory;
 
-	return true;
+	return DumpResult::Ok;
 }

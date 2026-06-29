@@ -11,7 +11,7 @@ SLKC_API GenericConstraint::GenericConstraint(Global *global)
 SLKC_API GenericConstraint::~GenericConstraint() {
 }
 
-SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::deep_duplicate(DuplicationContext &duplication_context) noexcept {
+SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::deep_duplicate(DuplicationContext &duplication_context) const noexcept {
 	GenericConstraint new_constraint(duplication_context.get_global());
 
 	if (inherited_type.has_value()) {
@@ -48,6 +48,51 @@ SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::de
 
 	return std::move(new_constraint);
 }
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(GenericParamNode);
+
+[[nodiscard]] SLKC_API DumpResult GenericParamNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	// TODO: Dump the generic constraint.
+
+	return DumpResult::Ok;
+}
+
+SLKC_API GenericParamNode::GenericParamNode(Global *global)
+	: MemberNode(NodeType::GenericParam, global) {
+}
+
+SLKC_API GenericParamNode::GenericParamNode(
+	const GenericParamNode &other,
+	DuplicationContext &context,
+	peff::Option<DuplicationError> &error_out)
+	: MemberNode(other, context, error_out),
+	  sti_name(other.sti_name) {
+	if (error_out.has_value())
+		return;
+
+	{
+		auto result = other.generic_constraint->deep_duplicate(context);
+		if (result.has_error()) {
+			error_out = std::move(result).error();
+			return;
+		}
+		generic_constraint = std::move(result).value();
+	}
+}
+
+SLKC_API GenericParamNode::~GenericParamNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(GenericParamNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ClassNode);
 

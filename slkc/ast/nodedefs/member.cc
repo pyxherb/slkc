@@ -3,8 +3,6 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(MemberNode);
-
 [[nodiscard]] SLKC_API DumpResult MemberNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(Node::do_dump(dump_context, target_object, deep_dump));
 

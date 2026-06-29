@@ -30,7 +30,7 @@ namespace slkc {
 			SLKC_API GenericConstraint(const GenericConstraint &) = delete;
 			SLKC_API GenericConstraint(GenericConstraint &&) noexcept = default;
 
-			SLKC_API peff::Result<GenericConstraint, DuplicationError> deep_duplicate(DuplicationContext &duplication_context) noexcept;
+			[[nodiscard]] SLKC_API peff::Result<GenericConstraint, DuplicationError> deep_duplicate(DuplicationContext &duplication_context) const noexcept;
 		};
 
 		class GenericParamNode : public MemberNode {

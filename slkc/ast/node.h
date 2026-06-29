@@ -98,6 +98,7 @@ namespace slkc {
 			struct DumpTask {
 				NodeIndex src;
 				wandjson::ObjectValue *dest;
+				bool deep;
 			};
 
 			Global *global;
@@ -110,7 +111,7 @@ namespace slkc {
 
 		public:
 			SLKC_API DumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
-			SLKC_API bool push_task(wandjson::ObjectValue *dest, NodeIndex src) noexcept;
+			SLKC_API DumpResult push_task(wandjson::ObjectValue *dest, NodeIndex src, bool deep) noexcept;
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return global;
@@ -176,23 +177,30 @@ namespace slkc {
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                            \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                             \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node<name>(duplication_context.get_global(), *this, duplication_context)); \
                                                                                                                                                              \
 		if (!ptr)                                                                                                                                            \
-			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                 \
                                                                                                                                                              \
 		return ptr.release();                                                                                                                                \
 	}
 
+/// @brief Macro used for defining a null instance of the duplication method for an AST node class.
+#define SLKC_NULL_AST_DUPLICATE_FN_DEF(name)                                                                                     \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept { \
+		peff::panic("The class " #name " cannot be duplicated");                                                                 \
+		PEFF_UNREACHABLE();                                                                                                      \
+	}
+
 /// @brief Macro used for defining a simple instance of the duplication method with a result output for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                                        \
-		peff::Option<DuplicationError> result;                                                                                                                          \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                                         \
+		peff::Option<DuplicationError> result;                                                                                                                           \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node_dup<name>(duplication_context.get_global(), *this, duplication_context, result)); \
                                                                                                                                                                          \
 		if (!ptr)                                                                                                                                                        \
-			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                            \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                             \
                                                                                                                                                                          \
 		if (result.has_value())                                                                                                                                          \
 			return std::move(result).value();                                                                                                                            \
