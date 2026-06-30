@@ -38,8 +38,8 @@ SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::de
 
 	new_constraint.generic_variance = generic_variance;
 
-	new_constraint.sti_inherit_left_paren = sti_inherit_left_paren;
-	new_constraint.sti_inherit_right_paren = sti_inherit_right_paren;
+	new_constraint.sti_inherit_left_parenthese = sti_inherit_left_parenthese;
+	new_constraint.sti_inherit_right_parenthese = sti_inherit_right_parenthese;
 	new_constraint.sti_implement_colon = sti_implement_colon;
 	new_constraint.sti_generic_variance_indicator = sti_generic_variance_indicator;
 

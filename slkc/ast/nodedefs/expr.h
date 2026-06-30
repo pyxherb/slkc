@@ -363,6 +363,85 @@ namespace slkc {
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
+
+		class InitializerListExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			peff::DynArray<NodePtr<ExprNode>> elements;
+			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX, sti_right_brace = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_element_separators;
+
+			SLKC_API InitializerListExprNode(Global *global);
+			SLKC_API virtual ~InitializerListExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class CallExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> target;
+			peff::DynArray<NodePtr<ExprNode>> args;
+			TokenIndex sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_arg_separators;
+
+			SLKC_API CallExprNode(Global *global);
+			SLKC_API virtual ~CallExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class NewExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TypeName target_typename;
+			peff::DynArray<NodePtr<ExprNode>> args;
+			TokenIndex sti_new_keyword = INVALID_TOKEN_INDEX, sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_arg_separators;
+
+			SLKC_API NewExprNode(Global *global);
+			SLKC_API virtual ~NewExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class AllocaExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TypeName target_typename;
+			peff::DynArray<NodePtr<ExprNode>> args;
+			TokenIndex sti_alloca_keyword = INVALID_TOKEN_INDEX, sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_arg_separators;
+
+			SLKC_API AllocaExprNode(Global *global);
+			SLKC_API virtual ~AllocaExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class CastExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TypeName target_typename;
+			NodePtr<ExprNode> operand;
+			bool is_nullable = false;
+			TokenIndex sti_as_keyword = INVALID_TOKEN_INDEX, sti_nullable_token = INVALID_TOKEN_INDEX;
+
+			SLKC_API CastExprNode(Global *global);
+			SLKC_API virtual ~CastExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
 	}
 }
 
