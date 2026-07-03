@@ -483,8 +483,10 @@ namespace slkc {
 		struct MatchExprBranch final {
 			NodePtr<ExprNode> pattern;
 			NodePtr<ExprNode> result_value;
+			TokenIndex sti_case_keyword = INVALID_TOKEN_INDEX,
+					   sti_default_keyword = INVALID_TOKEN_INDEX;
 
-			PEFF_FORCEINLINE bool is_default_condition() const noexcept {
+			PEFF_FORCEINLINE bool is_default_branch() const noexcept {
 				return !pattern;
 			}
 

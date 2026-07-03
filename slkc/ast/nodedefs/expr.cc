@@ -890,6 +890,16 @@ SLKC_API DumpResult MatchExprBranch::do_dump(DumpContext &dump_context, wandjson
 	if (!target_object->insert("result_value", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_case_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_case_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_default_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_default_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 

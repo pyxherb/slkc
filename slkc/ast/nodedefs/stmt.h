@@ -6,21 +6,19 @@
 namespace slkc {
 	namespace ast {
 		enum class StmtKind : uint8_t {
-			Expr = 0,	// Expression
-			Let,		// Let binding
-			Break,		// Break
-			Continue,	// Continue
-			For,		// For
-			ForEach,	// For each
-			While,		// While
-			DoWhile,	// Do while
-			Return,		// Return
-			Yield,		// Yield
-			If,			// If
-			Switch,		// Switch
-			CodeBlock,	// Code block
-
-			Bad,  // Bad statement - unrecognized statement type
+			Expr = 0,  // Expression
+			Let,	   // Let binding
+			Break,	   // Break
+			Continue,  // Continue
+			For,	   // For
+			ForEach,   // For each
+			While,	   // While
+			DoWhile,   // Do while
+			Return,	   // Return
+			Yield,	   // Yield
+			If,		   // If
+			Switch,	   // Switch
+			Block,	   // Code block
 		};
 
 		class StmtNode : public Node {
@@ -103,7 +101,8 @@ namespace slkc {
 
 		public:
 			/// @brief Token index to the break keyword.
-			TokenIndex sti_break_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_break_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
 
 			SLKC_API BreakStmtNode(Global *global);
 			SLKC_API virtual ~BreakStmtNode();
@@ -121,7 +120,8 @@ namespace slkc {
 			peff::DynArray<NodePtr<ExprNode>> continue_values;
 
 			/// @brief Token index to the continue keyword.
-			TokenIndex sti_continue_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_continue_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
 			/// @brief Token indices of the continue values separators (,).
 			peff::DynArray<TokenIndex> sti_continue_values_separators;
 
@@ -183,7 +183,7 @@ namespace slkc {
 			/// @brief Token index to the colon.
 			TokenIndex sti_colon_index = INVALID_TOKEN_INDEX;
 			/// @brief Token index to the right parenthesis.
-			TokenIndex sti_right_parenthesis_index = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API ForEachStmtNode(Global *global);
 			SLKC_API virtual ~ForEachStmtNode();
@@ -235,6 +235,106 @@ namespace slkc {
 
 			SLKC_API DoWhileStmtNode(Global *global);
 			SLKC_API virtual ~DoWhileStmtNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class ReturnStmtNode final : public StmtNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> return_value;
+
+			TokenIndex sti_return_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API ReturnStmtNode(Global *global);
+			SLKC_API virtual ~ReturnStmtNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class YieldStmtNode final : public StmtNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> return_value;
+
+			TokenIndex sti_yield_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API YieldStmtNode(Global *global);
+			SLKC_API virtual ~YieldStmtNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class IfStmtNode final : public StmtNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> condition;
+			NodePtr<StmtNode> true_branch;
+			NodePtr<StmtNode> false_branch;
+
+			TokenIndex sti_if_keyword = INVALID_TOKEN_INDEX,
+					   sti_left_parenthesis = INVALID_TOKEN_INDEX,
+					   sti_right_parenthesis = INVALID_TOKEN_INDEX;
+
+			SLKC_API IfStmtNode(Global *global);
+			SLKC_API virtual ~IfStmtNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		struct SwitchStmtBranch final {
+			NodePtr<ExprNode> pattern;
+			NodePtr<StmtNode> body;
+			TokenIndex sti_case_keyword = INVALID_TOKEN_INDEX,
+					   sti_default_keyword = INVALID_TOKEN_INDEX;
+
+			PEFF_FORCEINLINE bool is_default_branch() const noexcept {
+				return !pattern;
+			}
+
+			[[nodiscard]] SLKC_API DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+		};
+
+		class SwitchStmtNode final : public StmtNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> condition;
+			peff::DynArray<MatchExprBranch> branches;
+
+			TokenIndex sti_switch_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
+
+			SLKC_API SwitchStmtNode(Global *global);
+			SLKC_API virtual ~SwitchStmtNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class BlockStmtNode final : public StmtNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			peff::DynArray<NodePtr<StmtNode>> inner_stmts;
+
+			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
+
+			SLKC_API BlockStmtNode(Global *global);
+			SLKC_API virtual ~BlockStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
