@@ -6,7 +6,7 @@ using namespace slkc::ast;
 // No need to duplicate, we only do care about declarations in monomorphizations.
 SLKC_NULL_AST_DUPLICATE_FN_DEF(ExprNode);
 
-[[nodiscard]] SLKC_API DumpResult ExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(Node::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -16,12 +16,18 @@ SLKC_NULL_AST_DUPLICATE_FN_DEF(ExprNode);
 	if (!target_object->insert("expr_kind", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), is_bad()))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("bad", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
 SLKC_API ExprNode::ExprNode(ExprKind expr_kind, Global *global)
 	: Node(NodeType::Expr, global),
-	  _expr_kind(expr_kind) {
+	  _expr_kind(expr_kind),
+	  _is_bad(false) {
 }
 
 SLKC_API ExprNode::~ExprNode() {
@@ -29,7 +35,7 @@ SLKC_API ExprNode::~ExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ExprNode);
 
-[[nodiscard]] SLKC_API DumpResult UnaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult UnaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -62,7 +68,7 @@ SLKC_API UnaryExprNode::~UnaryExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnaryExprNode);
 
-[[nodiscard]] SLKC_API DumpResult BinaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult BinaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -111,7 +117,7 @@ SLKC_API BinaryExprNode::~BinaryExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(BinaryExprNode);
 
-[[nodiscard]] SLKC_API DumpResult TernaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult TernaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -156,7 +162,7 @@ SLKC_API TernaryExprNode::~TernaryExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(TernaryExprNode);
 
-[[nodiscard]] SLKC_API DumpResult IdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult IdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -180,7 +186,7 @@ SLKC_API IdRefExprNode::~IdRefExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(IdRefExprNode);
 
-[[nodiscard]] SLKC_API DumpResult HeadedIdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult HeadedIdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -215,7 +221,7 @@ SLKC_API HeadedIdRefExprNode::~HeadedIdRefExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(HeadedIdRefExprNode);
 
-[[nodiscard]] SLKC_API DumpResult I8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -242,7 +248,7 @@ SLKC_API I8LiteralExprNode::~I8LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I8LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult I16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -269,7 +275,7 @@ SLKC_API I16LiteralExprNode::~I16LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I16LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult I32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -296,7 +302,7 @@ SLKC_API I32LiteralExprNode::~I32LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I32LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult I64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -323,7 +329,7 @@ SLKC_API I64LiteralExprNode::~I64LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I64LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult U8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -350,7 +356,7 @@ SLKC_API U8LiteralExprNode::~U8LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U8LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult U16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -377,7 +383,7 @@ SLKC_API U16LiteralExprNode::~U16LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U16LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult U32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -404,7 +410,7 @@ SLKC_API U32LiteralExprNode::~U32LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U32LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult U64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -431,7 +437,7 @@ SLKC_API U64LiteralExprNode::~U64LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U64LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult F32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult F32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -458,7 +464,7 @@ SLKC_API F32LiteralExprNode::~F32LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(F32LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult F64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult F64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -485,7 +491,7 @@ SLKC_API F64LiteralExprNode::~F64LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(F64LiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult StringLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult StringLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -513,7 +519,7 @@ SLKC_API StringLiteralExprNode::~StringLiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(StringLiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult BoolLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult BoolLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -540,7 +546,7 @@ SLKC_API BoolLiteralExprNode::~BoolLiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(BoolLiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult NullLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult NullLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -562,7 +568,7 @@ SLKC_API NullLiteralExprNode::~NullLiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NullLiteralExprNode);
 
-[[nodiscard]] SLKC_API DumpResult InitializerListExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult InitializerListExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -622,7 +628,7 @@ SLKC_API InitializerListExprNode::~InitializerListExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(InitializerListExprNode);
 
-[[nodiscard]] SLKC_API DumpResult CallExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult CallExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -649,12 +655,12 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(InitializerListExprNode);
 		}
 	}
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_left_brace", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_right_brace", v.release()))
 		return DumpResult::OutOfMemory;
@@ -688,15 +694,15 @@ SLKC_API CallExprNode::~CallExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CallExprNode);
 
-[[nodiscard]] SLKC_API DumpResult NewExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult NewExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_typename, deep_dump));
-	if (!target_object->insert("target_typename", v.release()))
+	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	if (!target_object->insert("target_type", v.release()))
 		return DumpResult::OutOfMemory;
 
 	{
@@ -720,12 +726,12 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CallExprNode);
 	if (!target_object->insert("sti_new_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_left_brace", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_right_brace", v.release()))
 		return DumpResult::OutOfMemory;
@@ -759,15 +765,15 @@ SLKC_API NewExprNode::~NewExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NewExprNode);
 
-[[nodiscard]] SLKC_API DumpResult AllocaExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult AllocaExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_typename, deep_dump));
-	if (!target_object->insert("target_typename", v.release()))
+	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	if (!target_object->insert("target_type", v.release()))
 		return DumpResult::OutOfMemory;
 
 	{
@@ -791,12 +797,12 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NewExprNode);
 	if (!target_object->insert("sti_new_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_left_brace", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthese))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthesis))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_right_brace", v.release()))
 		return DumpResult::OutOfMemory;
@@ -830,7 +836,7 @@ SLKC_API AllocaExprNode::~AllocaExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AllocaExprNode);
 
-[[nodiscard]] SLKC_API DumpResult CastExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult CastExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -843,8 +849,8 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AllocaExprNode);
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_typename, deep_dump));
-	if (!target_object->insert("target_typename", v.release()))
+	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	if (!target_object->insert("target_type", v.release()))
 		return DumpResult::OutOfMemory;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_as_keyword))))
@@ -868,3 +874,136 @@ SLKC_API CastExprNode::~CastExprNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CastExprNode);
+
+SLKC_API DumpResult MatchExprBranch::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), pattern.get_index(), deep_dump));
+	if (!target_object->insert("pattern", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), result_value.get_index(), deep_dump));
+	if (!target_object->insert("result_value", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API DumpResult MatchExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), condition.get_index(), deep_dump));
+	if (!target_object->insert("condition", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, return_type, deep_dump));
+	if (!target_object->insert("return_type", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("branches", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (const auto &i : branches) {
+			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+				return DumpResult::OutOfMemory;
+			SLKC_RETURN_IF_DUMP_FAILED(i.do_dump(dump_context, static_cast<wandjson::ObjectValue *>(v.get()), deep_dump));
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_match_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_match_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_return_type_token))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_return_type_token", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("sti_case_separators", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (auto i : sti_case_separators) {
+			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), i))))
+				return DumpResult::OutOfMemory;
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	return DumpResult::Ok;
+}
+
+SLKC_API MatchExprNode::MatchExprNode(Global *global)
+	: ExprNode(ExprKind::Null, global),
+	  branches(global->get_allocator()),
+	  sti_case_separators(global->get_allocator()) {
+}
+
+SLKC_API MatchExprNode::~MatchExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(MatchExprNode);
+
+SLKC_API DumpResult GroupExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), operand.get_index(), deep_dump));
+	if (!target_object->insert("operand", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_parenthesis", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_parenthesis", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API GroupExprNode::GroupExprNode(Global *global)
+	: ExprNode(ExprKind::Group, global) {
+}
+
+SLKC_API GroupExprNode::~GroupExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(GroupExprNode);

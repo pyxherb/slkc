@@ -18,8 +18,8 @@ namespace slkc {
 
 			GenericVariance generic_variance;
 
-			TokenIndex sti_inherit_left_parenthese = INVALID_TOKEN_INDEX,
-				   sti_inherit_right_parenthese = INVALID_TOKEN_INDEX,
+			TokenIndex sti_inherit_left_parenthesis = INVALID_TOKEN_INDEX,
+				   sti_inherit_right_parenthesis = INVALID_TOKEN_INDEX,
 				   sti_implement_colon = INVALID_TOKEN_INDEX,
 				   sti_generic_variance_indicator = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_implement_item_separator;

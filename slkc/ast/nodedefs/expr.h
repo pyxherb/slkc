@@ -39,9 +39,7 @@ namespace slkc {
 
 			Match,	// Match expression
 
-			Wrapper,  // Expression wrapper
-
-			Bad,  // Bad expression
+			Group,	// Expression group
 		};
 
 		class ExprNode : public Node {
@@ -52,6 +50,7 @@ namespace slkc {
 
 		private:
 			const ExprKind _expr_kind;
+			bool _is_bad;
 
 		public:
 			SLKC_API ExprNode(ExprKind expr_kind, Global *global);
@@ -61,6 +60,14 @@ namespace slkc {
 
 			PEFF_FORCEINLINE ExprKind get_expr_kind() const noexcept {
 				return _expr_kind;
+			}
+
+			PEFF_FORCEINLINE bool is_bad() const noexcept {
+				return _is_bad;
+			}
+
+			PEFF_FORCEINLINE void set_bad(bool bad) noexcept {
+				_is_bad = bad;
 			}
 		};
 
@@ -133,7 +140,10 @@ namespace slkc {
 		public:
 			NodePtr<ExprNode> lhs, rhs;
 			BinaryOp binary_op;
-			TokenIndex sti_operator_prefix = INVALID_TOKEN_INDEX, sti_operator_infix = INVALID_TOKEN_INDEX, sti_operator_suffix = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_operator_prefix = INVALID_TOKEN_INDEX;
+			TokenIndex sti_operator_infix = INVALID_TOKEN_INDEX;
+			TokenIndex sti_operator_suffix = INVALID_TOKEN_INDEX;
 
 			SLKC_API BinaryExprNode(Global *global);
 			SLKC_API virtual ~BinaryExprNode();
@@ -147,7 +157,9 @@ namespace slkc {
 
 		public:
 			NodePtr<ExprNode> condition, true_branch, false_branch;
-			TokenIndex sti_operator_question = INVALID_TOKEN_INDEX, sti_operator_colon = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_operator_question = INVALID_TOKEN_INDEX;
+			TokenIndex sti_operator_colon = INVALID_TOKEN_INDEX;
 
 			SLKC_API TernaryExprNode(Global *global);
 			SLKC_API virtual ~TernaryExprNode();
@@ -175,6 +187,7 @@ namespace slkc {
 		public:
 			NodePtr<ExprNode> head_expr;
 			OwnedIdRef id_ref;
+
 			TokenIndex sti_separator = INVALID_TOKEN_INDEX;
 
 			SLKC_API HeadedIdRefExprNode(Global *global);
@@ -189,6 +202,7 @@ namespace slkc {
 
 		public:
 			int8_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I8LiteralExprNode(Global *global);
@@ -203,6 +217,7 @@ namespace slkc {
 
 		public:
 			int16_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I16LiteralExprNode(Global *global);
@@ -217,6 +232,7 @@ namespace slkc {
 
 		public:
 			int32_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I32LiteralExprNode(Global *global);
@@ -231,6 +247,7 @@ namespace slkc {
 
 		public:
 			int64_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I64LiteralExprNode(Global *global);
@@ -245,6 +262,7 @@ namespace slkc {
 
 		public:
 			uint8_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U8LiteralExprNode(Global *global);
@@ -259,6 +277,7 @@ namespace slkc {
 
 		public:
 			uint16_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U16LiteralExprNode(Global *global);
@@ -273,6 +292,7 @@ namespace slkc {
 
 		public:
 			uint32_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U32LiteralExprNode(Global *global);
@@ -287,6 +307,7 @@ namespace slkc {
 
 		public:
 			uint64_t literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U64LiteralExprNode(Global *global);
@@ -301,6 +322,7 @@ namespace slkc {
 
 		public:
 			float literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API F32LiteralExprNode(Global *global);
@@ -315,6 +337,7 @@ namespace slkc {
 
 		public:
 			double literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API F64LiteralExprNode(Global *global);
@@ -329,6 +352,7 @@ namespace slkc {
 
 		public:
 			peff::String literal;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API StringLiteralExprNode(Global *global);
@@ -343,6 +367,7 @@ namespace slkc {
 
 		public:
 			bool literal = 0;
+
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API BoolLiteralExprNode(Global *global);
@@ -370,7 +395,9 @@ namespace slkc {
 
 		public:
 			peff::DynArray<NodePtr<ExprNode>> elements;
-			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX, sti_right_brace = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_element_separators;
 
 			SLKC_API InitializerListExprNode(Global *global);
@@ -386,7 +413,9 @@ namespace slkc {
 		public:
 			NodePtr<ExprNode> target;
 			peff::DynArray<NodePtr<ExprNode>> args;
-			TokenIndex sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API CallExprNode(Global *global);
@@ -400,9 +429,12 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_typename;
+			TypeName target_type;
 			peff::DynArray<NodePtr<ExprNode>> args;
-			TokenIndex sti_new_keyword = INVALID_TOKEN_INDEX, sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_new_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API NewExprNode(Global *global);
@@ -416,9 +448,12 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_typename;
+			TypeName target_type;
 			peff::DynArray<NodePtr<ExprNode>> args;
-			TokenIndex sti_alloca_keyword = INVALID_TOKEN_INDEX, sti_left_parenthese = INVALID_TOKEN_INDEX, sti_right_parenthese = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_alloca_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API AllocaExprNode(Global *global);
@@ -432,13 +467,63 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_typename;
+			TypeName target_type;
 			NodePtr<ExprNode> operand;
 			bool is_nullable = false;
-			TokenIndex sti_as_keyword = INVALID_TOKEN_INDEX, sti_nullable_token = INVALID_TOKEN_INDEX;
+
+			TokenIndex sti_as_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_nullable_token = INVALID_TOKEN_INDEX;
 
 			SLKC_API CastExprNode(Global *global);
 			SLKC_API virtual ~CastExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		struct MatchExprBranch final {
+			NodePtr<ExprNode> pattern;
+			NodePtr<ExprNode> result_value;
+
+			PEFF_FORCEINLINE bool is_default_condition() const noexcept {
+				return !pattern;
+			}
+
+			[[nodiscard]] SLKC_API DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+		};
+
+		class MatchExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> condition;
+			TypeName return_type;
+			peff::DynArray<MatchExprBranch> branches;
+
+			TokenIndex sti_match_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_return_type_token = INVALID_TOKEN_INDEX;
+			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_case_separators;
+
+			SLKC_API MatchExprNode(Global *global);
+			SLKC_API virtual ~MatchExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class GroupExprNode final : public ExprNode {
+		protected:
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> operand;
+
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
+
+			SLKC_API GroupExprNode(Global *global);
+			SLKC_API virtual ~GroupExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
