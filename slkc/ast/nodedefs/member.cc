@@ -22,16 +22,18 @@ SLKC_API DumpResult MemberNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	return DumpResult::Ok;
 }
 
-SLKC_API MemberNode::MemberNode(NodeType ast_node_type, Global *global)
-	: Node(ast_node_type, global) {
+SLKC_API MemberNode::MemberNode(NodeType ast_node_type, Global *global, NodeIndex node_index)
+	: Node(ast_node_type, global, node_index) {
 }
 
 SLKC_API MemberNode::MemberNode(
 	const MemberNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: Node(other, context),
-	  self_name(other.self_name) {
+	: Node(other, context, node_index),
+	  self_name(other.self_name),
+	  access_modifier(other.access_modifier) {
 }
 
 SLKC_API MemberNode::~MemberNode() {

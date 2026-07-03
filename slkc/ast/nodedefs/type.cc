@@ -19,15 +19,16 @@ SLKC_API DumpResult CustomTypeDefNode::do_dump(DumpContext &dump_context, wandjs
 	return DumpResult::Ok;
 }
 
-SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
-	: Node(NodeType::TypeNameDef, global), referred_name(global->get_allocator()) {
+SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global, TokenIndex token_index)
+	: Node(NodeType::TypeNameDef, global, token_index), referred_name(global->get_allocator()) {
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	const CustomTypeDefNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: Node(other, context),
+	: Node(other, context, node_index),
 	  referred_name(context.get_global()->get_allocator()) {
 	{
 		auto result = other.referred_name.duplicate(context.get_global()->get_allocator());
@@ -62,15 +63,16 @@ SLKC_API DumpResult ArrayTypeDefNode::do_dump(DumpContext &dump_context, wandjso
 	return DumpResult::Ok;
 }
 
-SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
-	: Node(NodeType::TypeNameDef, global) {
+SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global, TokenIndex token_index)
+	: Node(NodeType::TypeNameDef, global, token_index) {
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	const ArrayTypeDefNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: Node(other, context) {
+	: Node(other, context, node_index) {
 	{
 		auto element_type_result = context.push_task(other.element_type);
 		if (!element_type_result.has_error()) {

@@ -1,17 +1,19 @@
-#include "nodedefs/type.h"
+#include "nodedefs/type_base.h"
 
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API Node::Node(NodeType ast_node_type, Global *global)
+SLKC_API Node::Node(NodeType ast_node_type, Global *global, NodeIndex node_index)
 	: _ast_node_type(ast_node_type),
-	  _global(global) {
+	  _global(global),
+	  _node_index(node_index) {
 }
 
-SLKC_API Node::Node(const Node &other, DuplicationContext &context)
+SLKC_API Node::Node(const Node &other, DuplicationContext &context, NodeIndex node_index)
 	: _ast_node_type(other._ast_node_type),
 	  _global(other._global),
-	  _token_range(other._token_range) {
+	  _token_range(other._token_range),
+	  _node_index(node_index) {
 }
 
 SLKC_API Node::~Node() {

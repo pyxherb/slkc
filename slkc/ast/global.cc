@@ -141,7 +141,7 @@ SLKC_API peff::Result<NodeIndex, DuplicationError> Global::duplicate_node(NodeIn
 		new_index = map_result.value();
 	}
 
-	auto result = pinned->do_duplicate(context);
+	auto result = pinned->do_duplicate(context, new_index);
 
 	if (result.has_error())
 		return std::move(result).error();
@@ -163,7 +163,7 @@ SLKC_API peff::Result<NodeIndex, DuplicationError> Global::duplicate_node(NodeIn
 			NodePtr<Node> dup_node(this, task.src);
 			NodePin<Node> dup_pinned = dup_node.pin();
 
-			auto dup_result = dup_pinned->do_duplicate(context);
+			auto dup_result = dup_pinned->do_duplicate(context, new_index);
 
 			if (dup_result.has_error())
 				return std::move(dup_result).error();

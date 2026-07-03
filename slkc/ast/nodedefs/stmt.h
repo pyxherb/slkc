@@ -32,7 +32,7 @@ namespace slkc {
 			bool _is_bad;
 
 		public:
-			SLKC_API StmtNode(StmtKind stmt_kind, Global *global);
+			SLKC_API StmtNode(StmtKind stmt_kind, Global *global, NodeIndex node_index);
 			SLKC_API virtual ~StmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -57,7 +57,7 @@ namespace slkc {
 		public:
 			NodePtr<ExprNode> inner_expr;
 
-			SLKC_API ExprStmtNode(Global *global);
+			SLKC_API ExprStmtNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~ExprStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -76,6 +76,8 @@ namespace slkc {
 			TokenIndex sti_assignment = INVALID_TOKEN_INDEX;
 
 			SLKC_API DumpResult dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+
+			SLKC_API peff::Result<BindingEntry, DuplicationError> duplicate(DuplicationContext &context) const noexcept;
 		};
 
 		class LetStmtNode final : public StmtNode {
@@ -89,7 +91,7 @@ namespace slkc {
 			TokenIndex sti_let_keyword = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_binding_separators;
 
-			SLKC_API LetStmtNode(Global *global);
+			SLKC_API LetStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~LetStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -104,7 +106,7 @@ namespace slkc {
 			TokenIndex sti_break_keyword = INVALID_TOKEN_INDEX,
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
-			SLKC_API BreakStmtNode(Global *global);
+			SLKC_API BreakStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~BreakStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -125,7 +127,7 @@ namespace slkc {
 			/// @brief Token indices of the continue values separators (,).
 			peff::DynArray<TokenIndex> sti_continue_values_separators;
 
-			SLKC_API ContinueStmtNode(Global *global);
+			SLKC_API ContinueStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~ContinueStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -158,7 +160,7 @@ namespace slkc {
 			/// @brief Token index to the right parenthesis.
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API ForStmtNode(Global *global);
+			SLKC_API ForStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~ForStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -185,7 +187,7 @@ namespace slkc {
 			/// @brief Token index to the right parenthesis.
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API ForEachStmtNode(Global *global);
+			SLKC_API ForEachStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~ForEachStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -208,7 +210,7 @@ namespace slkc {
 			/// @brief Token index to the right parenthesis.
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API WhileStmtNode(Global *global);
+			SLKC_API WhileStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~WhileStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -233,7 +235,7 @@ namespace slkc {
 			/// @brief Token index to the right parenthesis.
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API DoWhileStmtNode(Global *global);
+			SLKC_API DoWhileStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~DoWhileStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -249,7 +251,7 @@ namespace slkc {
 			TokenIndex sti_return_keyword = INVALID_TOKEN_INDEX,
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
-			SLKC_API ReturnStmtNode(Global *global);
+			SLKC_API ReturnStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~ReturnStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -265,7 +267,7 @@ namespace slkc {
 			TokenIndex sti_yield_keyword = INVALID_TOKEN_INDEX,
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
-			SLKC_API YieldStmtNode(Global *global);
+			SLKC_API YieldStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~YieldStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -284,7 +286,7 @@ namespace slkc {
 					   sti_left_parenthesis = INVALID_TOKEN_INDEX,
 					   sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API IfStmtNode(Global *global);
+			SLKC_API IfStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~IfStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -317,7 +319,7 @@ namespace slkc {
 			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 
-			SLKC_API SwitchStmtNode(Global *global);
+			SLKC_API SwitchStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~SwitchStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -333,7 +335,7 @@ namespace slkc {
 			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 
-			SLKC_API BlockStmtNode(Global *global);
+			SLKC_API BlockStmtNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~BlockStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

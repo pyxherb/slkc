@@ -53,7 +53,7 @@ namespace slkc {
 			bool _is_bad;
 
 		public:
-			SLKC_API ExprNode(ExprKind expr_kind, Global *global);
+			SLKC_API ExprNode(ExprKind expr_kind, Global *global, NodeIndex node_index);
 			SLKC_API virtual ~ExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -87,7 +87,7 @@ namespace slkc {
 			UnaryOp unary_op;
 			TokenIndex sti_operator = INVALID_TOKEN_INDEX;
 
-			SLKC_API UnaryExprNode(Global *global);
+			SLKC_API UnaryExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~UnaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -145,7 +145,7 @@ namespace slkc {
 			TokenIndex sti_operator_infix = INVALID_TOKEN_INDEX;
 			TokenIndex sti_operator_suffix = INVALID_TOKEN_INDEX;
 
-			SLKC_API BinaryExprNode(Global *global);
+			SLKC_API BinaryExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~BinaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -161,7 +161,7 @@ namespace slkc {
 			TokenIndex sti_operator_question = INVALID_TOKEN_INDEX;
 			TokenIndex sti_operator_colon = INVALID_TOKEN_INDEX;
 
-			SLKC_API TernaryExprNode(Global *global);
+			SLKC_API TernaryExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~TernaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -174,7 +174,7 @@ namespace slkc {
 		public:
 			OwnedIdRef id_ref;
 
-			SLKC_API IdRefExprNode(Global *global);
+			SLKC_API IdRefExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~IdRefExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -190,7 +190,7 @@ namespace slkc {
 
 			TokenIndex sti_separator = INVALID_TOKEN_INDEX;
 
-			SLKC_API HeadedIdRefExprNode(Global *global);
+			SLKC_API HeadedIdRefExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~HeadedIdRefExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -205,7 +205,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I8LiteralExprNode(Global *global);
+			SLKC_API I8LiteralExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~I8LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -220,7 +220,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I16LiteralExprNode(Global *global);
+			SLKC_API I16LiteralExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~I16LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -235,7 +235,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I32LiteralExprNode(Global *global);
+			SLKC_API I32LiteralExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~I32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -250,7 +250,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I64LiteralExprNode(Global *global);
+			SLKC_API I64LiteralExprNode(Global *global, NodeIndex node_index);
 			SLKC_API virtual ~I64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -265,7 +265,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U8LiteralExprNode(Global *global);
+			SLKC_API U8LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~U8LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -280,7 +280,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U16LiteralExprNode(Global *global);
+			SLKC_API U16LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~U16LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -295,7 +295,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U32LiteralExprNode(Global *global);
+			SLKC_API U32LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~U32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -310,7 +310,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U64LiteralExprNode(Global *global);
+			SLKC_API U64LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~U64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -325,7 +325,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API F32LiteralExprNode(Global *global);
+			SLKC_API F32LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~F32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -340,7 +340,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API F64LiteralExprNode(Global *global);
+			SLKC_API F64LiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~F64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -355,7 +355,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API StringLiteralExprNode(Global *global);
+			SLKC_API StringLiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~StringLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -370,7 +370,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API BoolLiteralExprNode(Global *global);
+			SLKC_API BoolLiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~BoolLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -383,7 +383,7 @@ namespace slkc {
 		public:
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API NullLiteralExprNode(Global *global);
+			SLKC_API NullLiteralExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~NullLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -400,7 +400,7 @@ namespace slkc {
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_element_separators;
 
-			SLKC_API InitializerListExprNode(Global *global);
+			SLKC_API InitializerListExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~InitializerListExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -418,7 +418,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
-			SLKC_API CallExprNode(Global *global);
+			SLKC_API CallExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~CallExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -437,7 +437,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
-			SLKC_API NewExprNode(Global *global);
+			SLKC_API NewExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~NewExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -456,7 +456,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
-			SLKC_API AllocaExprNode(Global *global);
+			SLKC_API AllocaExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~AllocaExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -474,7 +474,7 @@ namespace slkc {
 			TokenIndex sti_as_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_nullable_token = INVALID_TOKEN_INDEX;
 
-			SLKC_API CastExprNode(Global *global);
+			SLKC_API CastExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~CastExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -484,7 +484,8 @@ namespace slkc {
 			NodePtr<ExprNode> pattern;
 			NodePtr<ExprNode> result_value;
 			TokenIndex sti_case_keyword = INVALID_TOKEN_INDEX,
-					   sti_default_keyword = INVALID_TOKEN_INDEX;
+					   sti_default_keyword = INVALID_TOKEN_INDEX,
+					   sti_colon = INVALID_TOKEN_INDEX;
 
 			PEFF_FORCEINLINE bool is_default_branch() const noexcept {
 				return !pattern;
@@ -508,7 +509,7 @@ namespace slkc {
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_case_separators;
 
-			SLKC_API MatchExprNode(Global *global);
+			SLKC_API MatchExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~MatchExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -524,7 +525,7 @@ namespace slkc {
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
-			SLKC_API GroupExprNode(Global *global);
+			SLKC_API GroupExprNode(Global *global, TokenIndex token_index);
 			SLKC_API virtual ~GroupExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

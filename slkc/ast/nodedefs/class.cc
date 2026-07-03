@@ -66,15 +66,16 @@ SLKC_API DumpResult GenericParamNode::do_dump(DumpContext &dump_context, wandjso
 	return DumpResult::Ok;
 }
 
-SLKC_API GenericParamNode::GenericParamNode(Global *global)
-	: MemberNode(NodeType::GenericParam, global) {
+SLKC_API GenericParamNode::GenericParamNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::GenericParam, global, node_index) {
 }
 
 SLKC_API GenericParamNode::GenericParamNode(
 	const GenericParamNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_name(other.sti_name) {
 	if (error_out.has_value())
 		return;
@@ -109,15 +110,16 @@ SLKC_API DumpResult ClassNode::do_dump(DumpContext &dump_context, wandjson::Obje
 	return DumpResult::Ok;
 }
 
-SLKC_API ClassNode::ClassNode(Global *global)
-	: MemberNode(NodeType::Class, global) {
+SLKC_API ClassNode::ClassNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::Class, global, node_index) {
 }
 
 SLKC_API ClassNode::ClassNode(
 	const ClassNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_class_keyword(other.sti_class_keyword) {
 	if (error_out.has_value())
 		return;
@@ -143,15 +145,16 @@ SLKC_API DumpResult InterfaceNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API InterfaceNode::InterfaceNode(Global *global)
-	: MemberNode(NodeType::Interface, global) {
+SLKC_API InterfaceNode::InterfaceNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::Interface, global, node_index) {
 }
 
 SLKC_API InterfaceNode::InterfaceNode(
 	const InterfaceNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_interface_keyword(other.sti_interface_keyword) {
 	if (error_out.has_value())
 		return;
@@ -177,15 +180,16 @@ SLKC_API DumpResult ExceptNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	return DumpResult::Ok;
 }
 
-SLKC_API ExceptNode::ExceptNode(Global *global)
-	: MemberNode(NodeType::Except, global) {
+SLKC_API ExceptNode::ExceptNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::Except, global, node_index) {
 }
 
 SLKC_API ExceptNode::ExceptNode(
 	const ExceptNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_except_keyword(other.sti_except_keyword) {
 	if (error_out.has_value())
 		return;
@@ -211,15 +215,16 @@ SLKC_API DumpResult TraitNode::do_dump(DumpContext &dump_context, wandjson::Obje
 	return DumpResult::Ok;
 }
 
-SLKC_API TraitNode::TraitNode(Global *global)
-	: MemberNode(NodeType::Trait, global) {
+SLKC_API TraitNode::TraitNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::Trait, global, node_index) {
 }
 
 SLKC_API TraitNode::TraitNode(
 	const TraitNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_trait_keyword(other.sti_trait_keyword) {
 	if (error_out.has_value())
 		return;
@@ -245,15 +250,16 @@ SLKC_API DumpResult StructNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	return DumpResult::Ok;
 }
 
-SLKC_API StructNode::StructNode(Global *global)
-	: MemberNode(NodeType::Struct, global) {
+SLKC_API StructNode::StructNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::Struct, global, node_index) {
 }
 
 SLKC_API StructNode::StructNode(
 	const StructNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_struct_keyword(other.sti_struct_keyword) {
 	if (error_out.has_value())
 		return;
@@ -282,15 +288,16 @@ SLKC_API DumpResult ConstEnumNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API ConstEnumNode::ConstEnumNode(Global *global)
-	: MemberNode(NodeType::ConstEnum, global) {
+SLKC_API ConstEnumNode::ConstEnumNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::ConstEnum, global, node_index) {
 }
 
 SLKC_API ConstEnumNode::ConstEnumNode(
 	const ConstEnumNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_enum_keyword(other.sti_enum_keyword) {
 	if (error_out.has_value())
 		return;
@@ -314,15 +321,16 @@ SLKC_API DumpResult ScopedEnumNode::do_dump(DumpContext &dump_context, wandjson:
 	return DumpResult::Ok;
 }
 
-SLKC_API ScopedEnumNode::ScopedEnumNode(Global *global)
-	: MemberNode(NodeType::ScopedEnum, global) {
+SLKC_API ScopedEnumNode::ScopedEnumNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::ScopedEnum, global, node_index) {
 }
 
 SLKC_API ScopedEnumNode::ScopedEnumNode(
 	const ScopedEnumNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_enum_keyword(other.sti_enum_keyword) {
 	if (error_out.has_value())
 		return;
@@ -351,15 +359,16 @@ SLKC_API DumpResult UnionEnumNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API UnionEnumNode::UnionEnumNode(Global *global)
-	: MemberNode(NodeType::UnionEnum, global) {
+SLKC_API UnionEnumNode::UnionEnumNode(Global *global, NodeIndex node_index)
+	: MemberNode(NodeType::UnionEnum, global, node_index) {
 }
 
 SLKC_API UnionEnumNode::UnionEnumNode(
 	const UnionEnumNode &other,
 	DuplicationContext &context,
+	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: MemberNode(other, context, error_out),
+	: MemberNode(other, context, node_index, error_out),
 	  sti_enum_keyword(other.sti_enum_keyword) {
 	if (error_out.has_value())
 		return;

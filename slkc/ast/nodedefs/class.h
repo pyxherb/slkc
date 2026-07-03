@@ -43,8 +43,8 @@ namespace slkc {
 			peff::Option<GenericConstraint> generic_constraint;
 			TokenIndex sti_name = INVALID_TOKEN_INDEX;
 
-			SLKC_API GenericParamNode(Global *global);
-			SLKC_API GenericParamNode(const GenericParamNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API GenericParamNode(Global *global, TokenIndex token_index);
+			SLKC_API GenericParamNode(const GenericParamNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~GenericParamNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -59,8 +59,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_class_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API ClassNode(Global *global);
-			SLKC_API ClassNode(const ClassNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API ClassNode(Global *global, TokenIndex token_index);
+			SLKC_API ClassNode(const ClassNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ClassNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -75,8 +75,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_interface_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API InterfaceNode(Global *global);
-			SLKC_API InterfaceNode(const InterfaceNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API InterfaceNode(Global *global, TokenIndex token_index);
+			SLKC_API InterfaceNode(const InterfaceNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~InterfaceNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -91,8 +91,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_except_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API ExceptNode(Global *global);
-			SLKC_API ExceptNode(const ExceptNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API ExceptNode(Global *global, TokenIndex token_index);
+			SLKC_API ExceptNode(const ExceptNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ExceptNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -107,8 +107,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_trait_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API TraitNode(Global *global);
-			SLKC_API TraitNode(const TraitNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API TraitNode(Global *global, TokenIndex token_index);
+			SLKC_API TraitNode(const TraitNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~TraitNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -123,8 +123,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_struct_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API StructNode(Global *global);
-			SLKC_API StructNode(const StructNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API StructNode(Global *global, TokenIndex token_index);
+			SLKC_API StructNode(const StructNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~StructNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -140,8 +140,8 @@ namespace slkc {
 			TokenIndex sti_const_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API ConstEnumNode(Global *global);
-			SLKC_API ConstEnumNode(const ConstEnumNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API ConstEnumNode(Global *global, TokenIndex token_index);
+			SLKC_API ConstEnumNode(const ConstEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ConstEnumNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -156,8 +156,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API ScopedEnumNode(Global *global);
-			SLKC_API ScopedEnumNode(const ScopedEnumNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API ScopedEnumNode(Global *global, TokenIndex token_index);
+			SLKC_API ScopedEnumNode(const ScopedEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ScopedEnumNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -173,8 +173,8 @@ namespace slkc {
 			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_union_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API UnionEnumNode(Global *global);
-			SLKC_API UnionEnumNode(const UnionEnumNode &other, DuplicationContext &context, peff::Option<DuplicationError> &error_out);
+			SLKC_API UnionEnumNode(Global *global, TokenIndex token_index);
+			SLKC_API UnionEnumNode(const UnionEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~UnionEnumNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
