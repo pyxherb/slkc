@@ -182,8 +182,8 @@ namespace slkc {
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context) const noexcept {                             \
-		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node<name>(duplication_context.get_global(), *this, duplication_context, node_index)); \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept {                             \
+		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node_dup<name>(duplication_context.get_global(), *this, duplication_context, node_index)); \
                                                                                                                                                              \
 		if (!ptr)                                                                                                                                            \
 			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                 \
