@@ -7,7 +7,7 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 	OwnedIdRef new_id_ref(new_allocator);
 
 	if (!new_id_ref.entries.resize_construct(this->entries.size(), new_allocator)) {
-		return peff::NULL_OPTION;
+		return peff::NULLOPT;
 	}
 
 	const size_t len = new_id_ref.entries.size();
@@ -22,12 +22,12 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 		ne.sti_right_angle_bracket = oe.sti_right_angle_bracket;
 
 		if (!ne.name.build(oe.name))
-			return peff::NULL_OPTION;
+			return peff::NULLOPT;
 		if (!ne.generic_args.build(oe.generic_args))
-			return peff::NULL_OPTION;
+			return peff::NULLOPT;
 
 		if (!ne.sti_generic_args_comma_token_indices.build(oe.sti_generic_args_comma_token_indices))
-			return peff::NULL_OPTION;
+			return peff::NULLOPT;
 	}
 
 	return { std::move(new_id_ref) };

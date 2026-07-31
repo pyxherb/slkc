@@ -11,12 +11,18 @@ namespace slkc {
 		using NodeIndex = uint32_t;
 		using TokenIndex = uint32_t;
 
-		constexpr NodeIndex INVALID_NODE_INDEX = std::numeric_limits<NodeIndex>::max();
-		constexpr TokenIndex INVALID_TOKEN_INDEX = std::numeric_limits<TokenIndex>::max();
+		constexpr NodeIndex INVALID_NODE_INDEX = (std::numeric_limits<NodeIndex>::max)();
+		constexpr TokenIndex INVALID_TOKEN_INDEX = (std::numeric_limits<TokenIndex>::max)();
 
 		struct TokenRange {
 			NodeIndex source_node;
 			TokenIndex begin, end;
+
+			TokenRange() = default;
+			PEFF_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex begin, TokenIndex end)
+				: source_node(source_node), begin(begin), end(end) {}
+			PEFF_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex index)
+				: source_node(source_node), begin(index), end(index) {}
 		};
 
 		enum class DumpResult {

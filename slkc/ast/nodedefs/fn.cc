@@ -18,8 +18,8 @@ SLKC_API DumpResult FnOverloadingNode::do_dump(DumpContext &dump_context, wandjs
 	return DumpResult::Ok;
 }
 
-SLKC_API FnOverloadingNode::FnOverloadingNode(Global *global, NodeIndex node_index)
-	: MemberNode(NodeType::FnOverloading, global, node_index),
+SLKC_API FnOverloadingNode::FnOverloadingNode(Global *global)
+	: MemberNode(NodeType::FnOverloading, global),
 	  params(global->get_allocator()) {
 }
 
@@ -99,8 +99,8 @@ SLKC_API DumpResult FnNode::do_dump(DumpContext &dump_context, wandjson::ObjectV
 	return DumpResult::Ok;
 }
 
-SLKC_API FnNode::FnNode(Global *global, NodeIndex node_index)
-	: MemberNode(NodeType::Fn, global, node_index),
+SLKC_API FnNode::FnNode(Global *global)
+	: MemberNode(NodeType::Fn, global),
 	  overloadings(global->get_allocator()) {
 }
 

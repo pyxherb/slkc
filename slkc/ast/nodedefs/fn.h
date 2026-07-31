@@ -45,7 +45,7 @@ namespace slkc {
 			TokenIndex sti_virtual_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_override_keyword = INVALID_TOKEN_INDEX;
 
-			SLKC_API FnOverloadingNode(Global *global, NodeIndex node_index);
+			SLKC_API FnOverloadingNode(Global *global);
 			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnOverloadingNode();
 
@@ -61,7 +61,7 @@ namespace slkc {
 		public:
 			peff::DynArray<NodePtr<FnOverloadingNode>> overloadings;
 
-			SLKC_API FnNode(Global *global, NodeIndex node_index);
+			SLKC_API FnNode(Global *global);
 			SLKC_API FnNode(const FnNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnNode();
 

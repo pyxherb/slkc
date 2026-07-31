@@ -3,10 +3,9 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API Node::Node(NodeType ast_node_type, Global *global, NodeIndex node_index)
+SLKC_API Node::Node(NodeType ast_node_type, Global *global)
 	: _ast_node_type(ast_node_type),
-	  _global(global),
-	  _node_index(node_index) {
+	  _global(global) {
 }
 
 SLKC_API Node::Node(const Node &other, DuplicationContext &context, NodeIndex node_index)

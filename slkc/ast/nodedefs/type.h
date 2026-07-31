@@ -15,7 +15,7 @@ namespace slkc {
 		public:
 			OwnedIdRef referred_name;
 
-			SLKC_API CustomTypeDefNode(Global *global, TokenIndex token_index);
+			SLKC_API CustomTypeDefNode(Global *global);
 			SLKC_API CustomTypeDefNode(const CustomTypeDefNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~CustomTypeDefNode();
 
@@ -31,7 +31,7 @@ namespace slkc {
 		public:
 			TypeName element_type;
 
-			SLKC_API ArrayTypeDefNode(Global *global, TokenIndex token_index);
+			SLKC_API ArrayTypeDefNode(Global *global);
 			SLKC_API ArrayTypeDefNode(const ArrayTypeDefNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ArrayTypeDefNode();
 

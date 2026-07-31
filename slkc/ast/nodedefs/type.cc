@@ -19,8 +19,8 @@ SLKC_API DumpResult CustomTypeDefNode::do_dump(DumpContext &dump_context, wandjs
 	return DumpResult::Ok;
 }
 
-SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global, TokenIndex token_index)
-	: Node(NodeType::TypeNameDef, global, token_index), referred_name(global->get_allocator()) {
+SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
+	: Node(NodeType::TypeNameDef, global), referred_name(global->get_allocator()) {
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
@@ -63,8 +63,8 @@ SLKC_API DumpResult ArrayTypeDefNode::do_dump(DumpContext &dump_context, wandjso
 	return DumpResult::Ok;
 }
 
-SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global, TokenIndex token_index)
-	: Node(NodeType::TypeNameDef, global, token_index) {
+SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
+	: Node(NodeType::TypeNameDef, global) {
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(

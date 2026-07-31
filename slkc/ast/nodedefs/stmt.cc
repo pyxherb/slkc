@@ -22,8 +22,8 @@ SLKC_API DumpResult StmtNode::do_dump(DumpContext &dump_context, wandjson::Objec
 	return DumpResult::Ok;
 }
 
-SLKC_API StmtNode::StmtNode(StmtKind stmt_kind, Global *global, TokenIndex token_index)
-	: Node(NodeType::Expr, global, token_index),
+SLKC_API StmtNode::StmtNode(StmtKind stmt_kind, Global *global)
+	: Node(NodeType::Expr, global),
 	  _stmt_kind(stmt_kind),
 	  _is_bad(false) {
 }
@@ -55,8 +55,8 @@ SLKC_API DumpResult ExprStmtNode::do_dump(DumpContext &dump_context, wandjson::O
 	return DumpResult::Ok;
 }
 
-SLKC_API ExprStmtNode::ExprStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Expr, global, token_index) {
+SLKC_API ExprStmtNode::ExprStmtNode(Global *global)
+	: StmtNode(StmtKind::Expr, global) {
 }
 
 SLKC_API ExprStmtNode::ExprStmtNode(const ExprStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -133,9 +133,9 @@ SLKC_API peff::Result<BindingEntry, DuplicationError> BindingEntry::duplicate(Du
 	return std::move(entry);
 }
 
-SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(LetStmtNode);
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(VarDefStmtNode);
 
-SLKC_API DumpResult LetStmtNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult VarDefStmtNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(StmtNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -175,17 +175,22 @@ SLKC_API DumpResult LetStmtNode::do_dump(DumpContext &dump_context, wandjson::Ob
 				return DumpResult::OutOfMemory;
 		}
 	}
+	
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<int>(binding_type)))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("binding_type", v.release()))
+		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
 }
 
-SLKC_API LetStmtNode::LetStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Let, global, token_index),
+SLKC_API VarDefStmtNode::VarDefStmtNode(Global *global)
+	: StmtNode(StmtKind::Let, global),
 	  bindings(global->get_allocator()),
 	  sti_binding_separators(global->get_allocator()) {
 }
 
-SLKC_API LetStmtNode::LetStmtNode(const LetStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API VarDefStmtNode::VarDefStmtNode(const VarDefStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  bindings(context.get_global()->get_allocator()),
 	  sti_binding_separators(context.get_global()->get_allocator()) {
@@ -202,12 +207,14 @@ SLKC_API LetStmtNode::LetStmtNode(const LetStmtNode &other, DuplicationContext &
 		}
 		bindings[i] = std::move(result).value();
 	}
+
+	binding_type = other.binding_type;
 }
 
-SLKC_API LetStmtNode::~LetStmtNode() {
+SLKC_API VarDefStmtNode::~VarDefStmtNode() {
 }
 
-SLKC_SIMPLE_AST_DEALLOC_FN_DEF(LetStmtNode);
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(VarDefStmtNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(BreakStmtNode);
 
@@ -224,8 +231,8 @@ SLKC_API DumpResult BreakStmtNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API BreakStmtNode::BreakStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Break, global, token_index) {
+SLKC_API BreakStmtNode::BreakStmtNode(Global *global)
+	: StmtNode(StmtKind::Break, global) {
 }
 
 SLKC_API BreakStmtNode::BreakStmtNode(const BreakStmtNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -282,8 +289,8 @@ SLKC_API DumpResult ContinueStmtNode::do_dump(DumpContext &dump_context, wandjso
 	return DumpResult::Ok;
 }
 
-SLKC_API ContinueStmtNode::ContinueStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Continue, global, token_index),
+SLKC_API ContinueStmtNode::ContinueStmtNode(Global *global)
+	: StmtNode(StmtKind::Continue, global),
 	  continue_values(global->get_allocator()),
 	  sti_continue_values_separators(global->get_allocator()) {
 }
@@ -391,8 +398,8 @@ SLKC_API DumpResult ForStmtNode::do_dump(DumpContext &dump_context, wandjson::Ob
 	return DumpResult::Ok;
 }
 
-SLKC_API ForStmtNode::ForStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::For, global, token_index),
+SLKC_API ForStmtNode::ForStmtNode(Global *global)
+	: StmtNode(StmtKind::For, global),
 	  loop_vars(global->get_allocator()) {
 }
 
@@ -499,8 +506,8 @@ SLKC_API DumpResult ForEachStmtNode::do_dump(DumpContext &dump_context, wandjson
 	return DumpResult::Ok;
 }
 
-SLKC_API ForEachStmtNode::ForEachStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::ForEach, global, token_index) {
+SLKC_API ForEachStmtNode::ForEachStmtNode(Global *global)
+	: StmtNode(StmtKind::ForEach, global) {
 }
 
 SLKC_API ForEachStmtNode::ForEachStmtNode(const ForEachStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -556,8 +563,8 @@ SLKC_API DumpResult WhileStmtNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API WhileStmtNode::WhileStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::While, global, token_index) {
+SLKC_API WhileStmtNode::WhileStmtNode(Global *global)
+	: StmtNode(StmtKind::While, global) {
 }
 
 SLKC_API WhileStmtNode::WhileStmtNode(const WhileStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -630,8 +637,8 @@ SLKC_API DumpResult DoWhileStmtNode::do_dump(DumpContext &dump_context, wandjson
 	return DumpResult::Ok;
 }
 
-SLKC_API DoWhileStmtNode::DoWhileStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::DoWhile, global, token_index) {
+SLKC_API DoWhileStmtNode::DoWhileStmtNode(Global *global)
+	: StmtNode(StmtKind::DoWhile, global) {
 }
 
 SLKC_API DoWhileStmtNode::DoWhileStmtNode(const DoWhileStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -689,8 +696,8 @@ SLKC_API DumpResult ReturnStmtNode::do_dump(DumpContext &dump_context, wandjson:
 	return DumpResult::Ok;
 }
 
-SLKC_API ReturnStmtNode::ReturnStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Return, global, token_index) {
+SLKC_API ReturnStmtNode::ReturnStmtNode(Global *global)
+	: StmtNode(StmtKind::Return, global) {
 }
 
 SLKC_API ReturnStmtNode::ReturnStmtNode(const ReturnStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -738,8 +745,8 @@ SLKC_API DumpResult YieldStmtNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API YieldStmtNode::YieldStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Yield, global, token_index) {
+SLKC_API YieldStmtNode::YieldStmtNode(Global *global)
+	: StmtNode(StmtKind::Yield, global) {
 }
 
 SLKC_API YieldStmtNode::YieldStmtNode(const YieldStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -804,8 +811,8 @@ SLKC_API DumpResult IfStmtNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	return DumpResult::Ok;
 }
 
-SLKC_API IfStmtNode::IfStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::If, global, token_index) {
+SLKC_API IfStmtNode::IfStmtNode(Global *global)
+	: StmtNode(StmtKind::If, global) {
 }
 
 SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
@@ -940,8 +947,8 @@ SLKC_API DumpResult SwitchStmtNode::do_dump(DumpContext &dump_context, wandjson:
 	return DumpResult::Ok;
 }
 
-SLKC_API SwitchStmtNode::SwitchStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Switch, global, token_index),
+SLKC_API SwitchStmtNode::SwitchStmtNode(Global *global)
+	: StmtNode(StmtKind::Switch, global),
 	  branches(global->get_allocator()) {
 }
 
@@ -1018,8 +1025,8 @@ SLKC_API DumpResult BlockStmtNode::do_dump(DumpContext &dump_context, wandjson::
 	return DumpResult::Ok;
 }
 
-SLKC_API BlockStmtNode::BlockStmtNode(Global *global, TokenIndex token_index)
-	: StmtNode(StmtKind::Block, global, token_index),
+SLKC_API BlockStmtNode::BlockStmtNode(Global *global)
+	: StmtNode(StmtKind::Block, global),
 	  inner_stmts(global->get_allocator()) {
 }
 

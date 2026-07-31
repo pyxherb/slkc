@@ -1,6 +1,6 @@
 #include "global.h"
 #include "utils.h"
-#include "nodedefs/type_base.h"
+#include "nodedefs.h"
 
 using namespace slkc;
 using namespace slkc::ast;
@@ -89,7 +89,7 @@ SLKC_API peff::Option<NodeIndex> Global::map_node(Node *node) noexcept {
 		return INVALID_NODE_INDEX;
 
 	if (!map_node(node_index, node))
-		return peff::NULL_OPTION;
+		return peff::NULLOPT;
 
 	return node_index;
 }
@@ -107,6 +107,8 @@ SLKC_API bool Global::map_node(NodeIndex node_index, Node *node) noexcept {
 
 	if (!this->_node_registries.insert(+node_index, std::move(reg)))
 		return false;
+
+	node->set_node_index(node_index);
 
 	return true;
 }
@@ -179,10 +181,52 @@ SLKC_API peff::Result<NodeIndex, DuplicationError> Global::duplicate_node(NodeIn
 	return new_index;
 }
 
-SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::shallow_dump_node(NodeIndex node_index) noexcept {
+SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::shallow_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept {
+	std::unique_ptr<wandjson::ObjectValue, wandjson::ValueDeleter> root_value(wandjson::ObjectValue::alloc(allocator));
+
+	if (!root_value)
+		return DumpResult::OutOfMemory;
+
+	DumpContext dump_context(this, allocator, root_value.get());
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(root_value.get(), node_index, false));
+
+	while (dump_context.task_list.size()) {
+		auto task_list = std::move(dump_context.task_list);
+
+		dump_context.task_list = { resource_allocator.get() };
+
+		for (auto i : task_list) {
+			NodePtr<Node> node_ptr(this, i.src);
+			auto pinned_src = node_ptr.pin();
+			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, false));
+		}
+	}
+
+	return root_value.release();
 }
 
-SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::deep_dump_node(NodeIndex node_index) noexcept {
+SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::deep_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept {
+	std::unique_ptr<wandjson::ObjectValue, wandjson::ValueDeleter> root_value(wandjson::ObjectValue::alloc(allocator));
+
+	if (!root_value)
+		return DumpResult::OutOfMemory;
+
+	DumpContext dump_context(this, allocator, root_value.get());
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(root_value.get(), node_index, true));
+
+	while (dump_context.task_list.size()) {
+		auto task_list = std::move(dump_context.task_list);
+
+		dump_context.task_list = { resource_allocator.get() };
+
+		for (auto i : task_list) {
+			NodePtr<Node> node_ptr(this, i.src);
+			auto pinned_src = node_ptr.pin();
+			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, true));
+		}
+	}
+
+	return root_value.release();
 }
 
 SLKC_API GlobalSharedString *Global::register_shared_string(std::string_view sv) noexcept {
@@ -210,4 +254,17 @@ SLKC_API GlobalSharedString *Global::register_shared_string(std::string_view sv)
 SLKC_API void Global::unregister_shared_string(std::string_view s) noexcept {
 	std::lock_guard g(_shared_strings_mutex);
 	_shared_strings.remove_alt(s);
+}
+
+SLKC_API bool Global::init_root_module() noexcept {
+	if (_root_module != INVALID_NODE_INDEX)
+		return true;
+
+	auto raw_node_ptr = make_node<ModuleNode>(this);
+	if (!raw_node_ptr)
+		return false;
+
+	_root_module = raw_node_ptr->get_node_index();
+
+	return true;
 }

@@ -58,6 +58,7 @@ namespace slkc {
 			NodeRegistry *_zero_ref_node_registry_list = nullptr;
 			std::recursive_mutex _node_registries_mutex;
 			NodeIndex _min_free_node_index = 0;
+			NodeIndex _root_module = INVALID_NODE_INDEX;
 
 			SLKC_API void _clear_zero_ref_node_registry_list() noexcept;
 
@@ -89,7 +90,7 @@ namespace slkc {
 			/// @brief Allocate a node index and map a node object.
 			///
 			/// @param node
-			/// @return @c peff::NULL_OPTION if out of memory, @c INVALID_NODE_INDEX if no slot.
+			/// @return @c peff::NULLOPT if out of memory, @c INVALID_NODE_INDEX if no slot.
 			///
 			[[nodiscard]] SLKC_API peff::Option<NodeIndex> map_node(Node *node) noexcept;
 			///
@@ -113,11 +114,17 @@ namespace slkc {
 
 			SLKC_API peff::Result<NodeIndex, DuplicationError> duplicate_node(NodeIndex node_index) noexcept;
 
-			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_node(NodeIndex node_index) noexcept;
-			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_node(NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept;
 
 			SLKC_API GlobalSharedString *register_shared_string(std::string_view sv) noexcept;
 			SLKC_API void unregister_shared_string(std::string_view s) noexcept;
+
+			SLKC_API bool init_root_module() noexcept;
+
+			PEFF_FORCEINLINE NodeIndex get_root_module_node_index() noexcept {
+				return _root_module;
+			}
 		};
 
 		struct GlobalSharedStringRef {
@@ -179,27 +186,6 @@ namespace slkc {
 			bool operator>(const GlobalSharedStringRef &) const noexcept = default;
 			bool operator==(const GlobalSharedStringRef &) const noexcept = default;
 		};
-
-		template <typename T, typename... Args>
-		PEFF_FORCEINLINE T *make_node(Global *global, Args &&...args)
-			PEFF_REQUIRES_CONCEPT(std::constructible_from<T, Global *, Args...>) {
-			return peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), global, std::forward<Args>(args)...);
-		}
-
-		///
-		/// @brief Duplication operation version of @c make_node.
-		///
-		/// @tparam T Type of node to be made.
-		/// @tparam Args Argument types to be passed to the constructor.
-		///
-		/// @param global Global used for making the node.
-		/// @param args Arguments to be passed to the constructor.
-		///
-		template <typename T, typename... Args>
-		PEFF_FORCEINLINE T *make_node_dup(Global *global, Args &&...args)
-			PEFF_REQUIRES_CONCEPT(std::constructible_from<T, Args...>) {
-			return peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), std::forward<Args>(args)...);
-		}
 	}
 }
 
@@ -208,11 +194,11 @@ namespace peff {
 	struct Hasher<slkc::ast::GlobalSharedStringRef> {
 		peff::Hasher<std::string_view> _impl;
 
-		PEFF_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) {
-			return _impl(rhs);
+		PEFF_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) const {
+			return _impl(rhs.get());
 		}
 
-		PEFF_FORCEINLINE size_t operator()(const std::string_view &rhs) {
+		PEFF_FORCEINLINE size_t operator()(const std::string_view &rhs) const {
 			return _impl(rhs);
 		}
 	};

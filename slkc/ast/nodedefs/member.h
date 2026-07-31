@@ -34,9 +34,26 @@ namespace slkc {
 
 			AccessModifier access_modifier;
 
-			SLKC_API MemberNode(NodeType ast_node_type, Global *global, NodeIndex node_index);
+			SLKC_API MemberNode(NodeType ast_node_type, Global *global);
 			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MemberNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class ModuleNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TokenIndex sti_module_keyword = INVALID_TOKEN_INDEX,
+					   sti_module_decl_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API ModuleNode(Global *global);
+			SLKC_API ModuleNode(const ModuleNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~ModuleNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
