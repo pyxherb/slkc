@@ -19,9 +19,9 @@ namespace slkc {
 			GenericVariance generic_variance;
 
 			TokenIndex sti_inherit_left_parenthesis = INVALID_TOKEN_INDEX,
-				   sti_inherit_right_parenthesis = INVALID_TOKEN_INDEX,
-				   sti_implement_colon = INVALID_TOKEN_INDEX,
-				   sti_generic_variance_indicator = INVALID_TOKEN_INDEX;
+					   sti_inherit_right_parenthesis = INVALID_TOKEN_INDEX,
+					   sti_implement_colon = INVALID_TOKEN_INDEX,
+					   sti_generic_variance_indicator = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_implement_item_separator;
 
 			SLKC_API GenericConstraint(Global *global);
@@ -57,7 +57,14 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_class_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_class_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_inherit_left_parenthesis = INVALID_TOKEN_INDEX,
+					   sti_inherit_right_parenthesis = INVALID_TOKEN_INDEX,
+					   sti_implement_colon = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_implement_item_separator;
 
 			SLKC_API ClassNode(Global *global);
 			SLKC_API ClassNode(const ClassNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -73,7 +80,12 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_interface_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_interface_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_implement_colon = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_implement_item_separator;
 
 			SLKC_API InterfaceNode(Global *global);
 			SLKC_API InterfaceNode(const InterfaceNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -89,7 +101,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_except_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_except_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API ExceptNode(Global *global);
 			SLKC_API ExceptNode(const ExceptNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -105,7 +120,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_trait_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_trait_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API TraitNode(Global *global);
 			SLKC_API TraitNode(const TraitNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -121,7 +139,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_struct_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_struct_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API StructNode(Global *global);
 			SLKC_API StructNode(const StructNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -137,8 +158,11 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_const_keyword = INVALID_TOKEN_INDEX;
-			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX,
+					   sti_const_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API ConstEnumNode(Global *global);
 			SLKC_API ConstEnumNode(const ConstEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -154,7 +178,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API ScopedEnumNode(Global *global);
 			SLKC_API ScopedEnumNode(const ScopedEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -170,12 +197,34 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX;
-			TokenIndex sti_union_keyword = INVALID_TOKEN_INDEX;
+			TokenIndex sti_enum_keyword = INVALID_TOKEN_INDEX,
+					   sti_union_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API UnionEnumNode(Global *global);
 			SLKC_API UnionEnumNode(const UnionEnumNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~UnionEnumNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class AttributeNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			TokenIndex sti_attribute_keyword = INVALID_TOKEN_INDEX,
+					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_left_brace = INVALID_TOKEN_INDEX,
+					   sti_right_brace = INVALID_TOKEN_INDEX;
+
+			SLKC_API AttributeNode(Global *global);
+			SLKC_API AttributeNode(const AttributeNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~AttributeNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};

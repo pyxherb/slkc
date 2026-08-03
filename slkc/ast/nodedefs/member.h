@@ -3,6 +3,7 @@
 
 #include "scope.h"
 #include <slake/access.h>
+#include <slkc/ast/parser/lexer.h>
 
 namespace slkc {
 	namespace ast {
@@ -50,6 +51,8 @@ namespace slkc {
 		public:
 			TokenIndex sti_module_keyword = INVALID_TOKEN_INDEX,
 					   sti_module_decl_semicolon = INVALID_TOKEN_INDEX;
+
+			peff::Option<TokenList> module_source_token_list;
 
 			SLKC_API ModuleNode(Global *global);
 			SLKC_API ModuleNode(const ModuleNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);

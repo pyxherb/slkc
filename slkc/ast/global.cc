@@ -1,6 +1,8 @@
+#define NOMINMAX
 #include "global.h"
 #include "utils.h"
 #include "nodedefs.h"
+#include <numeric>
 
 using namespace slkc;
 using namespace slkc::ast;
@@ -34,7 +36,7 @@ SLKC_API void Global::unref_node(NodeIndex index) noexcept {
 	}
 }
 
-SLKC_API Node *Global::pin_node(NodeIndex index) noexcept {
+SLKC_API peff::Result<Node *, PinFailReason> Global::pin_node(NodeIndex index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	auto &reg = _node_registries.at(index);

@@ -215,7 +215,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I8LiteralExprNode(Global *global);
+			SLKC_API I8LiteralExprNode(Global *global, int8_t literal);
 			SLKC_API I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~I8LiteralExprNode();
 
@@ -232,7 +232,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I16LiteralExprNode(Global *global);
+			SLKC_API I16LiteralExprNode(Global *global, int16_t literal);
 			SLKC_API I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~I16LiteralExprNode();
 
@@ -249,7 +249,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I32LiteralExprNode(Global *global);
+			SLKC_API I32LiteralExprNode(Global *global, int32_t literal);
 			SLKC_API I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~I32LiteralExprNode();
 
@@ -266,7 +266,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API I64LiteralExprNode(Global *global);
+			SLKC_API I64LiteralExprNode(Global *global, int64_t literal);
 			SLKC_API I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~I64LiteralExprNode();
 
@@ -283,7 +283,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U8LiteralExprNode(Global *global);
+			SLKC_API U8LiteralExprNode(Global *global, uint8_t literal);
 			SLKC_API U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~U8LiteralExprNode();
 
@@ -300,7 +300,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U16LiteralExprNode(Global *global);
+			SLKC_API U16LiteralExprNode(Global *global, uint16_t literal);
 			SLKC_API U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~U16LiteralExprNode();
 
@@ -317,7 +317,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U32LiteralExprNode(Global *global);
+			SLKC_API U32LiteralExprNode(Global *global, uint32_t literal);
 			SLKC_API U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~U32LiteralExprNode();
 
@@ -334,7 +334,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API U64LiteralExprNode(Global *global);
+			SLKC_API U64LiteralExprNode(Global *global, uint64_t literal);
 			SLKC_API U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~U64LiteralExprNode();
 
@@ -351,7 +351,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API F32LiteralExprNode(Global *global);
+			SLKC_API F32LiteralExprNode(Global *global, float literal);
 			SLKC_API F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~F32LiteralExprNode();
 
@@ -368,7 +368,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API F64LiteralExprNode(Global *global);
+			SLKC_API F64LiteralExprNode(Global *global, double literal);
 			SLKC_API F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~F64LiteralExprNode();
 
@@ -385,7 +385,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API StringLiteralExprNode(Global *global);
+			SLKC_API StringLiteralExprNode(Global *global, GlobalSharedStringRef literal);
 			SLKC_API StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~StringLiteralExprNode();
 
@@ -402,7 +402,7 @@ namespace slkc {
 
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
-			SLKC_API BoolLiteralExprNode(Global *global);
+			SLKC_API BoolLiteralExprNode(Global *global, bool literal);
 			SLKC_API BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
 			SLKC_API virtual ~BoolLiteralExprNode();
 

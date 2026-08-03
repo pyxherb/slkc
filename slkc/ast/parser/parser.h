@@ -2,6 +2,7 @@
 #define _SLKC_AST_PARSER_PARSER_H_
 
 #include "lexer.h"
+#include <slkc/ast/nodedefs.h>
 #include <coroutine>
 
 namespace slkc {
@@ -256,11 +257,10 @@ namespace slkc {
 			ParseCoroutineScheduler parse_coro_scheduler;
 			Global *global;
 			NodePtr<MemberNode> cur_parent;
-			peff::RcObjectPtr<peff::Alloc> resource_allocator;
 			TokenList token_list;
 			struct ParseContext {
-				ModuleNode *mod = nullptr;
-				size_t idx_prev_token = 0, idx_current_token = 0;
+				NodePtr<ModuleNode> mod;
+				TokenIndex idx_prev_token = 0, idx_current_token = 0;
 			};
 			ParseContext parse_context;
 			peff::DynArray<SyntaxError> syntax_errors;
@@ -269,7 +269,7 @@ namespace slkc {
 			SLKC_API Parser(Global *global, TokenList &&token_list, peff::Alloc *resource_allocator);
 			SLKC_API virtual ~Parser();
 
-			SLAKE_FORCEINLINE Global * get_global() const noexcept {
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return global;
 			}
 
@@ -293,7 +293,7 @@ namespace slkc {
 
 			[[nodiscard]] SLAKE_FORCEINLINE peff::Option<SyntaxError> expect_token(Token *token) {
 				if (token->token_id == TokenId::End) {
-					ExpectingTokensErrorExData ex_data(resource_allocator.get());
+					ExpectingTokensErrorExData ex_data(global->get_allocator());
 
 					return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), token->index }, std::move(ex_data));
 				}
@@ -315,7 +315,7 @@ namespace slkc {
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(peff::Alloc *allocator, OwnedIdRef &id_ref_out, bool is_parsing_type = false);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(peff::Alloc *allocator, int precedence, NodePtr<ExprNode> &expr_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(peff::Alloc *allocator, int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out = nullptr);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_if_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_with_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
@@ -341,11 +341,11 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_attribute(peff::Alloc *allocator, NodePtr<AttributeNode> &attribute_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_attributes(peff::Alloc *allocator, peff::DynArray<NodePtr<AttributeNode>> &attributes_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<size_t> &idx_comma_tokens_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_param_type_list_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<size_t> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::Alloc *allocator, peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<size_t> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::Alloc *allocator, peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(peff::Alloc *allocator, NodePtr<FnOverloadingNode> &fn_node_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(peff::Alloc *allocator, std::string_view &name_out);
@@ -356,12 +356,24 @@ namespace slkc {
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(peff::Alloc *allocator);
 
-			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(peff::Alloc *allocator, const NodePtr<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
+			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(peff::Alloc *allocator, const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
 
 		public:
-			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const NodePtr<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
+			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
 		};
 	}
 }
+
+#define SLKC_CO_RETURN_IF_PARSE_ERROR(expr)      \
+	if (peff::Option<SyntaxError> _ = (expr); _) \
+		co_return _;                             \
+	else
+
+#define SLKC_CO_RETURN_IF_CO_PARSE_ERROR(e)  \
+	do {                                     \
+		if (auto _ = co_await ((e)(this)); _) {    \
+			co_return gen_oom_syntax_error(); \
+		}                                    \
+	} while (0)
 
 #endif

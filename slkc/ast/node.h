@@ -158,6 +158,10 @@ namespace slkc {
 			PEFF_FORCEINLINE void set_token_range(TokenRange token_range) noexcept {
 				_token_range = token_range;
 			}
+			
+			PEFF_FORCEINLINE void set_end_token_index(TokenIndex end_token_index) noexcept {
+				_token_range.end = end_token_index;
+			}
 
 			PEFF_FORCEINLINE NodeIndex get_node_index() const noexcept {
 				return _node_index;

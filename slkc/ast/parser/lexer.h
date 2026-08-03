@@ -6,7 +6,7 @@
 #include <peff/base/deallocable.h>
 #include <peff/containers/dynarray.h>
 #include <peff/containers/string.h>
-#include <slkc/ast/nodedefs.h>
+#include <slkc/ast/basedefs.h>
 
 namespace slkc {
 	namespace ast {
@@ -261,6 +261,8 @@ namespace slkc {
 
 			SLKC_API virtual void dealloc() override;
 		};
+
+		class Global;
 
 		class Token {
 		public:

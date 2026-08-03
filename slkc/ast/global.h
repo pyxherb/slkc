@@ -48,6 +48,11 @@ namespace slkc {
 			}
 		};
 
+		enum class PinFailReason : uint8_t {
+			OutOfMemory = 0,
+			IOError
+		};
+
 		class Global final {
 		private:
 			peff::RcObjectPtr<peff::Alloc> resource_allocator;
@@ -82,7 +87,7 @@ namespace slkc {
 
 			SLKC_API void unref_node(NodeIndex index) noexcept;
 
-			SLKC_API Node *pin_node(NodeIndex index) noexcept;
+			SLKC_API peff::Result<Node *, PinFailReason> pin_node(NodeIndex index) noexcept;
 
 			SLKC_API void unpin_node(NodeIndex index) noexcept;
 

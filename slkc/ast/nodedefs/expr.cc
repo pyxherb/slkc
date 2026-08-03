@@ -367,8 +367,9 @@ SLKC_API DumpResult I8LiteralExprNode::do_dump(DumpContext &dump_context, wandjs
 	return DumpResult::Ok;
 }
 
-SLKC_API I8LiteralExprNode::I8LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::I8, global) {
+SLKC_API I8LiteralExprNode::I8LiteralExprNode(Global *global, int8_t literal)
+	: ExprNode(ExprKind::I8, global),
+	  literal(literal) {
 }
 
 SLKC_API I8LiteralExprNode::I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -402,8 +403,9 @@ SLKC_API DumpResult I16LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(I16LiteralExprNode);
 
-SLKC_API I16LiteralExprNode::I16LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::I16, global) {
+SLKC_API I16LiteralExprNode::I16LiteralExprNode(Global *global, int16_t literal)
+	: ExprNode(ExprKind::I16, global),
+	  literal(literal) {
 }
 
 SLKC_API I16LiteralExprNode::I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -437,8 +439,9 @@ SLKC_API DumpResult I32LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 	return DumpResult::Ok;
 }
 
-SLKC_API I32LiteralExprNode::I32LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::I32, global) {
+SLKC_API I32LiteralExprNode::I32LiteralExprNode(Global *global, int32_t literal)
+	: ExprNode(ExprKind::I32, global),
+	  literal(literal) {
 }
 
 SLKC_API I32LiteralExprNode::I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -472,8 +475,9 @@ SLKC_API DumpResult I64LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(I64LiteralExprNode);
 
-SLKC_API I64LiteralExprNode::I64LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::I64, global) {
+SLKC_API I64LiteralExprNode::I64LiteralExprNode(Global *global, int64_t literal)
+	: ExprNode(ExprKind::I64, global),
+	  literal(literal) {
 }
 
 SLKC_API I64LiteralExprNode::I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -507,8 +511,9 @@ SLKC_API DumpResult U8LiteralExprNode::do_dump(DumpContext &dump_context, wandjs
 	return DumpResult::Ok;
 }
 
-SLKC_API U8LiteralExprNode::U8LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::U8, global) {
+SLKC_API U8LiteralExprNode::U8LiteralExprNode(Global *global, uint8_t literal)
+	: ExprNode(ExprKind::U8, global),
+	  literal(literal) {
 }
 
 SLKC_API U8LiteralExprNode::U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -542,8 +547,9 @@ SLKC_API DumpResult U16LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(U16LiteralExprNode);
 
-SLKC_API U16LiteralExprNode::U16LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::U16, global) {
+SLKC_API U16LiteralExprNode::U16LiteralExprNode(Global *global, uint16_t literal)
+	: ExprNode(ExprKind::U16, global),
+	  literal(literal) {
 }
 
 SLKC_API U16LiteralExprNode::U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -577,8 +583,9 @@ SLKC_API DumpResult U32LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 	return DumpResult::Ok;
 }
 
-SLKC_API U32LiteralExprNode::U32LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::U32, global) {
+SLKC_API U32LiteralExprNode::U32LiteralExprNode(Global *global, uint32_t literal)
+	: ExprNode(ExprKind::U32, global),
+	  literal(literal) {
 }
 
 SLKC_API U32LiteralExprNode::U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -612,8 +619,9 @@ SLKC_API DumpResult U64LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 	return DumpResult::Ok;
 }
 
-SLKC_API U64LiteralExprNode::U64LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::U64, global) {
+SLKC_API U64LiteralExprNode::U64LiteralExprNode(Global *global, uint64_t literal)
+	: ExprNode(ExprKind::U64, global),
+	  literal(literal) {
 }
 
 SLKC_API U64LiteralExprNode::U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -647,8 +655,9 @@ SLKC_API DumpResult F32LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 	return DumpResult::Ok;
 }
 
-SLKC_API F32LiteralExprNode::F32LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::F32, global) {
+SLKC_API F32LiteralExprNode::F32LiteralExprNode(Global *global, float literal)
+	: ExprNode(ExprKind::F32, global),
+	  literal(literal) {
 }
 
 SLKC_API F32LiteralExprNode::F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -682,8 +691,9 @@ SLKC_API DumpResult F64LiteralExprNode::do_dump(DumpContext &dump_context, wandj
 	return DumpResult::Ok;
 }
 
-SLKC_API F64LiteralExprNode::F64LiteralExprNode(Global *global)
-	: ExprNode(ExprKind::F64, global) {
+SLKC_API F64LiteralExprNode::F64LiteralExprNode(Global *global, double literal)
+	: ExprNode(ExprKind::F64, global),
+	  literal(literal) {
 }
 
 SLKC_API F64LiteralExprNode::F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -717,8 +727,9 @@ SLKC_API DumpResult StringLiteralExprNode::do_dump(DumpContext &dump_context, wa
 	return DumpResult::Ok;
 }
 
-SLKC_API StringLiteralExprNode::StringLiteralExprNode(Global *global)
-	: ExprNode(ExprKind::String, global) {
+SLKC_API StringLiteralExprNode::StringLiteralExprNode(Global *global, GlobalSharedStringRef literal)
+	: ExprNode(ExprKind::String, global),
+	  literal(literal) {
 }
 
 SLKC_API StringLiteralExprNode::StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
@@ -752,8 +763,9 @@ SLKC_API DumpResult BoolLiteralExprNode::do_dump(DumpContext &dump_context, wand
 	return DumpResult::Ok;
 }
 
-SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(Global *global)
-	: ExprNode(ExprKind::Bool, global) {
+SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(Global *global, bool literal)
+	: ExprNode(ExprKind::Bool, global),
+	  literal(literal) {
 }
 
 SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)

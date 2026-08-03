@@ -107,11 +107,58 @@ SLKC_API DumpResult ClassNode::do_dump(DumpContext &dump_context, wandjson::Obje
 	if (!target_object->insert("sti_class_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_inherit_left_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_inherit_left_parenthesis", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_inherit_right_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_inherit_right_parenthesis", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_implement_colon))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_implement_colon", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("sti_implement_item_separator", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (const auto i : sti_implement_item_separator) {
+			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+				return DumpResult::OutOfMemory;
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i, deep_dump));
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
 SLKC_API ClassNode::ClassNode(Global *global)
-	: MemberNode(NodeType::Class, global) {
+	: MemberNode(NodeType::Class, global),
+	  sti_implement_item_separator(global->get_allocator()) {
 }
 
 SLKC_API ClassNode::ClassNode(
@@ -120,9 +167,20 @@ SLKC_API ClassNode::ClassNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_class_keyword(other.sti_class_keyword) {
+	  sti_class_keyword(other.sti_class_keyword),
+	  sti_name(other.sti_name),
+	  sti_inherit_left_parenthesis(other.sti_inherit_left_parenthesis),
+	  sti_inherit_right_parenthesis(other.sti_inherit_right_parenthesis),
+	  sti_implement_colon(other.sti_implement_colon),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace),
+	  sti_implement_item_separator(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
 		return;
+	if (!sti_implement_item_separator.build(other.sti_implement_item_separator)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
 }
 
 SLKC_API ClassNode::~ClassNode() {
@@ -142,11 +200,48 @@ SLKC_API DumpResult InterfaceNode::do_dump(DumpContext &dump_context, wandjson::
 	if (!target_object->insert("sti_interface_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_implement_colon))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_implement_colon", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("sti_implement_item_separator", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (const auto i : sti_implement_item_separator) {
+			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+				return DumpResult::OutOfMemory;
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i, deep_dump));
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+	
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
 SLKC_API InterfaceNode::InterfaceNode(Global *global)
-	: MemberNode(NodeType::Interface, global) {
+	: MemberNode(NodeType::Interface, global),
+	  sti_implement_item_separator(global->get_allocator()) {
 }
 
 SLKC_API InterfaceNode::InterfaceNode(
@@ -155,9 +250,18 @@ SLKC_API InterfaceNode::InterfaceNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_interface_keyword(other.sti_interface_keyword) {
+	  sti_interface_keyword(other.sti_interface_keyword),
+	  sti_name(other.sti_name),
+	  sti_implement_colon(other.sti_implement_colon),
+	  sti_implement_item_separator(context.get_global()->get_allocator()),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
+	if (!sti_implement_item_separator.build(other.sti_implement_item_separator)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
 }
 
 SLKC_API InterfaceNode::~InterfaceNode() {
@@ -177,6 +281,21 @@ SLKC_API DumpResult ExceptNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	if (!target_object->insert("sti_except_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
@@ -190,7 +309,10 @@ SLKC_API ExceptNode::ExceptNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_except_keyword(other.sti_except_keyword) {
+	  sti_except_keyword(other.sti_except_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -212,6 +334,21 @@ SLKC_API DumpResult TraitNode::do_dump(DumpContext &dump_context, wandjson::Obje
 	if (!target_object->insert("sti_trait_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
@@ -225,7 +362,10 @@ SLKC_API TraitNode::TraitNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_trait_keyword(other.sti_trait_keyword) {
+	  sti_trait_keyword(other.sti_trait_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -247,6 +387,21 @@ SLKC_API DumpResult StructNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	if (!target_object->insert("sti_struct_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
@@ -260,7 +415,10 @@ SLKC_API StructNode::StructNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_struct_keyword(other.sti_struct_keyword) {
+	  sti_struct_keyword(other.sti_struct_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -275,14 +433,29 @@ SLKC_API DumpResult ConstEnumNode::do_dump(DumpContext &dump_context, wandjson::
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_enum_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_enum_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_const_keyword))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_const_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_enum_keyword))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("sti_enum_keyword", v.release()))
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
@@ -298,7 +471,11 @@ SLKC_API ConstEnumNode::ConstEnumNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_enum_keyword(other.sti_enum_keyword) {
+	  sti_const_keyword(other.sti_const_keyword),
+	  sti_name(other.sti_name),
+	  sti_enum_keyword(other.sti_enum_keyword),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -318,6 +495,21 @@ SLKC_API DumpResult ScopedEnumNode::do_dump(DumpContext &dump_context, wandjson:
 	if (!target_object->insert("sti_enum_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
@@ -331,7 +523,10 @@ SLKC_API ScopedEnumNode::ScopedEnumNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_enum_keyword(other.sti_enum_keyword) {
+	  sti_enum_keyword(other.sti_enum_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -356,6 +551,26 @@ SLKC_API DumpResult UnionEnumNode::do_dump(DumpContext &dump_context, wandjson::
 	if (!target_object->insert("sti_union_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }
 
@@ -369,7 +584,11 @@ SLKC_API UnionEnumNode::UnionEnumNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
-	  sti_enum_keyword(other.sti_enum_keyword) {
+	  sti_enum_keyword(other.sti_enum_keyword),
+	  sti_union_keyword(other.sti_union_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
 	if (error_out.has_value())
 		return;
 }
@@ -378,3 +597,54 @@ SLKC_API UnionEnumNode::~UnionEnumNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnionEnumNode);
+
+SLKC_API DumpResult AttributeNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_attribute_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_attribute_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_name", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_brace))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API AttributeNode::AttributeNode(Global *global)
+	: MemberNode(NodeType::Attribute, global) {
+}
+
+SLKC_API AttributeNode::AttributeNode(
+	const AttributeNode &other,
+	DuplicationContext &context,
+	NodeIndex node_index,
+	peff::Option<DuplicationError> &error_out)
+	: MemberNode(other, context, node_index, error_out),
+	  sti_attribute_keyword(other.sti_attribute_keyword),
+	  sti_name(other.sti_name),
+	  sti_left_brace(other.sti_left_brace),
+	  sti_right_brace(other.sti_right_brace) {
+	if (error_out.has_value())
+		return;
+}
+
+SLKC_API AttributeNode::~AttributeNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AttributeNode);

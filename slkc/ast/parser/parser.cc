@@ -67,3 +67,45 @@ SLKC_API ParseCoroutine::Awaitable ParseCoroutine::operator()(Parser *parser) {
 
 SLKC_API ParseCoroutineScheduler::ParseCoroutineScheduler(peff::Alloc *allocator) : task_list(allocator) {
 }
+
+SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out) {
+	peff::Option<SyntaxError> syntax_error;
+
+	Token *t;
+
+	parse_context.mod = NodePtr<ModuleNode>::from_pin(initial_mod);
+	cur_parent = NodePtr<MemberNode>::from_pin(initial_mod.cast_to<MemberNode>());
+
+	if ((t = peek_token())->token_id == TokenId::ModuleKeyword) {
+		next_token();
+
+		if ((syntax_error = (co_await parse_id_ref(allocator, module_name_out)(this)))) {
+			if (!syntax_errors.push_back(std::move(syntax_error.value())))
+				co_return gen_oom_syntax_error();
+			syntax_error.reset();
+		}
+
+		Token *semicolon_token;
+		SLKC_CO_RETURN_IF_PARSE_ERROR((expect_token((semicolon_token = peek_token()), TokenId::Semicolon)));
+
+		next_token();
+	}
+
+	while ((t = peek_token())->token_id != TokenId::End) {
+		if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+			// Parse the rest to make sure that we have gained all of the information,
+			// instead of ignoring them.
+			if (!syntax_errors.push_back(std::move(syntax_error.value())))
+				co_return gen_oom_syntax_error();
+			syntax_error.reset();
+		}
+	}
+
+    initial_mod->module_source_token_list = std::move(token_list);
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API peff::Option<SyntaxError> Parser::parse(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out) {
+	return parse_program(global->get_allocator(), initial_mod, module_name_out).resume(this);
+}
