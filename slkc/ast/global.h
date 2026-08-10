@@ -13,10 +13,10 @@ namespace slkc {
 			std::unique_ptr<Node, peff::DeallocableDeleter<Node>> in_memory;
 			NodeIndex self_index;
 
-			PEFF_FORCEINLINE NodeRegistry() {
+			SLAKE_FORCEINLINE NodeRegistry() {
 			}
 
-			PEFF_FORCEINLINE NodeRegistry(NodeRegistry &&rhs) : in_memory(std::move(rhs.in_memory)), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
+			SLAKE_FORCEINLINE NodeRegistry(NodeRegistry &&rhs) : in_memory(std::move(rhs.in_memory)), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
 				rhs.ref_count = 0;
 				rhs.pin_count = 0;
 			}
@@ -34,7 +34,7 @@ namespace slkc {
 
 		public:
 			SLKC_API GlobalSharedString() noexcept;
-			PEFF_FORCEINLINE GlobalSharedString(GlobalSharedString &&rhs) noexcept
+			SLAKE_FORCEINLINE GlobalSharedString(GlobalSharedString &&rhs) noexcept
 				: _global(rhs._global),
 				  _ptr(rhs._ptr),
 				  _length(rhs._length),
@@ -43,7 +43,7 @@ namespace slkc {
 			}
 			SLKC_API ~GlobalSharedString();
 
-			PEFF_FORCEINLINE operator std::string_view() const noexcept {
+			SLAKE_FORCEINLINE operator std::string_view() const noexcept {
 				return std::string_view(_ptr, _length);
 			}
 		};
@@ -76,11 +76,11 @@ namespace slkc {
 			[[nodiscard]] SLKC_API NodeIndex _alloc_node_index() noexcept;
 
 		public:
-			PEFF_FORCEINLINE peff::Alloc *get_allocator() noexcept {
+			SLAKE_FORCEINLINE peff::Alloc *get_allocator() noexcept {
 				return resource_allocator.get();
 			}
 
-			PEFF_FORCEINLINE void ref_node(NodeIndex index) noexcept {
+			SLAKE_FORCEINLINE void ref_node(NodeIndex index) noexcept {
 				_clear_zero_ref_node_registry_list();
 				++_node_registries.at(index).ref_count;
 			}
@@ -127,7 +127,7 @@ namespace slkc {
 
 			SLKC_API bool init_root_module() noexcept;
 
-			PEFF_FORCEINLINE NodeIndex get_root_module_node_index() noexcept {
+			SLAKE_FORCEINLINE NodeIndex get_root_module_node_index() noexcept {
 				return _root_module;
 			}
 		};
@@ -136,7 +136,7 @@ namespace slkc {
 		private:
 			GlobalSharedString *_string;
 
-			PEFF_FORCEINLINE void _reset() {
+			SLAKE_FORCEINLINE void _reset() {
 				if (_string) {
 					if (!--_string->_ref_count) {
 						_string->_global->unregister_shared_string(*_string);
@@ -146,19 +146,19 @@ namespace slkc {
 			}
 
 		public:
-			PEFF_FORCEINLINE GlobalSharedStringRef() noexcept : _string(nullptr) {
+			SLAKE_FORCEINLINE GlobalSharedStringRef() noexcept : _string(nullptr) {
 			}
-			PEFF_FORCEINLINE GlobalSharedStringRef(GlobalSharedString *string) noexcept : _string(string) {
+			SLAKE_FORCEINLINE GlobalSharedStringRef(GlobalSharedString *string) noexcept : _string(string) {
 				++_string->_ref_count;
 			}
-			PEFF_FORCEINLINE GlobalSharedStringRef(const GlobalSharedStringRef &rhs) noexcept : _string(rhs._string) {
+			SLAKE_FORCEINLINE GlobalSharedStringRef(const GlobalSharedStringRef &rhs) noexcept : _string(rhs._string) {
 				++_string->_ref_count;
 			}
-			PEFF_FORCEINLINE GlobalSharedStringRef(GlobalSharedStringRef &&rhs) noexcept : _string(rhs._string) {
+			SLAKE_FORCEINLINE GlobalSharedStringRef(GlobalSharedStringRef &&rhs) noexcept : _string(rhs._string) {
 				rhs._string = nullptr;
 			}
 
-			PEFF_FORCEINLINE GlobalSharedStringRef &operator=(const GlobalSharedStringRef &rhs) noexcept {
+			SLAKE_FORCEINLINE GlobalSharedStringRef &operator=(const GlobalSharedStringRef &rhs) noexcept {
 				_reset();
 				if (rhs._string) {
 					_string = rhs._string;
@@ -166,7 +166,7 @@ namespace slkc {
 				}
 				return *this;
 			}
-			PEFF_FORCEINLINE GlobalSharedStringRef &operator=(GlobalSharedStringRef &&rhs) noexcept {
+			SLAKE_FORCEINLINE GlobalSharedStringRef &operator=(GlobalSharedStringRef &&rhs) noexcept {
 				_reset();
 				if (rhs._string) {
 					_string = rhs._string;
@@ -175,21 +175,46 @@ namespace slkc {
 				return *this;
 			}
 
-			PEFF_FORCEINLINE std::string_view get() const noexcept {
+			SLAKE_FORCEINLINE std::string_view get() const noexcept {
 				return *_string;
 			}
 
-			PEFF_FORCEINLINE operator std::string_view() const noexcept {
+			SLAKE_FORCEINLINE operator std::string_view() const noexcept {
 				return *_string;
 			}
 
-			PEFF_FORCEINLINE std::strong_ordering operator<=>(const GlobalSharedStringRef &rhs) const noexcept {
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const GlobalSharedStringRef &rhs) const noexcept {
 				return _string <=> rhs._string;
+			}
+			
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const std::string_view &rhs) const noexcept {
+				return std::string_view(_string->_ptr, _string->_length) <=> rhs;
+			}
+			
+			SLAKE_FORCEINLINE bool operator==(const std::string_view &rhs) const noexcept {
+				return std::string_view(_string->_ptr, _string->_length) == rhs;
 			}
 
 			bool operator<(const GlobalSharedStringRef &) const noexcept = default;
 			bool operator>(const GlobalSharedStringRef &) const noexcept = default;
 			bool operator==(const GlobalSharedStringRef &) const noexcept = default;
+			bool operator!=(const GlobalSharedStringRef &) const noexcept = default;
+
+			SLAKE_FORCEINLINE operator bool() {
+				return _string;
+			}
+		};
+
+		struct GlobalSharedStringRefEq {
+			bool operator()(const GlobalSharedStringRef &lhs, const GlobalSharedStringRef &rhs) const noexcept {
+				return lhs == rhs;
+			}
+			bool operator()(const GlobalSharedStringRef &lhs, const std::string_view &rhs) const noexcept {
+				return lhs == rhs;
+			}
+			bool operator()(const std::string_view &lhs, const GlobalSharedStringRef &rhs) const noexcept {
+				return rhs == lhs;
+			}
 		};
 	}
 }
@@ -199,11 +224,11 @@ namespace peff {
 	struct Hasher<slkc::ast::GlobalSharedStringRef> {
 		peff::Hasher<std::string_view> _impl;
 
-		PEFF_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) const {
+		SLAKE_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) const {
 			return _impl(rhs.get());
 		}
 
-		PEFF_FORCEINLINE size_t operator()(const std::string_view &rhs) const {
+		SLAKE_FORCEINLINE size_t operator()(const std::string_view &rhs) const {
 			return _impl(rhs);
 		}
 	};

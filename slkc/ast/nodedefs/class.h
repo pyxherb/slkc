@@ -59,12 +59,15 @@ namespace slkc {
 		public:
 			TokenIndex sti_class_keyword = INVALID_TOKEN_INDEX,
 					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_generic_left_angle = INVALID_TOKEN_INDEX,
+					   sti_generic_right_angle = INVALID_TOKEN_INDEX,
 					   sti_inherit_left_parenthesis = INVALID_TOKEN_INDEX,
 					   sti_inherit_right_parenthesis = INVALID_TOKEN_INDEX,
 					   sti_implement_colon = INVALID_TOKEN_INDEX,
 					   sti_left_brace = INVALID_TOKEN_INDEX,
 					   sti_right_brace = INVALID_TOKEN_INDEX;
-			peff::DynArray<TokenIndex> sti_implement_item_separator;
+			peff::DynArray<TokenIndex> sti_implement_item_separator,
+				sti_generic_params_comma_separators;
 
 			SLKC_API ClassNode(Global *global);
 			SLKC_API ClassNode(const ClassNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -82,10 +85,13 @@ namespace slkc {
 		public:
 			TokenIndex sti_interface_keyword = INVALID_TOKEN_INDEX,
 					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_generic_left_angle = INVALID_TOKEN_INDEX,
+					   sti_generic_right_angle = INVALID_TOKEN_INDEX,
 					   sti_implement_colon = INVALID_TOKEN_INDEX,
 					   sti_left_brace = INVALID_TOKEN_INDEX,
 					   sti_right_brace = INVALID_TOKEN_INDEX;
-			peff::DynArray<TokenIndex> sti_implement_item_separator;
+			peff::DynArray<TokenIndex> sti_implement_item_separator,
+				sti_generic_params_comma_separators;
 
 			SLKC_API InterfaceNode(Global *global);
 			SLKC_API InterfaceNode(const InterfaceNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -140,9 +146,13 @@ namespace slkc {
 
 		public:
 			TokenIndex sti_struct_keyword = INVALID_TOKEN_INDEX,
+					   sti_generic_left_angle = INVALID_TOKEN_INDEX,
+					   sti_generic_right_angle = INVALID_TOKEN_INDEX,
 					   sti_name = INVALID_TOKEN_INDEX,
 					   sti_left_brace = INVALID_TOKEN_INDEX,
 					   sti_right_brace = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_implement_item_separator,
+				sti_generic_params_comma_separators;
 
 			SLKC_API StructNode(Global *global);
 			SLKC_API StructNode(const StructNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -225,6 +235,24 @@ namespace slkc {
 			SLKC_API AttributeNode(Global *global);
 			SLKC_API AttributeNode(const AttributeNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~AttributeNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class ImportNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			OwnedIdRef id_ref;
+			TokenIndex sti_import_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API ImportNode(Global *global);
+			SLKC_API ImportNode(const ImportNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~ImportNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};

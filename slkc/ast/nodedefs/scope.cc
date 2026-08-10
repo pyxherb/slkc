@@ -1,4 +1,5 @@
 #include "scope.h"
+#include "class.h"
 
 using namespace slkc;
 using namespace slkc::ast;
@@ -15,6 +16,132 @@ SLKC_API Scope::Scope(NodeIndex owner_node, Global *global)
 }
 
 SLKC_API Scope::~Scope() {
+}
+
+SLKC_API size_t Scope::push_member(NodePtr<MemberNode> member_node) noexcept {
+	size_t n = members.size();
+
+	if (!members.shrink_to_fit())
+		return SIZE_MAX;
+
+	if (!members.push_back(std::move(member_node))) {
+		return SIZE_MAX;
+	}
+
+	return n;
+}
+
+SLKC_API ScopeMemberOpResult Scope::add_member(NodePtr<MemberNode> member_node) noexcept {
+	size_t index;
+
+	if ((index = push_member(member_node)) == SIZE_MAX) {
+		return ScopeMemberOpResult::OutOfMemory;
+	}
+
+	peff::ScopeGuard remove_member_guard([this]() noexcept {
+		members.pop_back();
+	});
+
+	auto result = index_member(index);
+	if (result != ScopeMemberOpResult::Success)
+		return result;
+
+	remove_member_guard.release();
+
+	return ScopeMemberOpResult::Success;
+}
+
+SLKC_API ScopeMemberOpResult Scope::index_member(size_t index_in_member_array) noexcept {
+	NodePin<MemberNode> m = members.at(index_in_member_array).pin();
+
+	if (!m) {
+		switch (m.get_fail_reason()) {
+			case PinFailReason::OutOfMemory:
+				return ScopeMemberOpResult::OutOfMemory;
+			case PinFailReason::IOError:
+				return ScopeMemberOpResult::PinningIOError;
+		}
+		SLAKE_UNREACHABLE();
+	}
+
+	if (!members_index.insert(m->get_name(), +index_in_member_array)) {
+		return ScopeMemberOpResult::OutOfMemory;
+	}
+
+	m->set_parent(owner_node);
+
+	return ScopeMemberOpResult::Success;
+}
+
+SLKC_API void Scope::remove_member(const std::string_view &name) noexcept {
+	size_t index = members_index.at_alt<std::string_view>(name);
+	members.erase_range(index, index + 1);
+	members_index.remove_alt<std::string_view>(name);
+	for (auto i : members_index) {
+		if (i.second > index) {
+			--i.second;
+		}
+	}
+}
+
+SLKC_API size_t Scope::push_generic_param(NodePtr<GenericParamNode> generic_param_node) noexcept {
+	size_t n = generic_params.size();
+
+	if (!generic_params.shrink_to_fit())
+		return SIZE_MAX;
+
+	if (!generic_params.push_back(std::move(generic_param_node))) {
+		return SIZE_MAX;
+	}
+
+	return n;
+}
+
+SLKC_API ScopeMemberOpResult Scope::add_generic_param(NodePtr<GenericParamNode> generic_param_node) noexcept {
+	size_t index;
+
+	if ((index = push_generic_param(generic_param_node)) == SIZE_MAX) {
+		return ScopeMemberOpResult::OutOfMemory;
+	}
+
+	peff::ScopeGuard remove_member_guard([this]() noexcept {
+		generic_params.pop_back();
+	});
+
+	return index_generic_param(index);
+}
+
+SLKC_API ScopeMemberOpResult Scope::index_generic_param(size_t index_in_generic_param_array) noexcept {
+	NodePin<GenericParamNode> m = generic_params.at(index_in_generic_param_array).pin();
+
+	if (!m) {
+		switch (m.get_fail_reason()) {
+			case PinFailReason::OutOfMemory:
+				return ScopeMemberOpResult::OutOfMemory;
+			case PinFailReason::IOError:
+				return ScopeMemberOpResult::PinningIOError;
+		}
+		SLAKE_UNREACHABLE();
+	}
+
+	if (!generic_params_index.insert(m->get_name(), +index_in_generic_param_array)) {
+		return ScopeMemberOpResult::OutOfMemory;
+	}
+
+	m->set_parent(owner_node);
+
+	return ScopeMemberOpResult::Success;
+}
+
+SLKC_API void Scope::remove_generic_param(const std::string_view &name) noexcept {
+	size_t index = generic_params_index.at_alt<std::string_view>(name);
+	generic_params.erase_range(index, index + 1);
+	generic_params_index.remove_alt<std::string_view>(name);
+	for (auto i : generic_params_index) {
+		if (i.second > index) {
+			--i.second;
+		}
+	}
 }
 
 SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context) {
@@ -79,6 +206,14 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex
 				return std::move(result).error();
 			new_scope->implemented_types[i].type = std::move(result).value();
 		}
+	}
+
+	// Duplicate underlying type.
+	if (underlying_type.has_value()) {
+		auto r = duplication_context.push_task(*underlying_type);
+		if (r.has_error())
+			return std::move(r).error();
+		new_scope->underlying_type = std::move(r).value();
 	}
 
 	// Duplicate generic parameters.
@@ -168,6 +303,15 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		if (!target_object->insert("implemented_types", v.release()))
 			return DumpResult::OutOfMemory;
 		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->implemented_types[i].type, deep_dump));
+	}
+
+	if (scope->underlying_type.has_value()) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
+		if (!target_object->insert("underlying_type", v.release()))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->underlying_type.value(), deep_dump));
 	}
 
 	{

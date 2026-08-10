@@ -36,15 +36,15 @@ namespace slkc {
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 
-			PEFF_FORCEINLINE StmtKind get_stmt_kind() const noexcept {
+			SLAKE_FORCEINLINE StmtKind get_stmt_kind() const noexcept {
 				return _stmt_kind;
 			}
 
-			PEFF_FORCEINLINE bool is_bad() const noexcept {
+			SLAKE_FORCEINLINE bool is_bad() const noexcept {
 				return _is_bad;
 			}
 
-			PEFF_FORCEINLINE void set_bad(bool bad) noexcept {
+			SLAKE_FORCEINLINE void set_bad(bool bad) noexcept {
 				_is_bad = bad;
 			}
 		};
@@ -326,7 +326,7 @@ namespace slkc {
 			TokenIndex sti_case_keyword = INVALID_TOKEN_INDEX,
 					   sti_default_keyword = INVALID_TOKEN_INDEX;
 
-			PEFF_FORCEINLINE bool is_default_branch() const noexcept {
+			SLAKE_FORCEINLINE bool is_default_branch() const noexcept {
 				return !pattern;
 			}
 

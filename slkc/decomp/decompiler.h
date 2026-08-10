@@ -9,7 +9,7 @@ namespace slkc {
 		SLKC_API virtual ~DumpWriter();
 		[[nodiscard]] virtual bool write(const char *data, size_t len) = 0;
 
-		PEFF_FORCEINLINE bool write(const std::string_view& s) {
+		SLAKE_FORCEINLINE bool write(const std::string_view& s) {
 			return write(s.data(), s.size());
 		}
 	};

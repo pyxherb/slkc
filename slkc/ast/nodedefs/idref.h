@@ -18,8 +18,8 @@ namespace slkc {
 				   sti_right_angle_bracket = INVALID_TOKEN_INDEX;
 			peff::DynArray<size_t> sti_generic_args_comma_token_indices;
 
-			PEFF_FORCEINLINE IdRefEntry(peff::Alloc *self_allocator) : name(self_allocator), generic_args(self_allocator), sti_generic_args_comma_token_indices(self_allocator) {}
-			PEFF_FORCEINLINE IdRefEntry(IdRefEntry &&rhs)
+			SLAKE_FORCEINLINE IdRefEntry(peff::Alloc *self_allocator) : name(self_allocator), generic_args(self_allocator), sti_generic_args_comma_token_indices(self_allocator) {}
+			SLAKE_FORCEINLINE IdRefEntry(IdRefEntry &&rhs)
 				: name(std::move(rhs.name)),
 				  generic_args(std::move(rhs.generic_args)),
 				  sti_access_op(rhs.sti_access_op),
@@ -36,16 +36,16 @@ namespace slkc {
 		struct OwnedIdRef final {
 			peff::DynArray<IdRefEntry> entries;
 
-			PEFF_FORCEINLINE OwnedIdRef(peff::Alloc *self_allocator) : entries(self_allocator) {}
-			PEFF_FORCEINLINE OwnedIdRef(OwnedIdRef &&rhs) : entries(std::move(rhs.entries)) {
+			SLAKE_FORCEINLINE OwnedIdRef(peff::Alloc *self_allocator) : entries(self_allocator) {}
+			SLAKE_FORCEINLINE OwnedIdRef(OwnedIdRef &&rhs) : entries(std::move(rhs.entries)) {
 			}
 			OwnedIdRef &operator=(OwnedIdRef &&) = default;
 
-			PEFF_FORCEINLINE operator IdRefView() noexcept {
+			SLAKE_FORCEINLINE operator IdRefView() noexcept {
 				return entries;
 			}
 
-			PEFF_FORCEINLINE operator ConstIdRefView() const noexcept {
+			SLAKE_FORCEINLINE operator ConstIdRefView() const noexcept {
 				return entries;
 			}
 

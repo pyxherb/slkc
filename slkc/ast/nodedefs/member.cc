@@ -8,6 +8,13 @@ SLKC_API DumpResult MemberNode::do_dump(DumpContext &dump_context, wandjson::Obj
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
+	if (_parent_node_index != INVALID_NODE_INDEX) {
+		if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), _parent_node_index))))
+			return DumpResult::OutOfMemory;
+		if (!target_object->insert("outer_node_index", v.release()))
+			return DumpResult::OutOfMemory;
+	}
+
 	if (!(v = decltype(v)(dump_string(dump_context, self_name))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("self_name", v.release()))
@@ -15,7 +22,7 @@ SLKC_API DumpResult MemberNode::do_dump(DumpContext &dump_context, wandjson::Obj
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_scope(static_cast<wandjson::ObjectValue*>(v.get()), dump_context, self_scope.get(),deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(dump_scope(static_cast<wandjson::ObjectValue*>(v.get()), dump_context, _self_scope.get(),deep_dump));
 	if (!target_object->insert("self_scope", v.release()))
 		return DumpResult::OutOfMemory;
 
@@ -37,6 +44,12 @@ SLKC_API MemberNode::MemberNode(
 }
 
 SLKC_API MemberNode::~MemberNode() {
+}
+
+SLKC_API bool MemberNode::alloc_scope() noexcept {
+	if(!(_self_scope = Scope::alloc(this->get_node_index(), this->get_global())))
+		return false;
+	return true;
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(MemberNode);

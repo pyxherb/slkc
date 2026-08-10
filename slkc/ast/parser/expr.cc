@@ -720,7 +720,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 							  get_global())))
 						co_return gen_oom_syntax_error();
 
-					expr->target = NodePtr<ExprNode>::from_pin(lhs);
+					expr->target = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -753,7 +753,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Subscript;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -781,7 +781,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 							  get_global())))
 						co_return gen_oom_syntax_error();
 
-					expr->head_expr = NodePtr<ExprNode>::from_pin(lhs);
+					expr->head_expr = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -801,7 +801,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 							  get_global())))
 						co_return gen_oom_syntax_error();
 
-					expr->operand = NodePtr<ExprNode>::from_pin(lhs);
+					expr->operand = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -830,7 +830,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Mul;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -851,7 +851,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Div;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -872,7 +872,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Mod;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -894,7 +894,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Add;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -915,7 +915,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Sub;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -937,7 +937,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Shl;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -958,7 +958,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Shr;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -980,7 +980,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Cmp;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1002,7 +1002,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Gt;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1023,7 +1023,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::GtEq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1044,7 +1044,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Lt;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1065,7 +1065,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::LtEq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1087,7 +1087,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Eq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1108,7 +1108,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Neq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1129,7 +1129,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::PhyEq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1150,7 +1150,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::PhyNeq;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1172,7 +1172,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::And;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1194,7 +1194,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Xor;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1216,7 +1216,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Or;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1238,7 +1238,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::LAnd;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1260,7 +1260,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::LOr;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1281,7 +1281,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 							  get_global())))
 						co_return gen_oom_syntax_error();
 
-					expr->condition = NodePtr<ExprNode>::from_pin(lhs);
+					expr->condition = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1315,7 +1315,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Assign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1336,7 +1336,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::AddAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1357,7 +1357,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::SubAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1378,7 +1378,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::MulAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1399,7 +1399,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::DivAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1420,7 +1420,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::AndAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1441,7 +1441,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::OrAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1462,7 +1462,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::XorAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1483,7 +1483,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::ShlAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1504,7 +1504,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::ShrAssign;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1525,7 +1525,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						co_return gen_oom_syntax_error();
 
 					expr->binary_op = BinaryOp::Comma;
-					expr->lhs = NodePtr<ExprNode>::from_pin(lhs);
+					expr->lhs = lhs;
 
 					lhs = expr.cast_to<ExprNode>();
 
@@ -1541,12 +1541,12 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 	}
 
 end:
-	expr_out = NodePtr<ExprNode>::from_pin(lhs);
+	expr_out = lhs;
 
 	co_return peff::NULLOPT;
 
 gen_bad_expr:
-    expr_out = NodePtr<ExprNode>::from_pin(lhs);
+    expr_out = lhs;
     
     lhs->set_bad(true);
     

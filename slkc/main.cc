@@ -50,7 +50,7 @@ struct CompiledOptionMap {
 	FallbackOptionCallback fallback_option_callback;
 	RequireOptionArgCallback require_option_arg_callback;
 
-	PEFF_FORCEINLINE CompiledOptionMap(peff::Alloc *alloc, FallbackOptionCallback fallback_option_callback, RequireOptionArgCallback require_option_arg_callback) noexcept : argless_options(alloc), single_arg_options(alloc), custom_options(alloc), fallback_option_callback(fallback_option_callback), require_option_arg_callback(require_option_arg_callback) {}
+	SLAKE_FORCEINLINE CompiledOptionMap(peff::Alloc *alloc, FallbackOptionCallback fallback_option_callback, RequireOptionArgCallback require_option_arg_callback) noexcept : argless_options(alloc), single_arg_options(alloc), custom_options(alloc), fallback_option_callback(fallback_option_callback), require_option_arg_callback(require_option_arg_callback) {}
 };
 
 [[nodiscard]] bool build_option_map(

@@ -26,18 +26,51 @@ namespace slkc {
 		};
 
 		class MemberNode : public Node {
+		private:
+			NodeIndex _parent_node_index = INVALID_NODE_INDEX;
+			peff::UniquePtr<Scope, peff::DeallocableDeleter<Scope>> _self_scope;
+
 		protected:
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			GlobalSharedStringRef self_name;
-			std::unique_ptr<Scope, peff::DeallocableDeleter<Scope>> self_scope;
 
 			AccessModifier access_modifier;
 
 			SLKC_API MemberNode(NodeType ast_node_type, Global *global);
 			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MemberNode();
+
+			SLKC_API bool alloc_scope() noexcept;
+
+			SLAKE_FORCEINLINE Scope *get_scope() const noexcept {
+				return _self_scope.get();
+			}
+
+			SLAKE_FORCEINLINE NodePtr<MemberNode> get_parent() const noexcept {
+				return NodePtr<MemberNode>(get_global(), _parent_node_index);
+			}
+
+			SLAKE_FORCEINLINE void set_parent(NodeIndex node) noexcept {
+				_parent_node_index = node;
+			}
+
+			SLAKE_FORCEINLINE bool set_name(std::string_view name) {
+				assert(_parent_node_index == INVALID_NODE_INDEX);
+				if (!(self_name = GlobalSharedStringRef(get_global()->register_shared_string(name))))
+					return false;
+				return true;
+			}
+			
+			SLAKE_FORCEINLINE void set_name(const GlobalSharedStringRef &name) {
+				assert(_parent_node_index == INVALID_NODE_INDEX);
+				self_name = name;
+			}
+
+			SLAKE_FORCEINLINE GlobalSharedStringRef get_name() const noexcept {
+				return self_name;
+			}
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};

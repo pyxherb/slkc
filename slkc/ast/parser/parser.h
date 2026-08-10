@@ -24,7 +24,8 @@ namespace slkc {
 			InvalidMetaTypeName,
 			NoMatchingTokensFound,
 			ConflictingDefinitions,
-			LiteralOverflowed
+			LiteralOverflowed,
+			PinningIOError,
 		};
 
 		struct ExpectingSingleTokenErrorExData {
@@ -134,32 +135,32 @@ namespace slkc {
 			struct promise_type {
 				peff::Option<SyntaxError> result;
 
-				PEFF_FORCEINLINE static ParseCoroutine get_return_object_on_allocation_failure() noexcept {
+				SLAKE_FORCEINLINE static ParseCoroutine get_return_object_on_allocation_failure() noexcept {
 					return ParseCoroutine({});
 				}
 
-				PEFF_FORCEINLINE ParseCoroutine get_return_object() noexcept {
+				SLAKE_FORCEINLINE ParseCoroutine get_return_object() noexcept {
 					return ParseCoroutine(Handle::from_promise(*this));
 				}
 
-				PEFF_FORCEINLINE std::suspend_always initial_suspend() noexcept {
+				SLAKE_FORCEINLINE std::suspend_always initial_suspend() noexcept {
 					return {};
 				}
 
-				PEFF_FORCEINLINE std::suspend_always final_suspend() noexcept {
+				SLAKE_FORCEINLINE std::suspend_always final_suspend() noexcept {
 					return {};
 				}
 
-				PEFF_FORCEINLINE std::suspend_always yield_value(peff::Option<SyntaxError> &&value) noexcept {
+				SLAKE_FORCEINLINE std::suspend_always yield_value(peff::Option<SyntaxError> &&value) noexcept {
 					result = std::move(value);
 					return {};
 				}
 
-				PEFF_FORCEINLINE void return_value(peff::Option<SyntaxError> &&value) noexcept {
+				SLAKE_FORCEINLINE void return_value(peff::Option<SyntaxError> &&value) noexcept {
 					result = std::move(value);
 				}
 
-				PEFF_FORCEINLINE void unhandled_exception() { std::terminate(); }
+				SLAKE_FORCEINLINE void unhandled_exception() { std::terminate(); }
 
 				struct AllocatorInfo {
 					peff::Alloc *allocator;
@@ -256,7 +257,7 @@ namespace slkc {
 		public:
 			ParseCoroutineScheduler parse_coro_scheduler;
 			Global *global;
-			NodePtr<MemberNode> cur_parent;
+			NodePin<MemberNode> cur_parent;
 			TokenList token_list;
 			struct ParseContext {
 				NodePtr<ModuleNode> mod;
@@ -273,8 +274,24 @@ namespace slkc {
 				return global;
 			}
 
-			SLKC_API SyntaxError gen_oom_syntax_error() const noexcept {
+			SLAKE_FORCEINLINE SyntaxError gen_oom_syntax_error() const noexcept {
 				return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), 0 }, SyntaxErrorKind::OutOfMemory);
+			}
+
+			SLAKE_FORCEINLINE SyntaxError gen_pinning_io_error() const noexcept {
+				return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), 0 }, SyntaxErrorKind::PinningIOError);
+			}
+
+			SLAKE_FORCEINLINE SyntaxError scope_member_op_result_to_syntax_error(ScopeMemberOpResult result) {
+				switch (result) {
+					case ScopeMemberOpResult::Success:
+						std::terminate();
+					case ScopeMemberOpResult::OutOfMemory:
+						return gen_oom_syntax_error();
+					case ScopeMemberOpResult::PinningIOError:
+						return gen_pinning_io_error();
+				}
+				SLAKE_UNREACHABLE();
 			}
 
 			SLKC_API peff::Option<SyntaxError> lookahead_until(size_t num_token_ids, const TokenId token_ids[]);
@@ -301,7 +318,7 @@ namespace slkc {
 				return peff::NULLOPT;
 			}
 
-			PEFF_FORCEINLINE peff::Option<SyntaxError> push_literal_overflowed_error(Token *token) noexcept {
+			SLAKE_FORCEINLINE peff::Option<SyntaxError> push_literal_overflowed_error(Token *token) noexcept {
 				if (!syntax_errors.push_back(SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), token->index }, SyntaxErrorKind::LiteralOverflowed)))
 					return gen_oom_syntax_error();
 				return peff::NULLOPT;
@@ -344,15 +361,15 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_param_type_list_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::Alloc *allocator, peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, size_t &l_angle_bracket_index_out, size_t &r_angle_bracket_index_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &sti_comma_separators_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::Alloc *allocator, peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(peff::Alloc *allocator, NodePtr<FnOverloadingNode> &fn_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(peff::Alloc *allocator, NodePin<FnOverloadingNode> &fn_node_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(peff::Alloc *allocator, std::string_view &name_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_name(peff::Alloc *allocator, peff::String &name_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_item(peff::Alloc *allocator, NodePtr<ModuleNode> enum_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_enum_item(peff::Alloc *allocator, NodePtr<ModuleNode> enum_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_item(peff::Alloc *allocator, NodePtr<MemberNode> enum_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_enum_item(peff::Alloc *allocator, NodePtr<MemberNode> enum_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(peff::Alloc *allocator);
 
@@ -369,11 +386,11 @@ namespace slkc {
 		co_return _;                             \
 	else
 
-#define SLKC_CO_RETURN_IF_CO_PARSE_ERROR(e)  \
-	do {                                     \
-		if (auto _ = co_await ((e)(this)); _) {    \
-			co_return gen_oom_syntax_error(); \
-		}                                    \
+#define SLKC_CO_RETURN_IF_CO_PARSE_ERROR(e)     \
+	do {                                        \
+		if (auto _ = co_await ((e)(this)); _) { \
+			co_return gen_oom_syntax_error();   \
+		}                                       \
 	} while (0)
 
 #endif

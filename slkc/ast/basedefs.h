@@ -19,9 +19,9 @@ namespace slkc {
 			TokenIndex begin, end;
 
 			TokenRange() = default;
-			PEFF_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex begin, TokenIndex end)
+			SLAKE_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex begin, TokenIndex end)
 				: source_node(source_node), begin(begin), end(end) {}
-			PEFF_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex index)
+			SLAKE_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex index)
 				: source_node(source_node), begin(index), end(index) {}
 		};
 

@@ -143,31 +143,31 @@ namespace slkc {
 
 			virtual void dealloc() noexcept = 0;
 
-			PEFF_FORCEINLINE NodeType get_ast_node_type() const noexcept {
+			SLAKE_FORCEINLINE NodeType get_ast_node_type() const noexcept {
 				return _ast_node_type;
 			}
 
-			PEFF_FORCEINLINE Global *get_global() const noexcept {
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return _global;
 			}
 
-			PEFF_FORCEINLINE TokenRange get_token_range() const noexcept {
+			SLAKE_FORCEINLINE TokenRange get_token_range() const noexcept {
 				return _token_range;
 			}
 
-			PEFF_FORCEINLINE void set_token_range(TokenRange token_range) noexcept {
+			SLAKE_FORCEINLINE void set_token_range(TokenRange token_range) noexcept {
 				_token_range = token_range;
 			}
 			
-			PEFF_FORCEINLINE void set_end_token_index(TokenIndex end_token_index) noexcept {
+			SLAKE_FORCEINLINE void set_end_token_index(TokenIndex end_token_index) noexcept {
 				_token_range.end = end_token_index;
 			}
 
-			PEFF_FORCEINLINE NodeIndex get_node_index() const noexcept {
+			SLAKE_FORCEINLINE NodeIndex get_node_index() const noexcept {
 				return _node_index;
 			}
 			
-			PEFF_FORCEINLINE void set_node_index(NodeIndex node_index) noexcept {
+			SLAKE_FORCEINLINE void set_node_index(NodeIndex node_index) noexcept {
 				_node_index = node_index;
 			}
 		};
