@@ -173,7 +173,7 @@ SLAKE_FORCEINLINE peff::Option<SyntaxError> _parse_int(Parser *parser, Token *to
 	return peff::NULLOPT;
 }
 
-SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out) {
+SLKC_API ParseCoroutine Parser::parse_expr(int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out) {
 	Token *prefix_token;
 
 	peff::Option<SyntaxError> syntax_error;
@@ -195,7 +195,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 				case TokenId::ScopeOp:
 				case TokenId::Id: {
 					OwnedIdRef id_ref_ptr(global->get_allocator());
-					if ((syntax_error = (co_await parse_id_ref(global->get_allocator(), id_ref_ptr)(this))))
+					if ((syntax_error = (co_await parse_id_ref(id_ref_ptr)(this))))
 						goto gen_bad_expr;
 					if (!(lhs = make_node<IdRefExprNode>(get_global()).cast_to<ExprNode>()))
 						co_return gen_oom_syntax_error();
@@ -213,7 +213,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = (co_await (parse_expr(global->get_allocator(), 0, expr->operand)(this)))))
+					if ((syntax_error = (co_await (parse_expr(0, expr->operand)(this)))))
 						goto gen_bad_expr;
 
 					Token *r_parenthese_token;
@@ -233,7 +233,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = (co_await parse_type_name(global->get_allocator(), expr->target_type)(this))))
+					if ((syntax_error = (co_await parse_type_name(expr->target_type)(this))))
 						goto gen_bad_expr;
 
 					Token *l_parenthese_token;
@@ -243,7 +243,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					next_token();
 
-					if ((syntax_error = (co_await parse_args(global->get_allocator(), expr->args, expr->sti_arg_separators)(this))))
+					if ((syntax_error = (co_await parse_args(expr->args, expr->sti_arg_separators)(this))))
 						goto gen_bad_expr;
 
 					Token *r_parenthese_token;
@@ -494,7 +494,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 131, expr->operand)(this)))) {
+					if ((syntax_error = co_await (parse_expr(131, expr->operand)(this)))) {
 						goto gen_bad_expr;
 					}
 					break;
@@ -520,7 +520,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 					Token *current_token;
 
 					for (;;) {
-						if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, cur_expr)(this)))) {
+						if ((syntax_error = co_await (parse_expr(0, cur_expr)(this)))) {
 							if (!syntax_errors.push_back(std::move(syntax_error.value())))
 								co_return gen_oom_syntax_error();
 							syntax_error.reset();
@@ -564,7 +564,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 131, expr->operand)(this)))) {
+					if ((syntax_error = co_await (parse_expr(131, expr->operand)(this)))) {
 						goto gen_bad_expr;
 					}
 					break;
@@ -582,7 +582,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 131, expr->operand)(this)))) {
+					if ((syntax_error = co_await (parse_expr(131, expr->operand)(this)))) {
 						goto gen_bad_expr;
 					}
 					break;
@@ -600,7 +600,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 131, expr->operand)(this)))) {
+					if ((syntax_error = co_await (parse_expr(131, expr->operand)(this)))) {
 						goto gen_bad_expr;
 					}
 
@@ -624,7 +624,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					next_token();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->condition)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->condition)(this))))
 						goto gen_bad_expr;
 
 					Token *r_parenthese_token;
@@ -637,7 +637,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 					Token *co_return_type_token;
 					if ((co_return_type_token = peek_token())->token_id == TokenId::ReturnTypeOp) {
 						next_token();
-						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(global->get_allocator(), expr->return_type));
+						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(expr->return_type));
 					}
 
 					Token *l_brace_token = peek_token();
@@ -654,7 +654,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						if (peek_token()->token_id == TokenId::DefaultKeyword) {
 							next_token();
 						} else {
-							if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, condition_expr)(this)))) {
+							if ((syntax_error = co_await (parse_expr(0, condition_expr)(this)))) {
 								goto gen_bad_expr;
 							}
 						}
@@ -667,7 +667,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 						next_token();
 
-						if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, result_expr)(this)))) {
+						if ((syntax_error = co_await (parse_expr(0, result_expr)(this)))) {
 							goto gen_bad_expr;
 						}
 
@@ -726,7 +726,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					expr->sti_left_parenthesis = infix_token->index;
 
-					if ((syntax_error = co_await (parse_args(global->get_allocator(), expr->args, expr->sti_arg_separators)(this)))) {
+					if ((syntax_error = co_await (parse_args(expr->args, expr->sti_arg_separators)(this)))) {
 						goto gen_bad_expr;
 					}
 
@@ -757,7 +757,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					if ((syntax_error = split_rdbrackets_token()))
@@ -785,7 +785,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = (co_await parse_id_ref(global->get_allocator(), expr->id_ref)(this))))
+					if ((syntax_error = (co_await parse_id_ref(expr->id_ref)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -810,7 +810,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 						expr->sti_nullable_token = t->index;
 					}
 
-					if ((syntax_error = (co_await parse_type_name(global->get_allocator(), expr->target_type)(this))))
+					if ((syntax_error = (co_await parse_type_name(expr->target_type)(this))))
 						goto gen_bad_expr;
 
 					expr->set_end_token_index(expr->target_type.token_range.end);
@@ -834,7 +834,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 121, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(121, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -855,7 +855,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 121, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(121, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -876,7 +876,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 121, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(121, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -898,7 +898,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 111, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(111, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -919,7 +919,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 111, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(111, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -941,7 +941,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 101, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(101, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -962,7 +962,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 101, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(101, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -984,7 +984,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 91, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(91, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1006,7 +1006,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 81, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(81, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1027,7 +1027,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 81, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(81, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1048,7 +1048,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 81, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(81, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1069,7 +1069,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 81, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(81, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1091,7 +1091,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 71, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(71, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1112,7 +1112,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 71, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(71, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1133,7 +1133,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 71, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(71, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1154,7 +1154,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 71, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(71, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1176,7 +1176,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 61, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(61, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1198,7 +1198,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 51, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(51, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1220,7 +1220,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 41, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(41, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1242,7 +1242,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 31, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(31, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1264,7 +1264,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 21, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(21, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1286,7 +1286,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 					lhs = expr.cast_to<ExprNode>();
 
                     NodePin<ExprNode> tb;
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 10, expr->true_branch, &tb)(this))))
+					if ((syntax_error = co_await (parse_expr(10, expr->true_branch, &tb)(this))))
 						goto gen_bad_expr;
 
 					expr->set_end_token_index(tb->get_token_range().end);
@@ -1297,7 +1297,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					expr->set_end_token_index(colon_token->index);
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 10, expr->false_branch, &tb)(this))))
+					if ((syntax_error = co_await (parse_expr(10, expr->false_branch, &tb)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1319,7 +1319,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1340,7 +1340,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1361,7 +1361,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1382,7 +1382,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1403,7 +1403,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1424,7 +1424,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1445,7 +1445,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1466,7 +1466,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1487,7 +1487,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1508,7 +1508,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), 0, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(0, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;
@@ -1529,7 +1529,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, int precedenc
 
 					lhs = expr.cast_to<ExprNode>();
 
-					if ((syntax_error = co_await (parse_expr(global->get_allocator(), -10, expr->rhs)(this))))
+					if ((syntax_error = co_await (parse_expr(-10, expr->rhs)(this))))
 						goto gen_bad_expr;
 
 					break;

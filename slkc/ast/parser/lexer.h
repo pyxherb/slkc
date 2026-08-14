@@ -48,7 +48,7 @@ namespace slkc {
 		class ModuleNode;
 
 		struct SourceLocation {
-			ModuleNode *module_node;
+			NodeIndex module_node;
 			SourcePosition begin_position, end_position;
 		};
 
@@ -303,7 +303,7 @@ namespace slkc {
 
 			SLAKE_FORCEINLINE Lexer(peff::Alloc *allocator) : token_list(allocator) {
 			}
-			[[nodiscard]] SLKC_API peff::Option<LexicalError> lex(ModuleNode *module_node, const std::string_view &src, peff::Alloc *allocator, Global *global);
+			[[nodiscard]] SLKC_API peff::Option<LexicalError> lex(NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator, Global *global);
 		};
 
 		SLKC_API std::string_view get_token_name(TokenId token_id);

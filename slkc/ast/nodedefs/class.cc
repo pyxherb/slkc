@@ -67,7 +67,8 @@ SLKC_API DumpResult GenericParamNode::do_dump(DumpContext &dump_context, wandjso
 }
 
 SLKC_API GenericParamNode::GenericParamNode(Global *global)
-	: MemberNode(NodeType::GenericParam, global) {
+	: MemberNode(NodeType::GenericParam, global),
+	  generic_constraint(global) {
 }
 
 SLKC_API GenericParamNode::GenericParamNode(
@@ -76,12 +77,13 @@ SLKC_API GenericParamNode::GenericParamNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
+	  generic_constraint(context.get_global()),
 	  sti_name(other.sti_name) {
 	if (error_out.has_value())
 		return;
 
 	{
-		auto result = other.generic_constraint->deep_duplicate(context);
+		auto result = other.generic_constraint.deep_duplicate(context);
 		if (result.has_error()) {
 			error_out = std::move(result).error();
 			return;
@@ -458,6 +460,11 @@ SLKC_API DumpResult StructNode::do_dump(DumpContext &dump_context, wandjson::Obj
 	if (!target_object->insert("sti_generic_right_angle", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_implement_colon))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_implement_colon", v.release()))
+		return DumpResult::OutOfMemory;
+
 	{
 		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
@@ -506,6 +513,7 @@ SLKC_API StructNode::StructNode(
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_struct_keyword(other.sti_struct_keyword),
+	  sti_implement_colon(other.sti_implement_colon),
 	  sti_name(other.sti_name),
 	  sti_generic_left_angle(other.sti_generic_left_angle),
 	  sti_generic_right_angle(other.sti_generic_right_angle),
@@ -785,7 +793,7 @@ SLKC_API ImportNode::ImportNode(
 	  id_ref(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
 		return;
-	if(auto result = other.id_ref.duplicate(other.get_global()->get_allocator()); !result.has_value()) {
+	if (auto result = other.id_ref.duplicate(other.get_global()->get_allocator()); !result.has_value()) {
 		error_out = DuplicationError::OutOfMemory;
 		return;
 	} else {

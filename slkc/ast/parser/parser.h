@@ -328,52 +328,53 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_defs(peff::Alloc *allocator, peff::DynArray<BindingEntry> &var_def_entries);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_implement_item(ImplementItem &item_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_implement_list(peff::DynArray<ImplementItem> &item_list, TokenIndex &colon_out, peff::DynArray<TokenIndex> &separators_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_inherited_type_slot(peff::Option<TypeName> &tn_out, TokenIndex &left_parenthesis_out, TokenIndex &right_parenthesis_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(peff::Alloc *allocator, OwnedIdRef &id_ref_out, bool is_parsing_type = false);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_defs(peff::DynArray<BindingEntry> &var_def_entries);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(peff::Alloc *allocator, int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out = nullptr);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(OwnedIdRef &id_ref_out, bool is_parsing_type = false);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_if_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_with_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_for_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_while_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_do_while_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_let_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_break_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_continue_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_return_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_yield_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_label_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_case_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_default_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_block_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_switch_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(peff::Alloc *allocator, NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out = nullptr);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_arg(peff::Alloc *allocator, TypeName &arg_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(peff::Alloc *allocator, TypeName &type_name_out, bool with_circumfixes = true);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_if_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_for_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_while_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_do_while_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_let_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_break_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_continue_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_return_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_yield_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_case_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_default_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_block_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_switch_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_expr_stmt(NodePtr<StmtNode> &stmt_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(NodePtr<StmtNode> &stmt_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_attribute(peff::Alloc *allocator, NodePtr<AttributeNode> &attribute_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_attributes(peff::Alloc *allocator, peff::DynArray<NodePtr<AttributeNode>> &attributes_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_arg(TypeName &arg_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(TypeName &type_name_out, bool with_circumfixes = true);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_param_type_list_generic_constraint(peff::Alloc *allocator, GenericConstraint &constraint_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &sti_comma_separators_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::Alloc *allocator, peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
+			/*[[nodiscard]] SLKC_API ParseCoroutine parse_attribute(NodePtr<AttributeNode> &attribute_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_attributes(peff::DynArray<NodePtr<AttributeNode>> &attributes_out);*/
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(peff::Alloc *allocator, NodePin<FnOverloadingNode> &fn_node_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(peff::Alloc *allocator, std::string_view &name_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_name(peff::Alloc *allocator, peff::String &name_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_constraint(GenericConstraint &constraint_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &sti_comma_separators_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_item(peff::Alloc *allocator, NodePtr<MemberNode> enum_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_enum_item(peff::Alloc *allocator, NodePtr<MemberNode> enum_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(NodePin<FnOverloadingNode> &fn_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(std::string_view &name_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_name(peff::String &name_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(peff::Alloc *allocator);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_item(NodePtr<MemberNode> enum_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_enum_item(NodePtr<MemberNode> enum_out);
 
-			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(peff::Alloc *allocator, const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt();
+
+			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
 
 		public:
 			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);

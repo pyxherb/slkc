@@ -9,7 +9,6 @@ namespace slkc {
 			OutOfMemory = 0,
 
 			StackOverflow,
-			OutOfRuntimeMemory,
 			ExpectingRValueExpr,
 			TargetIsNotCallable,
 			TargetIsNotUnpackable,

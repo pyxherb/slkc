@@ -14,7 +14,7 @@ enum LexCondition {
 	yycLineCommentCondition,
 };
 
-SLKC_API peff::Option<LexicalError> Lexer::lex(ModuleNode *module_node, const std::string_view &src, peff::Alloc *allocator, Global *global) {
+SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator, Global *global) {
 	const char *YYCURSOR = src.data(), *YYMARKER = YYCURSOR, *YYLIMIT = src.data() + src.size();
 	const char *prev_YYCURSOR = YYCURSOR;
 

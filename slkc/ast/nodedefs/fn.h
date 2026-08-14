@@ -11,6 +11,7 @@ namespace slkc {
 		enum class FnOverloadingKind : uint8_t {
 			Regular = 0,
 			Coroutine,
+			Operator,
 		};
 
 		using FnOverloadingFlags = uint8_t;
@@ -30,6 +31,7 @@ namespace slkc {
 		public:
 			peff::DynArray<BindingEntry> params;
 			TypeName return_type;
+			peff::Option<TypeName> overriden_type;
 			NodePtr<BlockStmtNode> body;
 
 			FnOverloadingFlags overloading_flags = 0;
@@ -37,6 +39,8 @@ namespace slkc {
 
 			TokenIndex sti_fn_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_name = INVALID_TOKEN_INDEX;
+			TokenIndex sti_generic_left_angle = INVALID_TOKEN_INDEX;
+			TokenIndex sti_generic_right_angle = INVALID_TOKEN_INDEX;
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_return_type_token = INVALID_TOKEN_INDEX;
@@ -44,6 +48,9 @@ namespace slkc {
 			TokenIndex sti_const_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_virtual_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_override_keyword = INVALID_TOKEN_INDEX;
+
+			peff::DynArray<TokenIndex> idx_param_comma_tokens,
+				idx_generic_param_comma_tokens;
 
 			SLKC_API FnOverloadingNode(Global *global);
 			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);

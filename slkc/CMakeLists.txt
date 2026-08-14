@@ -24,7 +24,7 @@ configure_file("config.h.in" ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 add_subdirectory("ast")
 add_subdirectory("comp")
-add_subdirectory("decomp")
+# add_subdirectory("decomp")
 
 if(SLKC_WITH_LANGUAGE_SERVER)
     # add_subdirectory("server")

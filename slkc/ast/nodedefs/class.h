@@ -30,6 +30,8 @@ namespace slkc {
 			SLKC_API GenericConstraint(const GenericConstraint &) = delete;
 			SLKC_API GenericConstraint(GenericConstraint &&) noexcept = default;
 
+			SLKC_API GenericConstraint &operator=(GenericConstraint &&) noexcept = default;
+
 			[[nodiscard]] SLKC_API peff::Result<GenericConstraint, DuplicationError> deep_duplicate(DuplicationContext &duplication_context) const noexcept;
 		};
 
@@ -40,7 +42,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			peff::Option<GenericConstraint> generic_constraint;
+			GenericConstraint generic_constraint;
 			TokenIndex sti_name = INVALID_TOKEN_INDEX;
 
 			SLKC_API GenericParamNode(Global *global);
@@ -149,6 +151,7 @@ namespace slkc {
 					   sti_generic_left_angle = INVALID_TOKEN_INDEX,
 					   sti_generic_right_angle = INVALID_TOKEN_INDEX,
 					   sti_name = INVALID_TOKEN_INDEX,
+					   sti_implement_colon = INVALID_TOKEN_INDEX,
 					   sti_left_brace = INVALID_TOKEN_INDEX,
 					   sti_right_brace = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_implement_item_separator,

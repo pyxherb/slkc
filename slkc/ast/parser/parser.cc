@@ -68,12 +68,235 @@ SLKC_API ParseCoroutine::Awaitable ParseCoroutine::operator()(Parser *parser) {
 SLKC_API ParseCoroutineScheduler::ParseCoroutineScheduler(peff::Alloc *allocator) : task_list(allocator) {
 }
 
-SLKC_API ParseCoroutine Parser::parse_program_stmt(peff::Alloc *allocator) {
+SLKC_API peff::Option<SyntaxError> Parser::lookahead_until(size_t num_token_ids, const TokenId token_ids[]) {
+	// stub.
+	return peff::NULLOPT;
+
+	Token *token;
+	while ((token->token_id != TokenId::End)) {
+		for (size_t i = 0; i < num_token_ids; ++i) {
+			if (token->token_id == token_ids[i]) {
+				return peff::NULLOPT;
+			}
+		}
+		token = next_token(true, true, true);
+	}
+
+	NoMatchingTokensFoundErrorExData ex_data(get_global()->get_allocator());
+
+	for (size_t i = 0; i < num_token_ids; ++i) {
+		TokenId copied_token_id = token_ids[i];
+		if (!ex_data.expecting_token_ids.insert(std::move(copied_token_id)))
+			return gen_oom_syntax_error();
+	}
+
+	return SyntaxError(TokenRange(token->source_location.module_node, token->index), std::move(ex_data));
+}
+
+SLKC_API Token *Parser::next_token(bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+	TokenIndex &i = parse_context.idx_current_token;
+
+	while (i < token_list.size()) {
+		Token *current_token = token_list.at(i).get();
+		current_token->index = i;
+
+		switch (token_list.at(i)->token_id) {
+			case TokenId::NewLine:
+				if (keep_new_line) {
+					parse_context.idx_prev_token = parse_context.idx_current_token;
+					++i;
+					return current_token;
+				}
+				break;
+			case TokenId::Whitespace:
+				if (keep_whitespace) {
+					parse_context.idx_prev_token = parse_context.idx_current_token;
+					++i;
+					return current_token;
+				}
+				break;
+			case TokenId::LineComment:
+			case TokenId::BlockComment:
+			case TokenId::DocumentationComment:
+				if (keep_comment) {
+					parse_context.idx_prev_token = parse_context.idx_current_token;
+					++i;
+					return current_token;
+				}
+				break;
+			default:
+				assert(is_valid_token(current_token->token_id));
+				parse_context.idx_prev_token = parse_context.idx_current_token;
+				++i;
+				return current_token;
+		}
+
+		++i;
+	}
+
+	return token_list.back().get();
+}
+
+SLKC_API Token *Parser::peek_token(bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+	size_t i = parse_context.idx_current_token;
+
+	while (i < token_list.size()) {
+		Token *current_token = token_list.at(i).get();
+		current_token->index = i;
+
+		switch (current_token->token_id) {
+			case TokenId::NewLine:
+				if (keep_new_line)
+					return current_token;
+				break;
+			case TokenId::Whitespace:
+				if (keep_whitespace)
+					return current_token;
+				break;
+			case TokenId::LineComment:
+			case TokenId::BlockComment:
+			case TokenId::DocumentationComment:
+				if (keep_comment)
+					return current_token;
+				break;
+			default:
+				assert(is_valid_token(current_token->token_id));
+				return current_token;
+		}
+
+		++i;
+	}
+
+	return token_list.back().get();
+}
+
+SLKC_API peff::Option<SyntaxError> Parser::split_shr_op_token() {
+	switch (Token *token = peek_token(); token->token_id) {
+		case TokenId::ShrOp: {
+			token->token_id = TokenId::GtOp;
+			token->source_text = token->source_text.substr(0, 1);
+			token->source_location.end_position.column -= 1;
+
+			OwnedTokenPtr extra_closing_token;
+			if (!(extra_closing_token = OwnedTokenPtr(peff::alloc_and_construct<Token>(token->allocator.get(), alignof(Token), token->allocator.get(), get_global())))) {
+				return gen_oom_syntax_error();
+			}
+
+			extra_closing_token->token_id = TokenId::GtOp;
+			extra_closing_token->source_location =
+				SourceLocation{
+					token->source_location.module_node,
+					SourcePosition{ token->source_location.begin_position.line, token->source_location.begin_position.column + 1 },
+					token->source_location.end_position
+				};
+			extra_closing_token->source_text = token->source_text.substr(1);
+
+			if (!token_list.insert(parse_context.idx_current_token + 1, std::move(extra_closing_token))) {
+				return gen_oom_syntax_error();
+			}
+
+			break;
+		}
+		default:;
+	}
+
+	return peff::NULLOPT;
+}
+
+SLKC_API peff::Option<SyntaxError> Parser::split_rdbrackets_token() {
+	switch (Token *token = peek_token(); token->token_id) {
+		case TokenId::RDBracket: {
+			token->token_id = TokenId::RBracket;
+			token->source_text = token->source_text.substr(0, 1);
+			token->source_location.end_position.column -= 1;
+
+			OwnedTokenPtr extra_closing_token;
+			if (!(extra_closing_token = OwnedTokenPtr(peff::alloc_and_construct<Token>(token->allocator.get(), alignof(Token), token->allocator.get(), get_global())))) {
+				return gen_oom_syntax_error();
+			}
+
+			extra_closing_token->token_id = TokenId::RBracket;
+			extra_closing_token->source_location =
+				SourceLocation{
+					token->source_location.module_node,
+					SourcePosition{ token->source_location.begin_position.line, token->source_location.begin_position.column + 1 },
+					token->source_location.end_position
+				};
+			extra_closing_token->source_text = token->source_text.substr(1);
+
+			if (!token_list.insert(parse_context.idx_current_token + 1, std::move(extra_closing_token))) {
+				return gen_oom_syntax_error();
+			}
+
+			break;
+		}
+		default:;
+	}
+
+	return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_implement_item(ImplementItem &item_out) {
+	ImplementItem item;
+
+	item.is_trait = false;
+
+	SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(item.type));
+
+	item_out = std::move(item);
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_implement_list(peff::DynArray<ImplementItem> &item_list, TokenIndex &colon_out, peff::DynArray<TokenIndex> &separators_out) {
+	if (Token *colon_token = peek_token(); colon_token->token_id == TokenId::Colon) {
+		next_token();
+		colon_out = colon_token->index;
+		ImplementItem item;
+
+		for (;;) {
+			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_implement_item(item));
+			if (!item_list.push_back(std::move(item)))
+				co_return gen_oom_syntax_error();
+			if (peek_token()->token_id != TokenId::AddOp) {
+				break;
+			}
+			Token *separators_op_token = next_token();
+
+			if(!separators_out.push_back(+separators_op_token->index))
+				co_return gen_oom_syntax_error();
+		}
+	}
+
+	co_return peff::NULLOPT;
+}
+
+[[nodiscard]] SLKC_API ParseCoroutine Parser::parse_inherited_type_slot(peff::Option<TypeName> &tn_out, TokenIndex &left_parenthesis_out, TokenIndex &right_parenthesis_out) {
+	if (Token *l_parenthese_token = peek_token(); l_parenthese_token->token_id == TokenId::LParenthese) {
+		left_parenthesis_out = l_parenthese_token->index;
+
+		next_token();
+
+		TypeName inherited_type;
+		SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(inherited_type));
+		tn_out = inherited_type;
+
+		Token *r_parenthese_token;
+		SLKC_CO_RETURN_IF_PARSE_ERROR((expect_token((r_parenthese_token = peek_token()), TokenId::RParenthese)));
+
+		right_parenthesis_out = r_parenthese_token->index;
+
+		next_token();
+	}
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_program_stmt() {
 	peff::Option<SyntaxError> syntax_error;
 
-	peff::DynArray<NodePtr<AttributeNode>> attributes(allocator);
+	/*peff::DynArray<NodePtr<AttributeNode>> attributes(get_global()->get_allocator());
 
-	SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_attributes(allocator, attributes));
+	SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_attributes(attributes));*/
 
 	AccessModifier access;
 	Token *current_token;
@@ -157,7 +380,7 @@ access_modifier_parse_end:
 						if (peek_token()->token_id == TokenId::RBrace)
 							break;
 
-						if ((syntax_error = (co_await parse_union_enum_item(allocator, enum_node.cast_to<MemberNode>())(this)))) {
+						if ((syntax_error = (co_await parse_union_enum_item(enum_node.cast_to<MemberNode>())(this)))) {
 							if (syntax_error->error_kind == SyntaxErrorKind::OutOfMemory)
 								co_return syntax_error;
 							if (!syntax_errors.push_back(syntax_error.move()))
@@ -175,7 +398,7 @@ access_modifier_parse_end:
 					next_token();
 
 					if (auto it = p_scope->members_index.find(enum_node->get_name()); it != p_scope->members_index.end()) {
-						peff::String s(allocator);
+						peff::String s(get_global()->get_allocator());
 
 						if (!s.build(enum_node->get_name())) {
 							co_return gen_oom_syntax_error();
@@ -223,7 +446,7 @@ access_modifier_parse_end:
 						next_token();
 
 						TypeName underlying_type;
-						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, underlying_type));
+						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(underlying_type));
 
 						enum_node->get_scope()->underlying_type = underlying_type;
 
@@ -242,7 +465,7 @@ access_modifier_parse_end:
 						if (peek_token()->token_id == TokenId::RBrace)
 							break;
 
-						if ((syntax_error = (co_await parse_enum_item(allocator, enum_node.cast_to<MemberNode>())(this)))) {
+						if ((syntax_error = (co_await parse_enum_item(enum_node.cast_to<MemberNode>())(this)))) {
 							if (syntax_error->error_kind == SyntaxErrorKind::OutOfMemory)
 								co_return syntax_error;
 							if (!syntax_errors.push_back(syntax_error.move()))
@@ -260,7 +483,7 @@ access_modifier_parse_end:
 					next_token();
 
 					if (auto it = p_scope->members_index.find(enum_node->get_name()); it != p_scope->members_index.end()) {
-						peff::String s(allocator);
+						peff::String s(get_global()->get_allocator());
 
 						if (!s.build(enum_node->get_name())) {
 							co_return gen_oom_syntax_error();
@@ -303,7 +526,7 @@ access_modifier_parse_end:
 							next_token();
 
 							TypeName underlying_type;
-							SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, underlying_type));
+							SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(underlying_type));
 
 							enum_node->get_scope()->underlying_type = underlying_type;
 
@@ -323,7 +546,7 @@ access_modifier_parse_end:
 						if (peek_token()->token_id == TokenId::RBrace)
 							break;
 
-						if ((syntax_error = (co_await parse_enum_item(allocator, enum_node.cast_to<MemberNode>())(this)))) {
+						if ((syntax_error = (co_await parse_enum_item(enum_node.cast_to<MemberNode>())(this)))) {
 							if (syntax_error->error_kind == SyntaxErrorKind::OutOfMemory)
 								co_return syntax_error;
 							if (!syntax_errors.push_back(syntax_error.move()))
@@ -341,7 +564,7 @@ access_modifier_parse_end:
 					next_token();
 
 					if (auto it = p_scope->members_index.find(enum_node->get_name()); it != p_scope->members_index.end()) {
-						peff::String s(allocator);
+						peff::String s(get_global()->get_allocator());
 
 						if (!s.build(enum_node->get_name())) {
 							co_return gen_oom_syntax_error();
@@ -418,7 +641,7 @@ access_modifier_parse_end:
 						break;
 					}
 
-					if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+					if ((syntax_error = (co_await parse_program_stmt()(this)))) {
 						// Parse the rest to make sure that we have gained all of the information,
 						// instead of ignoring them.
 						if (!syntax_errors.push_back(std::move(syntax_error.value())))
@@ -435,7 +658,7 @@ access_modifier_parse_end:
 			}
 
 			if (auto it = p_scope->members_index.find(attribute_node->get_name()); it != p_scope->members_index.end()) {
-				peff::String s(allocator);
+				peff::String s(get_global()->get_allocator());
 
 				if (!s.build(attribute_node->get_name())) {
 					co_return gen_oom_syntax_error();
@@ -459,7 +682,7 @@ access_modifier_parse_end:
 			// Function.
 			NodePin<FnOverloadingNode> fn;
 
-			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_fn(allocator, fn));
+			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_fn(fn));
 
 			fn->access_modifier = access;
 
@@ -479,7 +702,7 @@ access_modifier_parse_end:
 					}
 				}
 				if (pinned_m->get_ast_node_type() != NodeType::Fn) {
-					peff::String s(allocator);
+					peff::String s(get_global()->get_allocator());
 
 					if (!s.build(fn->get_name())) {
 						co_return gen_oom_syntax_error();
@@ -559,46 +782,13 @@ access_modifier_parse_end:
 
 				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(
 					parse_generic_params(
-						allocator,
 						class_node->get_scope()->generic_params,
 						class_node->sti_generic_params_comma_separators,
 						class_node->sti_generic_left_angle,
 						class_node->sti_generic_right_angle));
 
-				if (Token *l_parenthese_token = peek_token(); l_parenthese_token->token_id == TokenId::LParenthese) {
-					next_token();
-
-					TypeName inherited_type;
-					SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, inherited_type));
-					class_node->get_scope()->inherited_type = inherited_type;
-
-					Token *r_parenthese_token;
-					SLKC_CO_RETURN_IF_PARSE_ERROR((expect_token((r_parenthese_token = peek_token()), TokenId::RParenthese)));
-
-					next_token();
-				}
-
-				if (Token *colon_token = peek_token(); colon_token->token_id == TokenId::Colon) {
-					next_token();
-
-					while (true) {
-						ImplementItem item;
-
-						item.is_trait = false;
-
-						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, item.type));
-
-						if (!class_node->get_scope()->implemented_types.push_back(std::move(item))) {
-							co_return gen_oom_syntax_error();
-						}
-
-						if (peek_token()->token_id != TokenId::AddOp) {
-							break;
-						}
-
-						Token *or_op_token = next_token();
-					}
-				}
+				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_inherited_type_slot(class_node->get_scope()->inherited_type, class_node->sti_inherit_left_parenthesis, class_node->sti_inherit_right_parenthesis));
+				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_implement_list(class_node->get_scope()->implemented_types, class_node->sti_implement_colon, class_node->sti_implement_item_separator));
 
 				Token *l_brace_token;
 
@@ -614,7 +804,7 @@ access_modifier_parse_end:
 						break;
 					}
 
-					if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+					if ((syntax_error = (co_await parse_program_stmt()(this)))) {
 						// Parse the rest to make sure that we have gained all of the information,
 						// instead of ignoring them.
 						if (!syntax_errors.push_back(std::move(syntax_error.value())))
@@ -631,7 +821,7 @@ access_modifier_parse_end:
 			}
 
 			if (auto it = p_scope->members_index.find(class_node->get_name()); it != p_scope->members_index.end()) {
-				peff::String s(allocator);
+				peff::String s(get_global()->get_allocator());
 
 				if (!s.build(class_node->get_name())) {
 					co_return gen_oom_syntax_error();
@@ -691,35 +881,12 @@ access_modifier_parse_end:
 				cur_parent = struct_node.cast_to<MemberNode>();
 
 				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_generic_params(
-					allocator,
 					struct_node->get_scope()->generic_params,
 					struct_node->sti_generic_params_comma_separators,
 					struct_node->sti_generic_left_angle,
 					struct_node->sti_generic_right_angle));
 
-				if (Token *colon_token = peek_token(); colon_token->token_id == TokenId::Colon) {
-					next_token();
-
-					while (true) {
-						ImplementItem item;
-
-						item.is_trait = false;
-
-						TypeName tn;
-
-						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, tn));
-
-						if (!struct_node->get_scope()->implemented_types.push_back(std::move(item))) {
-							co_return gen_oom_syntax_error();
-						}
-
-						if (peek_token()->token_id != TokenId::AddOp) {
-							break;
-						}
-
-						Token *or_op_token = next_token();
-					}
-				}
+				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_implement_list(struct_node->get_scope()->implemented_types, struct_node->sti_implement_colon, struct_node->sti_implement_item_separator));
 
 				Token *l_brace_token;
 
@@ -735,7 +902,7 @@ access_modifier_parse_end:
 						break;
 					}
 
-					if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+					if ((syntax_error = (co_await parse_program_stmt()(this)))) {
 						// Parse the rest to make sure that we have gained all of the information,
 						// instead of ignoring them.
 						if (!syntax_errors.push_back(std::move(syntax_error.value())))
@@ -752,7 +919,7 @@ access_modifier_parse_end:
 			}
 
 			if (auto it = p_scope->members_index.find(struct_node->get_name()); it != p_scope->members_index.end()) {
-				peff::String s(allocator);
+				peff::String s(get_global()->get_allocator());
 
 				if (!s.build(struct_node->get_name())) {
 					co_return gen_oom_syntax_error();
@@ -815,33 +982,12 @@ access_modifier_parse_end:
 
 				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(
 					parse_generic_params(
-						allocator,
 						interface_node->get_scope()->generic_params,
 						interface_node->sti_generic_params_comma_separators,
 						interface_node->sti_generic_left_angle,
 						interface_node->sti_generic_right_angle));
 
-				if (Token *colon_token = peek_token(); colon_token->token_id == TokenId::Colon) {
-					next_token();
-
-					while (true) {
-						ImplementItem item;
-
-						item.is_trait = false;
-
-						SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_type_name(allocator, item.type));
-
-						if (!interface_node->get_scope()->implemented_types.push_back(std::move(item))) {
-							co_return gen_oom_syntax_error();
-						}
-
-						if (peek_token()->token_id != TokenId::AddOp) {
-							break;
-						}
-
-						Token *or_op_token = next_token();
-					}
-				}
+				SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_implement_list(interface_node->get_scope()->implemented_types, interface_node->sti_implement_colon, interface_node->sti_implement_item_separator));
 
 				Token *l_brace_token;
 
@@ -857,7 +1003,7 @@ access_modifier_parse_end:
 						break;
 					}
 
-					if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+					if ((syntax_error = (co_await parse_program_stmt()(this)))) {
 						// Parse the rest to make sure that we have gained all of the information,
 						// instead of ignoring them.
 						if (!syntax_errors.push_back(std::move(syntax_error.value())))
@@ -874,7 +1020,7 @@ access_modifier_parse_end:
 			}
 
 			if (auto it = p_scope->members_index.find(interface_node->get_name()); it != p_scope->members_index.end()) {
-				peff::String s(allocator);
+				peff::String s(get_global()->get_allocator());
 
 				if (!s.build(interface_node->get_name())) {
 					co_return gen_oom_syntax_error();
@@ -901,7 +1047,7 @@ access_modifier_parse_end:
 				co_return gen_oom_syntax_error();
 			}
 
-			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_id_ref(allocator, import_node->id_ref));
+			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_id_ref(import_node->id_ref));
 			size_t idx_member;
 			if ((idx_member = p_scope->push_member(import_node.cast_to<MemberNode>())) == SIZE_MAX) {
 				co_return gen_oom_syntax_error();
@@ -957,7 +1103,7 @@ access_modifier_parse_end:
 				stmt->set_token_range(TokenRange{ parse_context.mod, token->index, parse_context.idx_prev_token });
 			});
 
-			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_var_defs(allocator, stmt->bindings));
+			SLKC_CO_RETURN_IF_CO_PARSE_ERROR(parse_var_defs(stmt->bindings));
 
 			Token *semicolon_token;
 
@@ -967,7 +1113,7 @@ access_modifier_parse_end:
 
 			for (auto &i : stmt->bindings) {
 				if (p_scope->members_index.contains(i.name)) {
-					peff::String s(allocator);
+					peff::String s(get_global()->get_allocator());
 
 					if (!s.build(i.name))
 						co_return gen_oom_syntax_error();
@@ -1007,7 +1153,7 @@ access_modifier_parse_end:
 	co_return peff::NULLOPT;
 }
 
-SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out) {
+SLKC_API ParseCoroutine Parser::parse_program(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out) {
 	peff::Option<SyntaxError> syntax_error;
 
 	Token *t;
@@ -1018,7 +1164,7 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Node
 	if ((t = peek_token())->token_id == TokenId::ModuleKeyword) {
 		next_token();
 
-		if ((syntax_error = (co_await parse_id_ref(allocator, module_name_out)(this)))) {
+		if ((syntax_error = (co_await parse_id_ref(module_name_out)(this)))) {
 			if (!syntax_errors.push_back(std::move(syntax_error.value())))
 				co_return gen_oom_syntax_error();
 			syntax_error.reset();
@@ -1031,7 +1177,7 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Node
 	}
 
 	while ((t = peek_token())->token_id != TokenId::End) {
-		if ((syntax_error = (co_await parse_program_stmt(allocator)(this)))) {
+		if ((syntax_error = (co_await parse_program_stmt()(this)))) {
 			// Parse the rest to make sure that we have gained all of the information,
 			// instead of ignoring them.
 			if (!syntax_errors.push_back(std::move(syntax_error.value())))
@@ -1046,5 +1192,5 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Node
 }
 
 SLKC_API peff::Option<SyntaxError> Parser::parse(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out) {
-	return parse_program(global->get_allocator(), initial_mod, module_name_out).resume(this);
+	return parse_program(initial_mod, module_name_out).resume(this);
 }

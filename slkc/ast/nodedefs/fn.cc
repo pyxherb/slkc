@@ -15,11 +15,15 @@ SLKC_API DumpResult FnOverloadingNode::do_dump(DumpContext &dump_context, wandjs
 	if (!target_object->insert("sti_fn_keyword", v.release()))
 		return DumpResult::OutOfMemory;
 
+	// TODO: Dump the rest.
+
 	return DumpResult::Ok;
 }
 
 SLKC_API FnOverloadingNode::FnOverloadingNode(Global *global)
 	: MemberNode(NodeType::FnOverloading, global),
+	  idx_param_comma_tokens(global->get_allocator()),
+	  idx_generic_param_comma_tokens(global->get_allocator()),
 	  params(global->get_allocator()) {
 }
 
@@ -29,6 +33,8 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 	NodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
+	  idx_param_comma_tokens(context.get_global()->get_allocator()),
+	  idx_generic_param_comma_tokens(context.get_global()->get_allocator()),
 	  params(context.get_global()->get_allocator()),
 	  overloading_flags(other.overloading_flags),
 	  overloading_kind(other.overloading_kind),
@@ -65,6 +71,25 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 			return;
 		}
 		this->return_type = std::move(element_type_result).value();
+	}
+
+	if (!idx_param_comma_tokens.build(other.idx_param_comma_tokens)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+
+	if (!idx_generic_param_comma_tokens.build(other.idx_generic_param_comma_tokens)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+
+	if(other.overriden_type) {
+		auto overriden_type_result = context.push_task(*other.overriden_type);
+		if (!overriden_type_result.has_error()) {
+			error_out = std::move(overriden_type_result).error();
+			return;
+		}
+		overriden_type = std::move(overriden_type_result).value();
 	}
 }
 
