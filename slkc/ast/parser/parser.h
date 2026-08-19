@@ -25,22 +25,21 @@ namespace slkc {
 			NoMatchingTokensFound,
 			ConflictingDefinitions,
 			LiteralOverflowed,
-			PinningIOError,
 		};
 
 		struct ExpectingSingleTokenErrorExData {
-			TokenId expecting_token_id;
+			uint32_t expecting_token_id;
 		};
 
 		struct ExpectingTokensErrorExData {
-			peff::Set<TokenId> expecting_token_ids;
+			peff::Set<uint32_t> expecting_token_ids;
 
 			SLAKE_FORCEINLINE ExpectingTokensErrorExData(peff::Alloc *allocator) : expecting_token_ids(allocator) {
 			}
 		};
 
 		struct NoMatchingTokensFoundErrorExData {
-			peff::Set<TokenId> expecting_token_ids;
+			peff::Set<uint32_t> expecting_token_ids;
 
 			SLAKE_FORCEINLINE NoMatchingTokensFoundErrorExData(peff::Alloc *allocator) : expecting_token_ids(allocator) {
 			}
@@ -256,14 +255,16 @@ namespace slkc {
 		class Parser {
 		public:
 			ParseCoroutineScheduler parse_coro_scheduler;
+
 			Global *global;
-			NodePin<MemberNode> cur_parent;
+
 			TokenList token_list;
+
 			struct ParseContext {
-				NodePtr<ModuleNode> mod;
 				TokenIndex idx_prev_token = 0, idx_current_token = 0;
 			};
 			ParseContext parse_context;
+
 			peff::DynArray<SyntaxError> syntax_errors;
 			peff::DynArray<SyntaxWarning> syntax_warnings;
 
@@ -278,29 +279,17 @@ namespace slkc {
 				return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), 0 }, SyntaxErrorKind::OutOfMemory);
 			}
 
-			SLAKE_FORCEINLINE SyntaxError gen_pinning_io_error() const noexcept {
-				return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), 0 }, SyntaxErrorKind::PinningIOError);
-			}
-
-			SLAKE_FORCEINLINE SyntaxError scope_member_op_result_to_syntax_error(ScopeMemberOpResult result) {
-				switch (result) {
-					case ScopeMemberOpResult::Success:
-						std::terminate();
-					case ScopeMemberOpResult::OutOfMemory:
-						return gen_oom_syntax_error();
-					case ScopeMemberOpResult::PinningIOError:
-						return gen_pinning_io_error();
-				}
-				SLAKE_UNREACHABLE();
-			}
-
-			SLKC_API peff::Option<SyntaxError> lookahead_until(size_t num_token_ids, const TokenId token_ids[]);
-			SLKC_API Token *next_token(bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			SLKC_API void next_token();
+			SLKC_API peff::Option<SyntaxError> collect_token(const RGNodePin &parent_node);
 			SLKC_API Token *peek_token(bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			SLKC_API peff::Option<SyntaxError> collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			SLKC_API peff::Option<SyntaxError> collect_to_cur_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
 
-			[[nodiscard]] SLAKE_FORCEINLINE peff::Option<SyntaxError> expect_token(Token *token, TokenId token_id) {
-				if (token->token_id != token_id) {
-					ExpectingSingleTokenErrorExData ex_data = { token_id };
+			[[nodiscard]] SLAKE_FORCEINLINE peff::Option<SyntaxError> expect_token(Token *token, TokenKind token_kind) {
+				if (token->token_id != token_kind) {
+					ExpectingSingleTokenErrorExData ex_data = { token_kind };
 
 					return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), token->index }, std::move(ex_data));
 				}
@@ -328,70 +317,33 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_implement_item(ImplementItem &item_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_implement_list(peff::DynArray<ImplementItem> &item_list, TokenIndex &colon_out, peff::DynArray<TokenIndex> &separators_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_inherited_type_slot(peff::Option<TypeName> &tn_out, TokenIndex &left_parenthesis_out, TokenIndex &right_parenthesis_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(RGNodePin &id_ref_entry_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(RGNodePin &id_ref_node_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_defs(peff::DynArray<BindingEntry> &var_def_entries);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(OwnedIdRef &id_ref_out, bool is_parsing_type = false);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(int precedence, PEFF_OUT_REF NodePtr<ExprNode> &expr_out, PEFF_OUT_NULLABLE NodePin<ExprNode> *pin_out = nullptr);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_if_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_for_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_while_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_do_while_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_let_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_break_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_continue_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_return_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_yield_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_case_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_default_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_block_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_switch_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr_stmt(NodePtr<StmtNode> &stmt_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(NodePtr<StmtNode> &stmt_out);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_arg(TypeName &arg_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(TypeName &type_name_out, bool with_circumfixes = true);
-
-			/*[[nodiscard]] SLKC_API ParseCoroutine parse_attribute(NodePtr<AttributeNode> &attribute_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_attributes(peff::DynArray<NodePtr<AttributeNode>> &attributes_out);*/
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::DynArray<NodePtr<ExprNode>> &args_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_constraint(GenericConstraint &constraint_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::DynArray<NodePtr<GenericParamNode>> &generic_params_out, peff::DynArray<TokenIndex> &sti_comma_separators_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_params(peff::DynArray<BindingEntry> &params_out, bool &var_arg_out, peff::DynArray<TokenIndex> &idx_comma_tokens_out, TokenIndex &l_angle_bracket_index_out, TokenIndex &r_angle_bracket_index_out);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(NodePin<FnOverloadingNode> &fn_node_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(std::string_view &name_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_name(peff::String &name_out);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_item(NodePtr<MemberNode> enum_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_enum_item(NodePtr<MemberNode> enum_out);
-
-			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt();
-
-			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
+			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(const RGNodePin &module_node);
 
 		public:
-			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const NodePin<ModuleNode> &initial_mod, OwnedIdRef &module_name_out);
+			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const RGNodePin &module_node);
 		};
 	}
 }
 
-#define SLKC_CO_RETURN_IF_PARSE_ERROR(expr)      \
-	if (peff::Option<SyntaxError> _ = (expr); _) \
-		co_return _;                             \
-	else
-
-#define SLKC_CO_RETURN_IF_CO_PARSE_ERROR(e)     \
-	do {                                        \
-		if (auto _ = co_await ((e)(this)); _) { \
-			co_return gen_oom_syntax_error();   \
-		}                                       \
+#define SLKC_CO_RETURN_IF_PARSE_ERROR(expr)          \
+	do {                                             \
+		if (peff::Option<SyntaxError> _ = (expr); _) \
+			co_return _;                             \
 	} while (0)
+
+#define SLKC_RETURN_IF_PARSE_ERROR(expr)             \
+	do {                                             \
+		if (peff::Option<SyntaxError> _ = (expr); _) \
+			return _;                                \
+	} while (0)
+
+#define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode) \
+	if (!(dest)->push_child(subnode))                       \
+	co_return gen_oom_syntax_error()
 
 #endif

@@ -1,12 +1,11 @@
 #ifndef _SLKC_AST_LEXER_H_
 #define _SLKC_AST_LEXER_H_
 
-#include <slkc/basedefs.h>
+#include <slkc/ast/global.h>
 #include <slake/runtime.h>
 #include <peff/base/deallocable.h>
 #include <peff/containers/dynarray.h>
 #include <peff/containers/string.h>
-#include <slkc/ast/basedefs.h>
 
 namespace slkc {
 	namespace ast {
@@ -54,176 +53,177 @@ namespace slkc {
 
 		class Lexer;
 
-		enum class TokenId : int {
-			End = 0,
+		namespace TokenId {
+			enum {
+				End = 0,
 
-			Unknown,
+				Unknown,
 
-			Comma,
-			Question,
-			Colon,
-			Semicolon,
-			LBracket,
-			RBracket,
-			LDBracket,
-			RDBracket,
-			LBrace,
-			RBrace,
-			LParenthese,
-			RParenthese,
-			At,
-			Dot,
-			HashTag,
-			VarArg,
+				Comma,
+				Question,
+				Colon,
+				Semicolon,
+				LBracket,
+				RBracket,
+				LDBracket,
+				RDBracket,
+				LBrace,
+				RBrace,
+				LParenthese,
+				RParenthese,
+				At,
+				Dot,
+				HashTag,
+				VarArg,
 
-			ScopeOp,
-			ReturnTypeOp,
-			MatchOp,
-			LAndOp,
-			LOrOp,
-			AddOp,
-			SubOp,
-			MulOp,
-			DivOp,
-			ModOp,
-			AndOp,
-			OrOp,
-			XorOp,
-			LNotOp,
-			NotOp,
-			AssignOp,
-			AddAssignOp,
-			SubAssignOp,
-			MulAssignOp,
-			DivAssignOp,
-			ModAssignOp,
-			AndAssignOp,
-			OrAssignOp,
-			XorAssignOp,
-			ShlAssignOp,
-			ShrAssignOp,
-			StrictEqOp,
-			StrictNeqOp,
-			EqOp,
-			NeqOp,
-			ShlOp,
-			ShrOp,
-			LtEqOp,
-			GtEqOp,
-			LtOp,
-			GtOp,
-			CmpOp,
-			DollarOp,
+				ScopeOp,
+				ReturnTypeOp,
+				MatchOp,
+				LAndOp,
+				LOrOp,
+				AddOp,
+				SubOp,
+				MulOp,
+				DivOp,
+				ModOp,
+				AndOp,
+				OrOp,
+				XorOp,
+				LNotOp,
+				NotOp,
+				AssignOp,
+				AddAssignOp,
+				SubAssignOp,
+				MulAssignOp,
+				DivAssignOp,
+				ModAssignOp,
+				AndAssignOp,
+				OrAssignOp,
+				XorAssignOp,
+				ShlAssignOp,
+				ShrAssignOp,
+				StrictEqOp,
+				StrictNeqOp,
+				EqOp,
+				NeqOp,
+				ShlOp,
+				ShrOp,
+				LtEqOp,
+				GtEqOp,
+				LtOp,
+				GtOp,
+				CmpOp,
+				DollarOp,
 
-			AbstractKeyword,
-			AllocaKeyword,
-			AttributeKeyword,
-			AsKeyword,
-			AsyncKeyword,
-			AwaitKeyword,
-			BaseKeyword,
-			BreakKeyword,
-			CaseKeyword,
-			CatchKeyword,
-			ClassKeyword,
-			ConstKeyword,
-			ContinueKeyword,
-			DeleteKeyword,
-			DefKeyword,
-			DefaultKeyword,
-			DoKeyword,
-			ElseKeyword,
-			EnumKeyword,
-			ExceptKeyword,
-			FalseKeyword,
-			FnKeyword,
-			ForKeyword,
-			FinalKeyword,
-			FriendKeyword,
-			IfKeyword,
-			ImportKeyword,
-			InKeyword,
-			InterfaceKeyword,
-			LetKeyword,
-			LocalKeyword,
-			MacroKeyword,
-			MatchKeyword,
-			ModuleKeyword,
-			NativeKeyword,
-			NewKeyword,
-			NullKeyword,
-			OperatorKeyword,
-			OutKeyword,
-			OverrideKeyword,
-			PublicKeyword,
-			PrivateKeyword,
-			ProtectedKeyword,
-			ReturnKeyword,
-			StaticKeyword,
-			StructKeyword,
-			SwitchKeyword,
-			ThisKeyword,
-			ThrowKeyword,
-			TypeofKeyword,
-			TrueKeyword,
-			TryKeyword,
-			TypenameKeyword,
-			UsingKeyword,
-			UnionKeyword,
-			UnsafeKeyword,
-			VarKeyword,
-			VirtualKeyword,
-			WhileKeyword,
-			WithKeyword,
-			YieldKeyword,
+				AbstractKeyword,
+				AllocaKeyword,
+				AttributeKeyword,
+				AsKeyword,
+				AsyncKeyword,
+				AwaitKeyword,
+				BaseKeyword,
+				BreakKeyword,
+				CaseKeyword,
+				CatchKeyword,
+				ClassKeyword,
+				ConstKeyword,
+				ContinueKeyword,
+				DeleteKeyword,
+				DefKeyword,
+				DefaultKeyword,
+				DoKeyword,
+				ElseKeyword,
+				EnumKeyword,
+				ExceptKeyword,
+				FalseKeyword,
+				FnKeyword,
+				ForKeyword,
+				FinalKeyword,
+				FriendKeyword,
+				IfKeyword,
+				ImportKeyword,
+				InKeyword,
+				InterfaceKeyword,
+				LetKeyword,
+				LocalKeyword,
+				MacroKeyword,
+				MatchKeyword,
+				ModuleKeyword,
+				MultiKeyword,
+				NativeKeyword,
+				NewKeyword,
+				NullKeyword,
+				OperatorKeyword,
+				OutKeyword,
+				OverrideKeyword,
+				PublicKeyword,
+				PrivateKeyword,
+				ProtectedKeyword,
+				RestrictKeyword,
+				ReturnKeyword,
+				StaticKeyword,
+				StructKeyword,
+				SwitchKeyword,
+				SynchronizedKeyword,
+				ThisKeyword,
+				ThrowKeyword,
+				TypeofKeyword,
+				TrueKeyword,
+				TryKeyword,
+				TypenameKeyword,
+				UsingKeyword,
+				UnionKeyword,
+				UnsafeKeyword,
+				VarKeyword,
+				VirtualKeyword,
+				WhileKeyword,
+				WithKeyword,
+				YieldKeyword,
 
-			I8TypeName,
-			I16TypeName,
-			I32TypeName,
-			I64TypeName,
-			ISizeTypeName,
-			U8TypeName,
-			U16TypeName,
-			U32TypeName,
-			U64TypeName,
-			USizeTypeName,
-			F32TypeName,
-			F64TypeName,
-			StringTypeName,
-			BoolTypeName,
-			AutoTypeName,
-			VoidTypeName,
-			ObjectTypeName,
-			AnyTypeName,
-			SIMDTypeName,
-			NeverTypeName,
+				I8TypeName,
+				I16TypeName,
+				I32TypeName,
+				I64TypeName,
+				ISizeTypeName,
+				U8TypeName,
+				U16TypeName,
+				U32TypeName,
+				U64TypeName,
+				USizeTypeName,
+				F32TypeName,
+				F64TypeName,
+				StringTypeName,
+				BoolTypeName,
+				AutoTypeName,
+				VoidTypeName,
+				ObjectTypeName,
+				AnyTypeName,
+				SIMDTypeName,
+				NeverTypeName,
 
-			I8Literal,
-			I16Literal,
-			I32Literal,
-			I64Literal,
-			U8Literal,
-			U16Literal,
-			U32Literal,
-			U64Literal,
-			F32Literal,
-			F64Literal,
-			StringLiteral,
-			RawStringLiteral,
+				I8Literal,
+				I16Literal,
+				I32Literal,
+				I64Literal,
+				U8Literal,
+				U16Literal,
+				U32Literal,
+				U64Literal,
+				F32Literal,
+				F64Literal,
+				StringLiteral,
+				RawStringLiteral,
 
-			Id,
+				Id,
 
-			Whitespace,
-			NewLine,
-			LineComment,
-			BlockComment,
-			DocumentationComment,
+				Whitespace,
+				NewLine,
+				LineComment,
+				BlockComment,
+				DocumentationComment,
 
-			MaxToken
-		};
-
-		SLAKE_FORCEINLINE bool is_valid_token(TokenId token_id) {
-			return (((int)token_id) >= 0) && (((int)token_id) < (int)TokenId::MaxToken);
+				MaxToken
+			};
 		}
 
 		class TokenExtension {
@@ -253,10 +253,10 @@ namespace slkc {
 
 		class StringTokenExtension : public TokenExtension {
 		public:
-			peff::String data;
+			GlobalSharedStringRef data;
 			peff::RcObjectPtr<peff::Alloc> allocator;
 
-			SLKC_API StringTokenExtension(peff::Alloc *allocator, peff::String &&data);
+			SLKC_API StringTokenExtension(peff::Alloc *allocator, GlobalSharedStringRef data);
 			SLKC_API virtual ~StringTokenExtension();
 
 			SLKC_API virtual void dealloc() override;
@@ -265,10 +265,13 @@ namespace slkc {
 		class Global;
 
 		class Token {
+		private:
+			std::atomic_size_t _ref_count = 0;
+
 		public:
-			TokenId token_id;
+			uint32_t token_id;
 			peff::RcObjectPtr<peff::Alloc> allocator;
-			std::string_view source_text;
+			GlobalSharedStringRef source_text;
 			Global *global;
 			SourceLocation source_location;
 			std::unique_ptr<TokenExtension, peff::DeallocableDeleter<TokenExtension>> ex_data;
@@ -278,10 +281,20 @@ namespace slkc {
 			SLKC_API ~Token();
 
 			SLKC_API void dealloc();
+
+			SLAKE_FORCEINLINE void inc_ref(size_t ignored) noexcept {
+				++_ref_count;
+			}
+
+			SLAKE_FORCEINLINE void dec_ref(size_t ignored) noexcept {
+				if (!--_ref_count) {
+					dealloc();
+				}
+			}
 		};
 
-		using OwnedTokenPtr = peff::UniquePtr<Token, peff::DeallocableDeleter<Token>>;
-		using TokenList = peff::DynArray<OwnedTokenPtr>;
+		using TokenPtr = peff::RcObjectPtr<Token>;
+		using TokenList = peff::DynArray<TokenPtr>;
 
 		enum class LexicalErrorKind {
 			UnrecognizedToken = 0,
@@ -303,10 +316,10 @@ namespace slkc {
 
 			SLAKE_FORCEINLINE Lexer(peff::Alloc *allocator) : token_list(allocator) {
 			}
-			[[nodiscard]] SLKC_API peff::Option<LexicalError> lex(NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator, Global *global);
+			[[nodiscard]] SLKC_API peff::Option<LexicalError> lex(Global *global, NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator);
 		};
 
-		SLKC_API std::string_view get_token_name(TokenId token_id);
+		SLKC_API std::string_view get_token_name(uint32_t token_id);
 	}
 }
 

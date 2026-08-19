@@ -26,5 +26,30 @@ SLKC_API DumpResult slkc::ast::dump_typename(wandjson::ObjectValue *target_objec
 		}
 	}
 
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<uint8_t>(tn.is_final())))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_final", v.release()))
+		return DumpResult::OutOfMemory;
+	
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<uint8_t>(tn.is_local())))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_local", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<uint8_t>(tn.is_nullable())))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_nullable", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<uint8_t>(tn.is_ref())))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_ref", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<uint8_t>(tn.is_readonly_ref())))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_readonly_ref", v.release()))
+		return DumpResult::OutOfMemory;
+
 	return DumpResult::Ok;
 }

@@ -11,7 +11,6 @@ SLKC_API Node::Node(NodeType ast_node_type, Global *global)
 SLKC_API Node::Node(const Node &other, DuplicationContext &context, NodeIndex node_index)
 	: _ast_node_type(other._ast_node_type),
 	  _global(other._global),
-	  _token_range(other._token_range),
 	  _node_index(node_index) {
 }
 
@@ -91,4 +90,21 @@ SLKC_API DumpResult DumpContext::push_task(wandjson::ObjectValue *dest, NodeInde
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
+}
+
+SLKC_API WidthComputingContext::WidthComputingContext(
+	Global *global,
+	peff::Alloc *allocator,
+	wandjson::ObjectValue *root_value)
+	: global(global),
+	  root_value(root_value),
+	  task_list(allocator),
+	  allocator(allocator) {
+}
+
+SLKC_API peff::Option<WidthComputingError> WidthComputingContext::push_task(NodeIndex parent, NodeIndex child) noexcept {
+	if (!task_list.push_back({ parent, child }))
+		return WidthComputingError::OutOfMemory;
+
+	return peff::NULLOPT;
 }

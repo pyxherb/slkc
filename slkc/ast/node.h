@@ -125,7 +125,6 @@ namespace slkc {
 		class Node {
 		private:
 			Global *const _global;
-			TokenRange _token_range;
 			const NodeType _ast_node_type;
 			NodeIndex _node_index = INVALID_NODE_INDEX;
 
@@ -149,18 +148,6 @@ namespace slkc {
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return _global;
-			}
-
-			SLAKE_FORCEINLINE TokenRange get_token_range() const noexcept {
-				return _token_range;
-			}
-
-			SLAKE_FORCEINLINE void set_token_range(TokenRange token_range) noexcept {
-				_token_range = token_range;
-			}
-			
-			SLAKE_FORCEINLINE void set_end_token_index(TokenIndex end_token_index) noexcept {
-				_token_range.end = end_token_index;
 			}
 
 			SLAKE_FORCEINLINE NodeIndex get_node_index() const noexcept {

@@ -13,7 +13,7 @@ SLKC_API void IntTokenExtension::dealloc() {
 	peff::destroy_and_release<IntTokenExtension>(allocator.get(), this, alignof(IntTokenExtension));
 }
 
-SLKC_API StringTokenExtension::StringTokenExtension(peff::Alloc *allocator, peff::String &&data) : allocator(allocator), data(std::move(data)) {
+SLKC_API StringTokenExtension::StringTokenExtension(peff::Alloc *allocator, GlobalSharedStringRef data) : allocator(allocator), data(data) {
 }
 SLKC_API StringTokenExtension::~StringTokenExtension() {
 }
@@ -29,7 +29,7 @@ SLKC_API void Token::dealloc() {
 	peff::destroy_and_release<Token>(allocator.get(), this, alignof(std::max_align_t));
 }
 
-SLKC_API std::string_view get_token_name(TokenId token_id) {
+SLKC_API std::string_view get_token_name(uint32_t token_id) {
 	switch (token_id) {
 		case TokenId::End:
 			return "end of file";
@@ -211,6 +211,8 @@ SLKC_API std::string_view get_token_name(TokenId token_id) {
 			return "match";
 		case TokenId::ModuleKeyword:
 			return "module";
+		case TokenId::MultiKeyword:
+			return "multi";
 		case TokenId::NativeKeyword:
 			return "native";
 		case TokenId::NewKeyword:
@@ -229,6 +231,8 @@ SLKC_API std::string_view get_token_name(TokenId token_id) {
 			return "private";
 		case TokenId::ProtectedKeyword:
 			return "protected";
+		case TokenId::RestrictKeyword:
+			return "restrict";
 		case TokenId::ReturnKeyword:
 			return "return";
 		case TokenId::StaticKeyword:
@@ -237,6 +241,8 @@ SLKC_API std::string_view get_token_name(TokenId token_id) {
 			return "struct";
 		case TokenId::SwitchKeyword:
 			return "switch";
+		case TokenId::SynchronizedKeyword:
+			return "synchronized";
 		case TokenId::ThisKeyword:
 			return "this";
 		case TokenId::ThrowKeyword:
@@ -341,9 +347,9 @@ SLKC_API std::string_view get_token_name(TokenId token_id) {
 			return "block comment";
 		case TokenId::DocumentationComment:
 			return "documentation comment";
-		case TokenId::MaxToken:
-			break;
+		default:
+			return "<Unknown token>";
 	}
 
-	std::terminate();
+	SLAKE_UNREACHABLE();
 }

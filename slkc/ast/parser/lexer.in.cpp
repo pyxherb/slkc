@@ -14,7 +14,7 @@ enum LexCondition {
 	yycLineCommentCondition,
 };
 
-SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator, Global *global) {
+SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_node, const std::string_view &src, peff::Alloc *allocator) {
 	const char *YYCURSOR = src.data(), *YYMARKER = YYCURSOR, *YYLIMIT = src.data() + src.size();
 	const char *prev_YYCURSOR = YYCURSOR;
 
@@ -23,12 +23,12 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 #define YYSETCONDITION(cond) (YYCONDITION = (yyc##cond))
 #define YYGETCONDITION() (YYCONDITION)
 
-	OwnedTokenPtr token;
+	TokenPtr token;
 
 	while (true) {
 		peff::String str_literal(allocator);
 
-		if (!(token = OwnedTokenPtr(peff::alloc_and_construct<Token>(allocator, alignof(std::max_align_t), allocator, global))))
+		if (!(token = TokenPtr(peff::alloc_and_construct<Token>(allocator, alignof(std::max_align_t), allocator, global))))
 			goto oom;
 
 		while (true) {
@@ -113,6 +113,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 				<InitialCondition>"macro"		{ token->token_id = TokenId::MacroKeyword; break; }
 				<InitialCondition>"match"		{ token->token_id = TokenId::MatchKeyword; break; }
 				<InitialCondition>"module"		{ token->token_id = TokenId::ModuleKeyword; break; }
+				<InitialCondition>"multi"		{ token->token_id = TokenId::MultiKeyword; break; }
 				<InitialCondition>"native"		{ token->token_id = TokenId::NativeKeyword; break; }
 				<InitialCondition>"new"			{ token->token_id = TokenId::NewKeyword; break; }
 				<InitialCondition>"null"		{ token->token_id = TokenId::NullKeyword; break; }
@@ -122,10 +123,12 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 				<InitialCondition>"public"		{ token->token_id = TokenId::PublicKeyword; break; }
 				<InitialCondition>"private"		{ token->token_id = TokenId::PrivateKeyword; break; }
 				<InitialCondition>"protected"	{ token->token_id = TokenId::ProtectedKeyword; break; }
+				<InitialCondition>"restrict"	{ token->token_id = TokenId::RestrictKeyword; break; }
 				<InitialCondition>"return"		{ token->token_id = TokenId::ReturnKeyword; break; }
 				<InitialCondition>"static"		{ token->token_id = TokenId::StaticKeyword; break; }
 				<InitialCondition>"struct"		{ token->token_id = TokenId::StructKeyword; break; }
 				<InitialCondition>"switch"		{ token->token_id = TokenId::SwitchKeyword; break; }
+				<InitialCondition>"synchronized"	{ token->token_id = TokenId::SynchronizedKeyword; break; }
 				<InitialCondition>"this"		{ token->token_id = TokenId::ThisKeyword; break; }
 				<InitialCondition>"throw"		{ token->token_id = TokenId::ThrowKeyword; break; }
 				<InitialCondition>"typeof"		{ token->token_id = TokenId::TypeofKeyword; break; }
@@ -312,8 +315,13 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 				<StringCondition>"\""		{
 					YYSETCONDITION(InitialCondition);
 					token->token_id = TokenId::StringLiteral;
+
+					auto s = global->register_shared_string(str_literal);
+					if(!s)
+						goto oom;
+
 					token->ex_data = std::unique_ptr<TokenExtension, peff::DeallocableDeleter<TokenExtension>>(
-						peff::alloc_and_construct<StringTokenExtension>(allocator, alignof(std::max_align_t), allocator, std::move(str_literal)));
+						peff::alloc_and_construct<StringTokenExtension>(allocator, alignof(std::max_align_t), allocator, s));
 					break;
 				}
 				<StringCondition>"\\"		{ YYSETCONDITION(EscapeCondition); continue; }
@@ -495,7 +503,11 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 
 		std::string_view str_to_begin = src.substr(0, begin_index), str_to_end = src.substr(0, endIndex);
 
-		token->source_text = std::string_view(prev_YYCURSOR, YYCURSOR - prev_YYCURSOR);
+		std::string_view sv = std::string_view(prev_YYCURSOR, YYCURSOR - prev_YYCURSOR);
+		auto s = global->register_shared_string(sv);
+		if(!s)
+			goto oom;
+		token->source_text = s;
 
 		size_t idxLastBeginNewline = src.find_last_of('\n', begin_index),
 			   idxLastEndNewline = src.find_last_of('\n', endIndex);
@@ -520,11 +532,11 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(NodeIndex module_node, const std:
 	}
 
 end: {
-	SourceLocation endLocation = token->source_location;
+	SourceLocation end_location = token->source_location;
 
-	token = OwnedTokenPtr(peff::alloc_and_construct<Token>(allocator, alignof(std::max_align_t), allocator, global));
+	token = TokenPtr(peff::alloc_and_construct<Token>(allocator, alignof(std::max_align_t), allocator, global));
 	token->token_id = TokenId::End;
-	token->source_location = endLocation;
+	token->source_location = end_location;
 
 	if (!token_list.push_back(std::move(token)))
 		goto oom;

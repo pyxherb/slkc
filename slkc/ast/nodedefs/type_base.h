@@ -49,6 +49,13 @@ namespace slkc {
 			SLKC_API virtual ~TypeNameDefNode();
 		};
 
+		enum class TypeNameShareability : uint8_t {
+			Unspecified = 0,
+			Multi,
+			Restrict,
+			Synchronized,
+		};
+
 		struct TypeName final {
 		private:
 			NodePtr<TypeNameDefNode> _typename_def;
@@ -59,14 +66,37 @@ namespace slkc {
 
 		private:
 			TypeNameKind _tn_kind;
-			bool _is_final = false;
-			bool _is_local = false;
-			bool _is_nullable = false;
+			bool _is_const : 1;
+			
+			bool _is_final : 1;
+			
+			bool _is_local : 1;
+			
+			TypeNameShareability shareability : 2 = TypeNameShareability::Unspecified;
+
+			bool _is_nullable : 1;
+			bool _is_ref : 1;
+			bool _is_readonly_ref : 1;
 
 		public:
-			SLAKE_FORCEINLINE TypeName() : _tn_kind(TypeNameKind::Invalid) {}
+			SLAKE_FORCEINLINE TypeName()
+				: _tn_kind(TypeNameKind::Invalid),
+				  _is_const(false),
+				  _is_final(false),
+				  _is_local(false),
+				  _is_nullable(false),
+				  _is_ref(false),
+				  _is_readonly_ref(false) {}
 
-			SLAKE_FORCEINLINE TypeName(TypeNameKind tn_kind, NodePtr<TypeNameDefNode> typename_def) : _tn_kind(tn_kind), _typename_def(typename_def) {
+			SLAKE_FORCEINLINE TypeName(TypeNameKind tn_kind, NodePtr<TypeNameDefNode> typename_def)
+				: _tn_kind(tn_kind),
+				  _typename_def(typename_def),
+				  _is_const(false),
+				  _is_final(false),
+				  _is_local(false),
+				  _is_nullable(false),
+				  _is_ref(false),
+				  _is_readonly_ref(false) {
 			}
 
 			TypeName(const TypeName &rhs) = default;
@@ -99,6 +129,20 @@ namespace slkc {
 				_tn_kind = tn_kind;
 			}
 
+			/// @brief Check if the type name is with `const` modifier.
+			///
+			/// @return Whether the type name is with `const` modifier.
+			SLAKE_FORCEINLINE bool is_const() const noexcept {
+				return _is_const;
+			}
+				
+			/// @brief Set if the type name is with `const` modifier.
+			///
+			/// @param b Whether the type name will be set to be with `const` modifier.
+			SLAKE_FORCEINLINE void set_const(bool b) noexcept {
+				_is_const = b;
+			}
+
 			/// @brief Check if the type name is with `final` modifier.
 			///
 			/// @return Whether the type name is with `final` modifier.
@@ -112,7 +156,16 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_final(bool b) noexcept {
 				_is_final = b;
 			}
+			
+			
+			SLAKE_FORCEINLINE TypeNameShareability get_shareability() const noexcept {
+				return shareability;
+			}
 
+			SLAKE_FORCEINLINE void set_shareability(TypeNameShareability s) noexcept {
+				shareability = s;
+			}
+			
 			/// @brief Check if the type name is with `local` modifier.
 			///
 			/// @return Whether the type name is with `local` modifier.
@@ -122,7 +175,7 @@ namespace slkc {
 
 			/// @brief Set if the type name is with `local` modifier.
 			///
-			/// @param b Whether the type name is with `local` modifier.
+			/// @param b Whether the type name will be set to be with `local` modifier.
 			SLAKE_FORCEINLINE void set_local(bool b) noexcept {
 				_is_local = b;
 			}
@@ -139,6 +192,34 @@ namespace slkc {
 			/// @param b Whether the type name will be set to be nullable.
 			SLAKE_FORCEINLINE void set_nullable(bool b) noexcept {
 				_is_nullable = b;
+			}
+
+			/// @brief Check if the type name is nullable.
+			///
+			/// @return Whether the type name is nullable.
+			SLAKE_FORCEINLINE bool is_ref() const noexcept {
+				return _is_ref;
+			}
+
+			/// @brief Set if the type name is nullable.
+			///
+			/// @param b Whether the type name will be set to be nullable.
+			SLAKE_FORCEINLINE void set_ref(bool b) noexcept {
+				_is_ref = b;
+			}
+			
+			/// @brief Check if the type name is with `readonly` modifier.
+			///
+			/// @return Whether the type name is with `readonly` modifier.
+			SLAKE_FORCEINLINE bool is_readonly_ref() const noexcept {
+				return _is_readonly_ref;
+			}
+
+			/// @brief Set if the type name is with `readonly` modifier.
+			///
+			/// @param b Whether the type name will be set to be with `readonly` modifier.
+			SLAKE_FORCEINLINE void set_readonly_ref(bool b) noexcept {
+				_is_readonly_ref = b;
 			}
 
 			/// @brief Check if the type name is explicitly marked as `final` in the source.

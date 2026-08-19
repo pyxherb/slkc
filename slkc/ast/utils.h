@@ -2,6 +2,7 @@
 #define _SLKC_AST_UTILS_H_
 
 #include "global.h"
+#include "rgtree.h"
 
 namespace slkc {
 	namespace ast {
@@ -278,7 +279,7 @@ namespace slkc {
 			peff::ScopeGuard sg([global, node]() noexcept {
 				peff::destroy_and_release<T>(global->get_allocator(), node, alignof(T));
 			});
-			if (global->map_node(node) == INVALID_NODE_INDEX)
+			if (!global->map_node(node).has_value())
 				return NodePin<T>();
 			sg.release();
 
@@ -316,7 +317,7 @@ namespace slkc {
 
 /// @brief Macro used for declaring a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DECL() \
-	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept override;
+	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept override
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                                               \

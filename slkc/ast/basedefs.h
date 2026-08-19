@@ -8,10 +8,13 @@
 
 namespace slkc {
 	namespace ast {
-		using NodeIndex = uint32_t;
+		using NodeIndex = uint64_t;
+		using RGNodeIndex = uint64_t;
 		using TokenIndex = uint32_t;
+		using TokenKind = uint32_t;
 
 		constexpr NodeIndex INVALID_NODE_INDEX = (std::numeric_limits<NodeIndex>::max)();
+		constexpr RGNodeIndex INVALID_RGNODE_INDEX = (std::numeric_limits<RGNodeIndex>::max)();
 		constexpr TokenIndex INVALID_TOKEN_INDEX = (std::numeric_limits<TokenIndex>::max)();
 
 		struct TokenRange {
@@ -25,7 +28,7 @@ namespace slkc {
 				: source_node(source_node), begin(index), end(index) {}
 		};
 
-		enum class DumpResult {
+		enum class DumpResult : uint8_t {
 			Ok,
 			OutOfMemory,
 			PinningFailed

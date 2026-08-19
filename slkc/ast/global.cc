@@ -2,10 +2,18 @@
 #include "global.h"
 #include "utils.h"
 #include "nodedefs.h"
+#include "rgtree.h"
 #include <numeric>
 
 using namespace slkc;
 using namespace slkc::ast;
+
+SLKC_API RGNodeRegistry::~RGNodeRegistry() {
+	if (this->in_memory) {
+		auto p = static_cast<RGNode *>(this->in_memory);
+		peff::destroy_and_release<RGNode>(p->get_global()->get_allocator(), p, alignof(RGNode));
+	}
+}
 
 SLKC_API GlobalSharedString::GlobalSharedString() noexcept {
 }
@@ -15,6 +23,23 @@ SLKC_API GlobalSharedString::~GlobalSharedString() {
 		_global->get_allocator()->release(_ptr, _length, alignof(char));
 }
 
+SLKC_API void Global::_add_node_to_deferred_deleting_list(NodeRegistry *node_registry) noexcept {
+	node_registry->next_zero_ref = _zero_ref_node_registry_list;
+	_zero_ref_node_registry_list = node_registry;
+}
+
+SLKC_API void Global::_add_rg_node_to_deferred_deleting_list(RGNodeRegistry *rgnode_registry) noexcept {
+	rgnode_registry->next_zero_ref = _zero_ref_rg_node_registry_list;
+	_zero_ref_rg_node_registry_list = rgnode_registry;
+}
+
+SLKC_API Global::Global(peff::Alloc *allocator) noexcept
+	: resource_allocator(allocator),
+	  _node_registries(allocator),
+	  _rg_node_registries(allocator),
+	  _shared_strings(allocator) {
+}
+
 SLKC_API void Global::_clear_zero_ref_node_registry_list() noexcept {
 	while (_zero_ref_node_registry_list) {
 		for (NodeRegistry *i = _zero_ref_node_registry_list; i; i = i->next_zero_ref) {
@@ -22,6 +47,17 @@ SLKC_API void Global::_clear_zero_ref_node_registry_list() noexcept {
 			peff::destroy_and_release<NodeRegistry>(this->resource_allocator.get(), i, alignof(NodeRegistry));
 			if (i->self_index < _min_free_node_index)
 				_min_free_node_index = i->self_index;
+		}
+	}
+}
+
+SLKC_API void Global::_clear_zero_ref_rg_node_registry_list() noexcept {
+	while (_zero_ref_rg_node_registry_list) {
+		for (RGNodeRegistry *i = _zero_ref_rg_node_registry_list; i; i = i->next_zero_ref) {
+			std::lock_guard g(_rg_node_registries_mutex);
+			peff::destroy_and_release<RGNodeRegistry>(this->resource_allocator.get(), i, alignof(RGNodeRegistry));
+			if (i->self_index < _min_free_rg_node_index)
+				_min_free_rg_node_index = i->self_index;
 		}
 	}
 }
@@ -127,6 +163,110 @@ SLKC_API void Global::unmap_node(NodeIndex node_index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	this->_node_registries.remove(node_index);
+}
+
+SLKC_API void Global::unref_rg_node(NodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	auto &reg = _rg_node_registries.at(index);
+	if ((!--reg.ref_count) && (!reg.pin_count)) {
+		reg.next_zero_ref = _zero_ref_rg_node_registry_list;
+		_zero_ref_rg_node_registry_list = &reg;
+	}
+}
+
+SLKC_API peff::Result<RGNode *, PinFailReason> Global::pin_rg_node(RGNodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	auto &reg = _rg_node_registries.at(index);
+
+	++reg.pin_count;
+
+	// TODO: Use actual process instead of this.
+	return static_cast<RGNode *>(reg.in_memory);
+}
+
+SLKC_API void Global::unpin_rg_node(RGNodeIndex index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	auto &reg = _rg_node_registries.at(index);
+	if ((!reg.ref_count) && (!--reg.pin_count)) {
+		reg.next_zero_ref = _zero_ref_rg_node_registry_list;
+		_zero_ref_rg_node_registry_list = &reg;
+	}
+}
+
+SLKC_API RGNodeIndex Global::_alloc_rg_node_index() noexcept {
+	RGNodeIndex new_id = std::numeric_limits<NodeIndex>::max();
+
+	{
+		NodeIndex i = _min_free_node_index;
+		while (i < std::numeric_limits<NodeIndex>::max()) {
+			if (!_node_registries.contains(i)) {
+				new_id = i;
+				++_min_free_node_index;
+				return INVALID_NODE_INDEX;
+			}
+			if (i < std::numeric_limits<NodeIndex>::max() / 2) {
+				auto it = _node_registries.find_max_lteq(std::numeric_limits<NodeIndex>::max() - i);
+
+				if (it != _node_registries.end()) {
+					i = it.value().self_index + 1;
+				} else {
+					// This is impossible.
+					std::terminate();
+				}
+			}
+		}
+	}
+
+	return INVALID_NODE_INDEX;
+}
+
+SLKC_API peff::Option<RGNodeIndex> Global::map_rg_node(RGNode *node) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	RGNodeIndex node_index;
+	if ((node_index = _alloc_rg_node_index()))
+		return INVALID_NODE_INDEX;
+
+	if (!map_rg_node(node_index, node))
+		return peff::NULLOPT;
+
+	return node_index;
+}
+
+SLKC_API bool Global::map_rg_node(RGNodeIndex node_index, RGNode *node) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	assert(!this->_rg_node_registries.contains(node_index));
+
+	RGNodeRegistry reg;
+
+	reg.in_memory = node;
+
+	reg.self_index = node_index;
+
+	if (!this->_rg_node_registries.insert(+node_index, std::move(reg)))
+		return false;
+
+	node->set_node_index(node_index);
+
+	return true;
+}
+
+SLKC_API void Global::remap_rg_node(RGNodeIndex node_index, RGNode *node) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	assert(this->_rg_node_registries.contains(node_index));
+
+	this->_rg_node_registries.at(node_index).in_memory = node;
+}
+
+SLKC_API void Global::unmap_rg_node(RGNodeIndex node_index) noexcept {
+	std::lock_guard g(this->_node_registries_mutex);
+
+	this->_rg_node_registries.remove(node_index);
 }
 
 SLKC_API peff::Result<NodeIndex, DuplicationError> Global::duplicate_node(NodeIndex node_index) noexcept {
