@@ -318,9 +318,13 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(RGNodePin &type_name_node_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(RGNodePin &id_ref_entry_node_out, bool requires_distinguisher);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(RGNodePin &id_ref_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_args(const RGNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(const RGNodePin &id_ref_entry_node_out, bool requires_generic_distinguisher);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(const RGNodePin &id_ref_node_out, bool requires_generic_distinguisher);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(RGNodePin parent, RGNodePin *node_pin_out, int precedence);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
 

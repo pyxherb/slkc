@@ -74,6 +74,7 @@ namespace slkc {
 			LNot,	   // Logical NOT !
 			Not,	   // Bitwise NOT ~
 			Neg,	   // Negation -
+			Move,	   // Move +
 			Unpacking  // Unpacking ...
 		};
 

@@ -31,8 +31,8 @@ namespace slkc {
 				/// @brief A match case.
 				MatchCase,
 
-				/// @brief An argument passing to a function.
-				Arg,
+				/// @brief Arguments passing to a function.
+				Args,
 
 				/// @brief A generic constraint applied to a generic parameter.
 				GenericConstraint,
@@ -99,170 +99,210 @@ namespace slkc {
 			};
 		}
 
-		namespace RGTypeNameNodeSubkind {
-			enum {
-				Invalid = 0,
-				/// @brief An i8 type name.
-				I8TypeName,
-				/// @brief An i16 type name.
-				I16TypeName,
-				/// @brief An i32 type name.
-				I32TypeName,
-				/// @brief An i64 type name.
-				I64TypeName,
-				/// @brief An isize type name.
-				ISizeTypeName,
-				/// @brief A u8 type name.
-				U8TypeName,
-				/// @brief A u16 type name.
-				U16TypeName,
-				/// @brief A u32 type name.
-				U32TypeName,
-				/// @brief A u64 type name.
-				U64TypeName,
-				/// @brief A usize type name.
-				USizeTypeName,
-				/// @brief An f32 type name.
-				F32TypeName,
-				/// @brief An f64 type name.
-				F64TypeName,
-				/// @brief A string type name.
-				StringTypeName,
-				/// @brief A bool type name.
-				BoolTypeName,
-				/// @brief A void type name.
-				VoidTypeName,
-				/// @brief An object type name.
-				ObjectTypeName,
-				/// @brief A any type name.
-				AnyTypeName,
-				/// @brief A never type name.
-				NeverTypeName,
-				/// @brief A custom type name.
-				CustomTypeName,
-				/// @brief An array type name.
-				ArrayTypeName,
-			};
-		}
+		enum class RGTypeNameKind : uint8_t {
+			Invalid = 0,
+			/// @brief An i8 type name.
+			I8TypeName,
+			/// @brief An i16 type name.
+			I16TypeName,
+			/// @brief An i32 type name.
+			I32TypeName,
+			/// @brief An i64 type name.
+			I64TypeName,
+			/// @brief An isize type name.
+			ISizeTypeName,
+			/// @brief A u8 type name.
+			U8TypeName,
+			/// @brief A u16 type name.
+			U16TypeName,
+			/// @brief A u32 type name.
+			U32TypeName,
+			/// @brief A u64 type name.
+			U64TypeName,
+			/// @brief A usize type name.
+			USizeTypeName,
+			/// @brief An f32 type name.
+			F32TypeName,
+			/// @brief An f64 type name.
+			F64TypeName,
+			/// @brief A string type name.
+			StringTypeName,
+			/// @brief A bool type name.
+			BoolTypeName,
+			/// @brief A void type name.
+			VoidTypeName,
+			/// @brief An object type name.
+			ObjectTypeName,
+			/// @brief A any type name.
+			AnyTypeName,
+			/// @brief A never type name.
+			NeverTypeName,
+			/// @brief A custom type name.
+			CustomTypeName,
+			/// @brief An array type name.
+			ArrayTypeName,
+		};
 
-		namespace RGExprNodeSubkind {
-			enum {
-				Invalid = 0,
+		enum class RGExprKind : uint8_t {
+			Invalid = 0,
 
-				/// @brief A unary expression.
-				UnaryExpr,
+			/// @brief A unary expression.
+			Unary,
 
-				/// @brief A binary expression.
-				BinaryExpr,
+			/// @brief A binary expression.
+			Binary,
 
-				/// @brief A ternary expression.
-				TernaryExpr,
+			/// @brief A ternary expression.
+			Ternary,
 
-				/// @brief An identifier reference expression.
-				IdRefExpr,
+			/// @brief An identifier reference expression.
+			IdRef,
 
-				/// @brief An identifier reference expression with a preceding expression.
-				HeadedIdRefExpr,
+			/// @brief An identifier reference expression with a preceding expression.
+			HeadedIdRef,
 
-				/// @brief An i8-typed integer literal expression.
-				I8LiteralExpr,
+			/// @brief An i8-typed integer literal expression.
+			I8Literal,
 
-				/// @brief An i16-typed integer literal expression.
-				I16LiteralExpr,
+			/// @brief An i16-typed integer literal expression.
+			I16Literal,
 
-				/// @brief An i32-typed integer literal expression.
-				I32LiteralExpr,
+			/// @brief An i32-typed integer literal expression.
+			I32Literal,
 
-				/// @brief An i64-typed integer literal expression.
-				I64LiteralExpr,
+			/// @brief An i64-typed integer literal expression.
+			I64Literal,
 
-				/// @brief An u8-typed integer literal expression.
-				U8LiteralExpr,
+			/// @brief An u8-typed integer literal expression.
+			U8Literal,
 
-				/// @brief An u16-typed integer literal expression.
-				U16LiteralExpr,
+			/// @brief An u16-typed integer literal expression.
+			U16Literal,
 
-				/// @brief An u32-typed integer literal expression.
-				U32LiteralExpr,
+			/// @brief An u32-typed integer literal expression.
+			U32Literal,
 
-				/// @brief An u64-typed integer literal expression.
-				U64LiteralExpr,
+			/// @brief An u64-typed integer literal expression.
+			U64Literal,
 
-				/// @brief An f32-typed floating-point literal expression.
-				F32LiteralExpr,
+			/// @brief An f32-typed floating-point literal expression.
+			F32Literal,
 
-				/// @brief An f64-typed floating-point literal expression.
-				F64LiteralExpr,
+			/// @brief An f64-typed floating-point literal expression.
+			F64Literal,
 
-				/// @brief A string literal expression.
-				StringLiteralExpr,
+			/// @brief A string literal expression.
+			StringLiteral,
 
-				/// @brief A boolean expression.
-				BoolLiteralExpr,
+			/// @brief A boolean expression.
+			BoolLiteral,
 
-				/// @brief A null expression.
-				NullLiteralExpr,
+			/// @brief A null expression.
+			NullLiteral,
 
-				/// @brief An initializer list expression.
-				InitializerListExpr,
+			/// @brief An initializer list expression.
+			InitializerList,
 
-				/// @brief A function call expression.
-				CallExpr,
+			/// @brief A function call expression.
+			Call,
 
-				/// @brief A new operation expression.
-				NewExpr,
+			/// @brief A new operation expression.
+			New,
 
-				/// @brief A type-casting expression.
-				CastExpr,
+			/// @brief A type-casting expression.
+			Cast,
 
-				/// @brief A match expression.
-				MatchExpr,
-				/// @brief A match case.
-				MatchCase,
+			/// @brief A match expression.
+			Match,
 
-				/// @brief A grouping (parenthesized) expression.
-				GroupExpr,
-			};
-		}
+			/// @brief A grouping (parenthesized) expression.
+			Group,
+		};
 
-		namespace RGStmtNodeSubkind {
-			enum {
-				Invalid = 0,
+		enum class RGUnaryExprOp : uint8_t {
+			LNot,	   // Logical NOT !
+			Not,	   // Bitwise NOT ~
+			Neg,	   // Negation -
+			Move,	   // Move +
+			Unpacking  // Unpacking ...
+		};
 
-				/// @brief An if statement.
-				IfStmt,
+		enum class RGBinaryExprOp : uint8_t {
+			Add = 0,  // Adding +
+			Sub,	  // Subtraction -
+			Mul,	  // Multiplicaton *
+			Div,	  // Division /
+			Mod,	  // Modulo %
+			And,	  // Bitwise AND &
+			Or,		  // Bitwise OR |
+			Xor,	  // Bitwise XOR ^
+			LAnd,	  // Logical AND &&
+			LOr,	  // Logical OR ||
+			Shl,	  // Left-shift <<
+			Shr,	  // Right-shift >>
 
-				/// @brief A for statement.
-				ForStmt,
+			Assign,		// Assignment =
+			AddAssign,	// Adding then asignment +=
+			SubAssign,	// Subtraction then assignment -=
+			MulAssign,	// Multiplication then assignment *=
+			DivAssign,	// Divison then assignment /=
+			ModAssign,	// Modulo then assignment %=
+			AndAssign,	// Bitwise AND then assignment &=
+			OrAssign,	// Bitwise OR then assignment |=
+			XorAssign,	// Bitwise XOR then assignment ^=
+			ShlAssign,	// Left-shift then assignment <<=
+			ShrAssign,	// Right-shift then assignment >>=
 
-				/// @brief A while statement.
-				WhileStmt,
+			Eq,			// Equality ==
+			Neq,		// Inequality !=
+			PhyEq,		// Physical Equality ===
+			PhyNeq,		// Physical Inequality !==
+			Lt,			// Less than <
+			Gt,			// Greater than >
+			LtEq,		// Less than or equal <=
+			GtEq,		// Greater than or equal >=
+			Cmp,		// Three-way comparison <=>
+			Subscript,	// Subscript []
 
-				/// @brief A do-while statement.
-				DoWhileStmt,
+			Comma,	// Comma ,
+		};
 
-				/// @brief A let statement.
-				LetStmt,
+		enum class RGStmtNodeSubkind : uint8_t {
+			Invalid = 0,
 
-				/// @brief A break statement.
-				BreakStmt,
+			/// @brief An if statement.
+			IfStmt,
 
-				/// @brief A continue statement.
-				ContinueStmt,
+			/// @brief A for statement.
+			ForStmt,
 
-				/// @brief A return statement.
-				ReturnStmt,
+			/// @brief A while statement.
+			WhileStmt,
 
-				/// @brief A yield statement.
-				YieldStmt,
+			/// @brief A do-while statement.
+			DoWhileStmt,
 
-				/// @brief A block statement.
-				BlockStmt,
+			/// @brief A let statement.
+			LetStmt,
 
-				/// @brief A switch statement.
-				SwitchStmt,
-			};
-		}
+			/// @brief A break statement.
+			BreakStmt,
+
+			/// @brief A continue statement.
+			ContinueStmt,
+
+			/// @brief A return statement.
+			ReturnStmt,
+
+			/// @brief A yield statement.
+			YieldStmt,
+
+			/// @brief A block statement.
+			BlockStmt,
+
+			/// @brief A switch statement.
+			SwitchStmt,
+		};
 
 		SLAKE_FORCEINLINE bool is_token_node_kind(TokenKind kind) noexcept {
 			return kind >= static_cast<uint32_t>(TokenId::End) && kind < static_cast<uint32_t>(TokenId::MaxToken);
@@ -495,6 +535,22 @@ namespace slkc {
 
 		using RGNodeChildList = peff::DynArray<RGNodePtr>;
 
+		struct TypeNameRGNodeExData {
+			RGTypeNameKind type_name_kind;
+		};
+
+		struct ExprRGNodeExData {
+			RGExprKind expr_kind;
+			union {
+				RGUnaryExprOp unary_expr_op;
+				RGBinaryExprOp binary_expr_op;
+			};
+
+			SLAKE_FORCEINLINE ExprRGNodeExData(RGExprKind kind) : expr_kind(kind) {}
+			SLAKE_FORCEINLINE ExprRGNodeExData(RGUnaryExprOp op) : expr_kind(RGExprKind::Unary), unary_expr_op(op) {}
+			SLAKE_FORCEINLINE ExprRGNodeExData(RGBinaryExprOp op) : expr_kind(RGExprKind::Binary), binary_expr_op(op) {}
+		};
+
 		struct RGNode {
 		private:
 			Global *_global;
@@ -505,8 +561,8 @@ namespace slkc {
 		public:
 			TokenPtr source_token;
 			RGNodeChildList children;
+			std::variant<std::monostate, TypeNameRGNodeExData, ExprRGNodeExData> exdata;
 			TokenKind node_kind;
-			TokenSubkind node_subkind;
 
 			SLKC_API RGNode(Global *global);
 			SLKC_API ~RGNode();
