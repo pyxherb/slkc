@@ -119,21 +119,13 @@ SLKC_API NodeIndex Global::_alloc_node_index() noexcept {
 	return INVALID_NODE_INDEX;
 }
 
-SLKC_API peff::Option<NodeIndex> Global::map_node(Node *node) noexcept {
+SLKC_API peff::Option<NodeIndex> Global::map_node(Node *node, NodeIndex node_index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
-	NodeIndex node_index;
-	if ((node_index = _alloc_node_index()))
-		return INVALID_NODE_INDEX;
-
-	if (!map_node(node_index, node))
-		return peff::NULLOPT;
-
-	return node_index;
-}
-
-SLKC_API bool Global::map_node(NodeIndex node_index, Node *node) noexcept {
-	std::lock_guard g(this->_node_registries_mutex);
+	if (node_index == INVALID_NODE_INDEX) {
+		if ((node_index = _alloc_rg_node_index()))
+			return INVALID_NODE_INDEX;
+	}
 
 	assert(!this->_node_registries.contains(node_index));
 
@@ -148,7 +140,7 @@ SLKC_API bool Global::map_node(NodeIndex node_index, Node *node) noexcept {
 
 	node->set_node_index(node_index);
 
-	return true;
+	return node_index;
 }
 
 SLKC_API void Global::remap_node(NodeIndex node_index, Node *node) noexcept {
@@ -223,21 +215,13 @@ SLKC_API RGNodeIndex Global::_alloc_rg_node_index() noexcept {
 	return INVALID_NODE_INDEX;
 }
 
-SLKC_API peff::Option<RGNodeIndex> Global::map_rg_node(RGNode *node) noexcept {
+SLKC_API peff::Option<RGNodeIndex> Global::map_rg_node(RGNode *node, RGNodeIndex node_index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
-	RGNodeIndex node_index;
-	if ((node_index = _alloc_rg_node_index()))
-		return INVALID_NODE_INDEX;
-
-	if (!map_rg_node(node_index, node))
-		return peff::NULLOPT;
-
-	return node_index;
-}
-
-SLKC_API bool Global::map_rg_node(RGNodeIndex node_index, RGNode *node) noexcept {
-	std::lock_guard g(this->_node_registries_mutex);
+	if (node_index == INVALID_RGNODE_INDEX) {
+		if ((node_index = _alloc_rg_node_index()))
+			return INVALID_RGNODE_INDEX;
+	}
 
 	assert(!this->_rg_node_registries.contains(node_index));
 
@@ -248,11 +232,11 @@ SLKC_API bool Global::map_rg_node(RGNodeIndex node_index, RGNode *node) noexcept
 	reg.self_index = node_index;
 
 	if (!this->_rg_node_registries.insert(+node_index, std::move(reg)))
-		return false;
+		return INVALID_RGNODE_INDEX;
 
 	node->set_node_index(node_index);
 
-	return true;
+	return node_index;
 }
 
 SLKC_API void Global::remap_rg_node(RGNodeIndex node_index, RGNode *node) noexcept {

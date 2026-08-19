@@ -12,6 +12,7 @@ namespace slkc {
 		using RGNodeIndex = uint64_t;
 		using TokenIndex = uint32_t;
 		using TokenKind = uint32_t;
+		using TokenSubkind = uint32_t;
 
 		constexpr NodeIndex INVALID_NODE_INDEX = (std::numeric_limits<NodeIndex>::max)();
 		constexpr RGNodeIndex INVALID_RGNODE_INDEX = (std::numeric_limits<RGNodeIndex>::max)();

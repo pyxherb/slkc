@@ -258,6 +258,7 @@ namespace slkc {
 
 			Global *global;
 
+			NodePtr<NodeIndex> module_node;
 			TokenList token_list;
 
 			struct ParseContext {
@@ -317,15 +318,16 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(RGNodePin &id_ref_entry_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(RGNodePin &type_name_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(RGNodePin &id_ref_entry_node_out, bool requires_distinguisher);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(RGNodePin &id_ref_node_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
 
-			[[nodiscard]] SLKC_API virtual ParseCoroutine parse_program(const RGNodePin &module_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_program(const RGNodePin &module_node);
 
 		public:
-			[[nodiscard]] SLKC_API virtual peff::Option<SyntaxError> parse(const RGNodePin &module_node);
+			[[nodiscard]] SLKC_API peff::Option<SyntaxError> parse(const RGNodePin &module_node);
 		};
 	}
 }
@@ -333,13 +335,19 @@ namespace slkc {
 #define SLKC_CO_RETURN_IF_PARSE_ERROR(expr)          \
 	do {                                             \
 		if (peff::Option<SyntaxError> _ = (expr); _) \
-			co_return _;                             \
+			co_return std::move(_);                  \
+	} while (0)
+
+#define SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(expr)                \
+	do {                                                      \
+		if (peff::Option<SyntaxError> _ = co_await (expr); _) \
+			co_return std::move(_);                           \
 	} while (0)
 
 #define SLKC_RETURN_IF_PARSE_ERROR(expr)             \
 	do {                                             \
 		if (peff::Option<SyntaxError> _ = (expr); _) \
-			return _;                                \
+			return std::move(_);                     \
 	} while (0)
 
 #define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode) \

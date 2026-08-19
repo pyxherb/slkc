@@ -28,6 +28,127 @@ namespace slkc {
 				/// @brief An expression.
 				Expr,
 
+				/// @brief A match case.
+				MatchCase,
+
+				/// @brief An argument passing to a function.
+				Arg,
+
+				/// @brief A generic constraint applied to a generic parameter.
+				GenericConstraint,
+				/// @brief A generic parameter applied to a member.
+				GenericParam,
+
+				/// @brief A parameter in a function.
+				Param,
+
+				/// @brief A function declaration.
+				FnDecl,
+				/// @brief A function definition.
+				FnDef,
+				/// @brief An operator declaration.
+				OperatorDecl,
+				/// @brief An operator definition.
+				OperatorDef,
+
+				/// @brief A statement.
+				Stmt,
+
+				/// @brief A case of a switch statement.
+				SwitchCase,
+				/// @brief Default case of a switch statement.
+				SwitchDefaultCase,
+
+				/// @brief An expression statement.
+				ExprStmt,
+
+				/// @brief Top-level module definition.
+				Module,
+
+				/// @brief Inheritance slot on a class, generic constraint, etc.
+				InheritanceSlot,
+
+				/// @brief An implementation item in an implementation list.
+				ImplItem,
+				/// @brief An implementation list on a class, interface, generic constraint, etc
+				ImplList,
+
+				/// @brief A class definition.
+				ClassDef,
+				/// @brief An interface definition.
+				InterfaceDef,
+				/// @brief A trait definition.
+				TraitDef,
+				/// @brief An exception definition.
+				ExceptDef,
+				/// @brief A struct definition.
+				StructDef,
+				/// @brief A constant enum definition.
+				ConstEnumDef,
+				/// @brief A scoped enum definition.
+				ScopedEnumDef,
+				/// @brief An union enum definition.
+				UnionEnumDef,
+				/// @brief An attribute definition.
+				AttributeDef,
+
+				/// @brief An import item.
+				ImportItem,
+
+				Max
+			};
+		}
+
+		namespace RGTypeNameNodeSubkind {
+			enum {
+				Invalid = 0,
+				/// @brief An i8 type name.
+				I8TypeName,
+				/// @brief An i16 type name.
+				I16TypeName,
+				/// @brief An i32 type name.
+				I32TypeName,
+				/// @brief An i64 type name.
+				I64TypeName,
+				/// @brief An isize type name.
+				ISizeTypeName,
+				/// @brief A u8 type name.
+				U8TypeName,
+				/// @brief A u16 type name.
+				U16TypeName,
+				/// @brief A u32 type name.
+				U32TypeName,
+				/// @brief A u64 type name.
+				U64TypeName,
+				/// @brief A usize type name.
+				USizeTypeName,
+				/// @brief An f32 type name.
+				F32TypeName,
+				/// @brief An f64 type name.
+				F64TypeName,
+				/// @brief A string type name.
+				StringTypeName,
+				/// @brief A bool type name.
+				BoolTypeName,
+				/// @brief A void type name.
+				VoidTypeName,
+				/// @brief An object type name.
+				ObjectTypeName,
+				/// @brief A any type name.
+				AnyTypeName,
+				/// @brief A never type name.
+				NeverTypeName,
+				/// @brief A custom type name.
+				CustomTypeName,
+				/// @brief An array type name.
+				ArrayTypeName,
+			};
+		}
+
+		namespace RGExprNodeSubkind {
+			enum {
+				Invalid = 0,
+
 				/// @brief A unary expression.
 				UnaryExpr,
 
@@ -101,29 +222,12 @@ namespace slkc {
 
 				/// @brief A grouping (parenthesized) expression.
 				GroupExpr,
+			};
+		}
 
-				/// @brief An argument passing to a function.
-				Arg,
-
-				/// @brief A generic constraint applied to a generic parameter.
-				GenericConstraint,
-				/// @brief A generic parameter applied to a member.
-				GenericParam,
-
-				/// @brief A parameter in a function.
-				Param,
-
-				/// @brief A function declaration.
-				FnDecl,
-				/// @brief A function definition.
-				FnDef,
-				/// @brief An operator declaration.
-				OperatorDecl,
-				/// @brief An operator definition.
-				OperatorDef,
-
-				/// @brief A statement.
-				Stmt,
+		namespace RGStmtNodeSubkind {
+			enum {
+				Invalid = 0,
 
 				/// @brief An if statement.
 				IfStmt,
@@ -157,48 +261,6 @@ namespace slkc {
 
 				/// @brief A switch statement.
 				SwitchStmt,
-				/// @brief A case of a switch statement.
-				SwitchCase,
-				/// @brief Default case of a switch statement.
-				SwitchDefaultCase,
-
-				/// @brief An expression statement.
-				ExprStmt,
-
-				/// @brief Top-level module definition.
-				Module,
-
-				/// @brief Inheritance slot on a class, generic constraint, etc.
-				InheritanceSlot,
-
-				/// @brief An implementation item in an implementation list.
-				ImplItem,
-				/// @brief An implementation list on a class, interface, generic constraint, etc
-				ImplList,
-
-				/// @brief A class definition.
-				ClassDef,
-				/// @brief An interface definition.
-				InterfaceDef,
-				/// @brief A trait definition.
-				TraitDef,
-				/// @brief An exception definition.
-				ExceptDef,
-				/// @brief A struct definition.
-				StructDef,
-				/// @brief A constant enum definition.
-				ConstEnumDef,
-				/// @brief A scoped enum definition.
-				ScopedEnumDef,
-				/// @brief An union enum definition.
-				UnionEnumDef,
-				/// @brief An attribute definition.
-				AttributeDef,
-
-				/// @brief An import item.
-				ImportItem,
-
-				Max
 			};
 		}
 
@@ -432,7 +494,6 @@ namespace slkc {
 		};
 
 		using RGNodeChildList = peff::DynArray<RGNodePtr>;
-		using RGNodeIndexMap = peff::HashMap<uint32_t, size_t>;
 
 		struct RGNode {
 		private:
@@ -445,6 +506,7 @@ namespace slkc {
 			TokenPtr source_token;
 			RGNodeChildList children;
 			TokenKind node_kind;
+			TokenSubkind node_subkind;
 
 			SLKC_API RGNode(Global *global);
 			SLKC_API ~RGNode();
@@ -464,8 +526,6 @@ namespace slkc {
 			SLAKE_FORCEINLINE bool push_child(RGNodePtr child) noexcept {
 				return children.push_back(std::move(child));
 			}
-
-			SLKC_API bool index_children() noexcept;
 		};
 
 		SLAKE_FORCEINLINE RGNodePin make_rg_node(Global *global) {

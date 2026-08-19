@@ -284,7 +284,174 @@ SLKC_API peff::Option<SyntaxError> Parser::split_rdbrackets_token() {
 	return peff::NULLOPT;
 }
 
-SLKC_API ParseCoroutine Parser::parse_id_ref_entry(RGNodePin &id_ref_entry_node_out) {
+SLKC_API ParseCoroutine Parser::parse_type_name(RGNodePin &type_name_node_out) {
+	type_name_node_out = make_rg_node(get_global());
+
+	if (!type_name_node_out)
+		co_return gen_oom_syntax_error();
+
+	type_name_node_out->node_kind = RGNodeKind::TypeName;
+
+	Token *token;
+	switch ((token = peek_token())->token_id) {
+		case TokenId::I8TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::I8TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::I16TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::I16TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::I32TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::I32TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::I64TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::I64TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::ISizeTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::ISizeTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::U8TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::U8TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::U16TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::U16TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::U32TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::U32TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::U64TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::U64TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::USizeTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::USizeTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::F32TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::F32TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::F64TypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::F64TypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::StringTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::StringTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::BoolTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::BoolTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::VoidTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::VoidTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::ObjectTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::ObjectTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::AnyTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::AnyTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::NeverTypeName:
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::NeverTypeName;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			break;
+		case TokenId::Id: {
+			type_name_node_out->node_subkind = RGTypeNameNodeSubkind::CustomTypeName;
+
+			RGNodePin id_ref;
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(id_ref)(this));
+
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(type_name_node_out, id_ref);
+			break;
+		}
+		default:
+			co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+	}
+
+	if ((token = peek_token())->token_id == TokenId::ObjectTypeName) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+	}
+
+	while (true) {
+		switch ((token = peek_token())->token_id) {
+			case TokenId::ConstKeyword:
+			case TokenId::MutableKeyword:
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+				break;
+			default:
+				break;
+		}
+
+		if ((token = peek_token())->token_id == TokenId::FinalKeyword) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+		}
+
+		if ((token = peek_token())->token_id == TokenId::LocalKeyword) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+		}
+
+		switch ((token = peek_token())->token_id) {
+			case TokenId::RestrictKeyword:
+			case TokenId::MultiKeyword:
+			case TokenId::SynchronizedKeyword:
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+				break;
+			default:
+				break;
+		}
+
+		if ((token = peek_token())->token_id == TokenId::Question) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+		}
+
+		if ((token = peek_token())->token_id == TokenId::LBracket) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+
+			auto new_tn = make_rg_node(get_global());
+
+			if (!new_tn)
+				co_return gen_oom_syntax_error();
+
+			new_tn->node_kind = RGNodeKind::TypeName;
+			new_tn->node_subkind = RGTypeNameNodeSubkind::ArrayTypeName;
+
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(new_tn, type_name_node_out);
+
+			type_name_node_out = new_tn;
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(type_name_node_out, TokenId::RBracket));
+		}
+
+		break;
+	}
+
+	if ((token = peek_token())->token_id == TokenId::RefKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+	}
+
+	if ((token = peek_token())->token_id == TokenId::ReadonlyKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+	}
+
+	if ((token = peek_token())->token_id == TokenId::LocalKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+	}
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_id_ref_entry(RGNodePin &id_ref_entry_node_out, bool requires_distinguisher) {
 	id_ref_entry_node_out = make_rg_node(get_global());
 
 	if (!id_ref_entry_node_out)
@@ -293,7 +460,23 @@ SLKC_API ParseCoroutine Parser::parse_id_ref_entry(RGNodePin &id_ref_entry_node_
 	Token *token;
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::Id));
 
-	// TODO: Implement it.
+	token = peek_token();
+	if (((requires_distinguisher) && (token->token_id == TokenId::LtOp)) || (token->token_id == TokenId::ScopeOp)) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_entry_node_out));
+		if (token->token_id == TokenId::ScopeOp) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::LtOp));
+		}
+		while (true) {
+			RGNodePin tn;
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(tn)(this));
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(id_ref_entry_node_out, tn);
+			if ((token = peek_token())->token_id != TokenId::Comma)
+				break;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_entry_node_out));
+		}
+		SLKC_CO_RETURN_IF_PARSE_ERROR(split_shr_op_token());
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::GtOp));
+	}
 
 	co_return peff::NULLOPT;
 }

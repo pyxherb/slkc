@@ -114,6 +114,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_
 				<InitialCondition>"match"		{ token->token_id = TokenId::MatchKeyword; break; }
 				<InitialCondition>"module"		{ token->token_id = TokenId::ModuleKeyword; break; }
 				<InitialCondition>"multi"		{ token->token_id = TokenId::MultiKeyword; break; }
+				<InitialCondition>"mutable"		{ token->token_id = TokenId::MutableKeyword; break; }
 				<InitialCondition>"native"		{ token->token_id = TokenId::NativeKeyword; break; }
 				<InitialCondition>"new"			{ token->token_id = TokenId::NewKeyword; break; }
 				<InitialCondition>"null"		{ token->token_id = TokenId::NullKeyword; break; }
@@ -123,6 +124,8 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_
 				<InitialCondition>"public"		{ token->token_id = TokenId::PublicKeyword; break; }
 				<InitialCondition>"private"		{ token->token_id = TokenId::PrivateKeyword; break; }
 				<InitialCondition>"protected"	{ token->token_id = TokenId::ProtectedKeyword; break; }
+				<InitialCondition>"readonly"	{ token->token_id = TokenId::ReadonlyKeyword; break; }
+				<InitialCondition>"ref"			{ token->token_id = TokenId::RefKeyword; break; }
 				<InitialCondition>"restrict"	{ token->token_id = TokenId::RestrictKeyword; break; }
 				<InitialCondition>"return"		{ token->token_id = TokenId::ReturnKeyword; break; }
 				<InitialCondition>"static"		{ token->token_id = TokenId::StaticKeyword; break; }

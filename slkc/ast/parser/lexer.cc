@@ -212,7 +212,9 @@ SLKC_API std::string_view get_token_name(uint32_t token_id) {
 		case TokenId::ModuleKeyword:
 			return "module";
 		case TokenId::MultiKeyword:
-			return "multi";
+			return "multi";;
+		case TokenId::MutableKeyword:
+			return "mutable";
 		case TokenId::NativeKeyword:
 			return "native";
 		case TokenId::NewKeyword:
@@ -231,6 +233,10 @@ SLKC_API std::string_view get_token_name(uint32_t token_id) {
 			return "private";
 		case TokenId::ProtectedKeyword:
 			return "protected";
+		case TokenId::ReadonlyKeyword:
+			return "readonly";
+		case TokenId::RefKeyword:
+			return "ref";
 		case TokenId::RestrictKeyword:
 			return "restrict";
 		case TokenId::ReturnKeyword:

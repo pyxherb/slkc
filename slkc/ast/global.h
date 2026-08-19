@@ -129,15 +129,7 @@ namespace slkc {
 			/// @param node
 			/// @return @c peff::NULLOPT if out of memory, @c INVALID_NODE_INDEX if no slot.
 			///
-			[[nodiscard]] SLKC_API peff::Option<NodeIndex> map_node(Node *node) noexcept;
-			///
-			/// @brief Map a node to a new node index.
-			///
-			/// @param node_index Node index to be mapped.
-			/// @param node Node to be mapped.
-			/// @return @c true if success, @c false if out of memory.
-			///
-			[[nodiscard]] SLKC_API bool map_node(NodeIndex node_index, Node *node) noexcept;
+			[[nodiscard]] SLKC_API peff::Option<NodeIndex> map_node(Node *node, NodeIndex node_index = INVALID_NODE_INDEX) noexcept;
 			///
 			/// @brief Remap an existed node index.
 			///
@@ -163,15 +155,7 @@ namespace slkc {
 			/// @param node
 			/// @return @c peff::NULLOPT if out of memory, @c INVALID_NODE_INDEX if no slot.
 			///
-			[[nodiscard]] SLKC_API peff::Option<RGNodeIndex> map_rg_node(RGNode *node) noexcept;
-			///
-			/// @brief Map a node to a new node index.
-			///
-			/// @param node_index Node index to be mapped.
-			/// @param node Node to be mapped.
-			/// @return @c true if success, @c false if out of memory.
-			///
-			[[nodiscard]] SLKC_API bool map_rg_node(RGNodeIndex node_index, RGNode *node) noexcept;
+			[[nodiscard]] SLKC_API peff::Option<RGNodeIndex> map_rg_node(RGNode *node, RGNodeIndex node_index = INVALID_RGNODE_INDEX) noexcept;
 			///
 			/// @brief Remap an existed node index.
 			///
