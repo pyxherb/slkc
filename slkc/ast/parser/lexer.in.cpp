@@ -179,8 +179,8 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_
 				<InitialCondition>"]"		{ token->token_id = TokenId::RBracket; break; }
 				<InitialCondition>"{"		{ token->token_id = TokenId::LBrace; break; }
 				<InitialCondition>"}"		{ token->token_id = TokenId::RBrace; break; }
-				<InitialCondition>"("		{ token->token_id = TokenId::LParenthese; break; }
-				<InitialCondition>")"		{ token->token_id = TokenId::RParenthese; break; }
+				<InitialCondition>"("		{ token->token_id = TokenId::LParenthesis; break; }
+				<InitialCondition>")"		{ token->token_id = TokenId::RParenthesis; break; }
 				<InitialCondition>"#"		{ token->token_id = TokenId::HashTag; break; }
 				<InitialCondition>"..."		{ token->token_id = TokenId::VarArg; break; }
 				<InitialCondition>"."		{ token->token_id = TokenId::Dot; break; }

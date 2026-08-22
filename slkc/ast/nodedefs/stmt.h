@@ -55,7 +55,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> inner_expr;
+			peff::DynArray<NodePtr<ExprNode>> inner_exprs;
 
 			SLKC_API ExprStmtNode(Global *global);
 			SLKC_API ExprStmtNode(const ExprStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
@@ -94,7 +94,7 @@ namespace slkc {
 		public:
 			/// @brief Binding entries in the let statement.
 			peff::DynArray<BindingEntry> bindings;
-			
+
 			VarDefBindingType binding_type;
 
 			TokenIndex sti_let_keyword = INVALID_TOKEN_INDEX;
@@ -158,9 +158,9 @@ namespace slkc {
 			peff::DynArray<BindingEntry> loop_vars;
 			/// @brief Condition expression that is evaluated each loop cycle.
 			NodePtr<ExprNode> condition_expr;
-			/// @brief Step expression that is evaluated at the end of each loop cycle.
-			/// @note The step is not evaluated if the user breaks manually.
-			NodePtr<ExprNode> step_expr;
+			/// @brief Step expressions that are evaluated at the end of each loop cycle.
+			/// @note The step expressions are not evaluated if the user breaks manually.
+			peff::DynArray<NodePtr<ExprNode>> step_exprs;
 			/// @brief Body of the loop statement.
 			NodePtr<StmtNode> body;
 

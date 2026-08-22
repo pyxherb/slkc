@@ -31,6 +31,8 @@ namespace slkc {
 
 			Call,  // Call
 
+			Subscript,	// Subscript
+
 			New,  // New
 
 			Alloca,	 // Alloca
@@ -121,18 +123,15 @@ namespace slkc {
 			ShlAssign,	// Left-shift then assignment <<=
 			ShrAssign,	// Right-shift then assignment >>=
 
-			Eq,			// Equality ==
-			Neq,		// Inequality !=
-			PhyEq,		// Physical Equality ===
-			PhyNeq,		// Physical Inequality !==
-			Lt,			// Less than <
-			Gt,			// Greater than >
-			LtEq,		// Less than or equal <=
-			GtEq,		// Greater than or equal >=
-			Cmp,		// Three-way comparison <=>
-			Subscript,	// Subscript []
-
-			Comma,	// Comma ,
+			Eq,		 // Equality ==
+			Neq,	 // Inequality !=
+			PhyEq,	 // Physical Equality ===
+			PhyNeq,	 // Physical Inequality !==
+			Lt,		 // Less than <
+			Gt,		 // Greater than >
+			LtEq,	 // Less than or equal <=
+			GtEq,	 // Greater than or equal >=
+			Cmp,	 // Three-way comparison <=>
 		};
 
 		class BinaryExprNode final : public ExprNode {
@@ -460,6 +459,26 @@ namespace slkc {
 			SLKC_API CallExprNode(Global *global);
 			SLKC_API CallExprNode(const CallExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~CallExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class SubscriptExprNode final : public ExprNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			NodePtr<ExprNode> target;
+			peff::DynArray<NodePtr<ExprNode>> args;
+
+			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
+			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
+			peff::DynArray<TokenIndex> sti_arg_separators;
+
+			SLKC_API SubscriptExprNode(Global *global);
+			SLKC_API SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~SubscriptExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};

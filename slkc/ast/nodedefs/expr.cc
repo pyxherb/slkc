@@ -1001,6 +1001,109 @@ SLKC_API CallExprNode::~CallExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CallExprNode);
 
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(SubscriptExprNode);
+
+SLKC_API DumpResult SubscriptExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), target.get_index(), deep_dump));
+	if (!target_object->insert("target", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("args", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (const auto &i : args) {
+			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+				return DumpResult::OutOfMemory;
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i.get_index(), deep_dump));
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_left_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_left_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_right_parenthesis))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_right_brace", v.release()))
+		return DumpResult::OutOfMemory;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("sti_arg_separators", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (auto i : sti_arg_separators) {
+			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), i))))
+				return DumpResult::OutOfMemory;
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	return DumpResult::Ok;
+}
+
+SLKC_API SubscriptExprNode::SubscriptExprNode(Global *global)
+	: ExprNode(ExprKind::Null, global),
+	  args(global->get_allocator()),
+	  sti_arg_separators(global->get_allocator()) {
+}
+
+SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+	: ExprNode(other, context, node_index),
+	  args(context.get_global()->get_allocator()),
+	  sti_arg_separators(context.get_global()->get_allocator()) {
+	{
+		auto result = context.push_task(other.target.get_index());
+		if (result.has_error()) {
+			error_out = std::move(result).error();
+			return;
+		}
+		target = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+
+	if (!args.resize(other.args.size())) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+
+	for (auto i = 0; i < args.size(); i++) {
+		auto result = context.push_task(other.args[i]);
+
+		if (result.has_error()) {
+			error_out = std::move(result).error();
+			return;
+		}
+
+		args[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+
+	if (!sti_arg_separators.build(other.sti_arg_separators)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+}
+
+SLKC_API SubscriptExprNode::~SubscriptExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(SubscriptExprNode);
+
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(NewExprNode);
 
 SLKC_API DumpResult NewExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {

@@ -13,6 +13,7 @@ namespace slkc {
 
 		enum class SyntaxErrorKind : int {
 			OutOfMemory = 0,
+			ExpectingMoreTokens,
 			UnexpectedToken,
 			ExpectingSingleToken,
 			ExpectingTokens,
@@ -319,6 +320,7 @@ namespace slkc {
 
 		private:
 			[[nodiscard]] SLKC_API ParseCoroutine parse_args(const RGNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(const RGNodePin &args_node_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(RGNodePin parent, RGNodePin *node_pin_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(const RGNodePin &id_ref_entry_node_out, bool requires_generic_distinguisher);

@@ -55,9 +55,9 @@ SLKC_API std::string_view get_token_name(uint32_t token_id) {
 			return "{";
 		case TokenId::RBrace:
 			return "}";
-		case TokenId::LParenthese:
+		case TokenId::LParenthesis:
 			return "(";
-		case TokenId::RParenthese:
+		case TokenId::RParenthesis:
 			return ")";
 		case TokenId::At:
 			return "@";

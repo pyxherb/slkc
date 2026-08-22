@@ -117,7 +117,7 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const RGNodePin &parent
 		++i;
 	}
 
-	return peff::NULLOPT;
+	return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), i - 1 }, SyntaxErrorKind::ExpectingMoreTokens);
 }
 
 SLKC_API void Parser::next_token() {
@@ -151,6 +151,8 @@ SLKC_API peff::Option<SyntaxError> Parser::collect_token(const RGNodePin &parent
 		parse_context.idx_prev_token = i;
 		++i;
 	}
+
+	return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), i - 1 }, SyntaxErrorKind::ExpectingMoreTokens);
 }
 
 SLKC_API Token *Parser::peek_token(bool keep_new_line, bool keep_whitespace, bool keep_comment) {
@@ -307,6 +309,44 @@ SLKC_API ParseCoroutine Parser::parse_args(const RGNodePin &args_node_out, Token
 							module_node,
 							parse_context.idx_current_token },
 						ExpectingSingleTokenErrorExData{ separator_token })))
+				co_return gen_oom_syntax_error();
+		}
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(args_node_out));
+	}
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_subscript_args(const RGNodePin &args_node_out) {
+	args_node_out->node_kind = RGNodeKind::Args;
+
+	Token *token;
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(split_rdbrackets_token());
+
+	if ((token = peek_token())->token_id == TokenId::RBracket) {
+		co_return peff::NULLOPT;
+	}
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(args_node_out, nullptr, 0)(this));
+
+	while (true) {
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(args_node_out, nullptr, 0)(this));
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(split_rdbrackets_token());
+
+		if ((token = peek_token())->token_id == TokenId::RBracket) {
+			co_return peff::NULLOPT;
+		}
+
+		if ((token = peek_token())->token_id != TokenId::Comma) {
+			if (!syntax_errors.push_back(
+					SyntaxError(
+						TokenRange{
+							module_node,
+							parse_context.idx_current_token },
+						ExpectingSingleTokenErrorExData{ TokenId::Comma })))
 				co_return gen_oom_syntax_error();
 		}
 

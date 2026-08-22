@@ -206,6 +206,9 @@ namespace slkc {
 			/// @brief A function call expression.
 			Call,
 
+			/// @brief A index-based subscript expression.
+			Subscript,
+
 			/// @brief A new operation expression.
 			New,
 
@@ -262,7 +265,6 @@ namespace slkc {
 			LtEq,		// Less than or equal <=
 			GtEq,		// Greater than or equal >=
 			Cmp,		// Three-way comparison <=>
-			Subscript,	// Subscript []
 
 			Comma,	// Comma ,
 		};
