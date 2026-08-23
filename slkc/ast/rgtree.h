@@ -31,6 +31,12 @@ namespace slkc {
 				/// @brief A match case.
 				MatchCase,
 
+				/// @brief A variable bindings.
+				VarBinding,
+
+				/// @brief Variable bindings.
+				VarBindings,
+
 				/// @brief Arguments passing to a function.
 				Args,
 
@@ -58,9 +64,6 @@ namespace slkc {
 				SwitchCase,
 				/// @brief Default case of a switch statement.
 				SwitchDefaultCase,
-
-				/// @brief An expression statement.
-				ExprStmt,
 
 				/// @brief Top-level module definition.
 				Module,
@@ -94,6 +97,9 @@ namespace slkc {
 
 				/// @brief An import item.
 				ImportItem,
+
+				/// @brief A global variable declaration.
+				GlobalVar,
 
 				Max
 			};
@@ -256,20 +262,20 @@ namespace slkc {
 			ShlAssign,	// Left-shift then assignment <<=
 			ShrAssign,	// Right-shift then assignment >>=
 
-			Eq,			// Equality ==
-			Neq,		// Inequality !=
-			PhyEq,		// Physical Equality ===
-			PhyNeq,		// Physical Inequality !==
-			Lt,			// Less than <
-			Gt,			// Greater than >
-			LtEq,		// Less than or equal <=
-			GtEq,		// Greater than or equal >=
-			Cmp,		// Three-way comparison <=>
+			Eq,		 // Equality ==
+			Neq,	 // Inequality !=
+			PhyEq,	 // Physical Equality ===
+			PhyNeq,	 // Physical Inequality !==
+			Lt,		 // Less than <
+			Gt,		 // Greater than >
+			LtEq,	 // Less than or equal <=
+			GtEq,	 // Greater than or equal >=
+			Cmp,	 // Three-way comparison <=>
 
 			Comma,	// Comma ,
 		};
 
-		enum class RGStmtNodeSubkind : uint8_t {
+		enum class RGStmtKind : uint8_t {
 			Invalid = 0,
 
 			/// @brief An if statement.
@@ -284,8 +290,8 @@ namespace slkc {
 			/// @brief A do-while statement.
 			DoWhileStmt,
 
-			/// @brief A let statement.
-			LetStmt,
+			/// @brief A local variable statement.
+			LocalVarStmt,
 
 			/// @brief A break statement.
 			BreakStmt,
@@ -535,6 +541,12 @@ namespace slkc {
 			}
 		};
 
+		enum class RGNodeIndexingResult : uint8_t {
+			Success = 0,
+			PinIOError,
+			OutOfMemory,
+		};
+
 		using RGNodeChildList = peff::DynArray<RGNodePtr>;
 
 		struct TypeNameRGNodeExData {
@@ -553,6 +565,10 @@ namespace slkc {
 			SLAKE_FORCEINLINE ExprRGNodeExData(RGBinaryExprOp op) : expr_kind(RGExprKind::Binary), binary_expr_op(op) {}
 		};
 
+		struct StmtRGNodeExData {
+			RGStmtKind stmt_kind;
+		};
+
 		struct RGNode {
 		private:
 			Global *_global;
@@ -563,7 +579,7 @@ namespace slkc {
 		public:
 			TokenPtr source_token;
 			RGNodeChildList children;
-			std::variant<std::monostate, TypeNameRGNodeExData, ExprRGNodeExData> exdata;
+			std::variant<std::monostate, TypeNameRGNodeExData, ExprRGNodeExData, StmtRGNodeExData> exdata;
 			TokenKind node_kind;
 
 			SLKC_API RGNode(Global *global);

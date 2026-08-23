@@ -281,13 +281,18 @@ namespace slkc {
 				return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), 0 }, SyntaxErrorKind::OutOfMemory);
 			}
 
-			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			enum class TokenIgnoringPolicy : uint8_t {
+				Ignore = 0,
+				Keep
+			};
+
+			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 			SLKC_API void next_token();
 			SLKC_API peff::Option<SyntaxError> collect_token(const RGNodePin &parent_node);
-			SLKC_API Token *peek_token(bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
-			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
-			SLKC_API peff::Option<SyntaxError> collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
-			SLKC_API peff::Option<SyntaxError> collect_to_cur_token(const RGNodePin &parent_node, bool keep_new_line = false, bool keep_whitespace = false, bool keep_comment = false);
+			SLKC_API Token *peek_token(TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_to_cur_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 
 			[[nodiscard]] SLAKE_FORCEINLINE peff::Option<SyntaxError> expect_token(Token *token, TokenKind token_kind) {
 				if (token->token_id != token_kind) {
@@ -319,6 +324,9 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding_list(RGNodePin parent, RGNodePin *node_pin_out);
+
 			[[nodiscard]] SLKC_API ParseCoroutine parse_args(const RGNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(const RGNodePin &args_node_out);
 
@@ -327,6 +335,16 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(const RGNodePin &id_ref_node_out, bool requires_generic_distinguisher);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(RGNodePin parent, RGNodePin *node_pin_out, int precedence);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(RGNodePin parent, RGNodePin *node_pin_out);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_inheritance_slot(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(RGNodePin parent, RGNodePin *node_pin_out);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(const RGNodePin &fn_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_class(const RGNodePin &cls_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_interface(const RGNodePin &interface_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_trait(const RGNodePin &trait_node);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
 

@@ -107,6 +107,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_
 				<InitialCondition>"friend"		{ token->token_id = TokenId::FriendKeyword; break; }
 				<InitialCondition>"if"			{ token->token_id = TokenId::IfKeyword; break; }
 				<InitialCondition>"import"		{ token->token_id = TokenId::ImportKeyword; break; }
+				<InitialCondition>"interface"	{ token->token_id = TokenId::InterfaceKeyword; break; }
 				<InitialCondition>"in"			{ token->token_id = TokenId::InKeyword; break; }
 				<InitialCondition>"let"			{ token->token_id = TokenId::LetKeyword; break; }
 				<InitialCondition>"local"		{ token->token_id = TokenId::LocalKeyword; break; }
@@ -135,7 +136,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, NodeIndex module_
 				<InitialCondition>"this"		{ token->token_id = TokenId::ThisKeyword; break; }
 				<InitialCondition>"throw"		{ token->token_id = TokenId::ThrowKeyword; break; }
 				<InitialCondition>"typeof"		{ token->token_id = TokenId::TypeofKeyword; break; }
-				<InitialCondition>"interface"	{ token->token_id = TokenId::InterfaceKeyword; break; }
+				<InitialCondition>"trait"		{ token->token_id = TokenId::TraitKeyword; break; }
 				<InitialCondition>"true"		{ token->token_id = TokenId::TrueKeyword; break; }
 				<InitialCondition>"try"			{ token->token_id = TokenId::TryKeyword; break; }
 				<InitialCondition>"typename"	{ token->token_id = TokenId::TypenameKeyword; break; }

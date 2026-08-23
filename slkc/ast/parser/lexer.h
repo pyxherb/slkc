@@ -171,6 +171,7 @@ namespace slkc {
 				ThisKeyword,
 				ThrowKeyword,
 				TypeofKeyword,
+				TraitKeyword,
 				TrueKeyword,
 				TryKeyword,
 				TypenameKeyword,

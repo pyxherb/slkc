@@ -68,7 +68,7 @@ SLKC_API ParseCoroutine::Awaitable ParseCoroutine::operator()(Parser *parser) {
 SLKC_API ParseCoroutineScheduler::ParseCoroutineScheduler(peff::Alloc *allocator) : task_list(allocator) {
 }
 
-SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const RGNodePin &parent_node, bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line, TokenIgnoringPolicy keep_whitespace, TokenIgnoringPolicy keep_comment) {
 	TokenIndex &i = parse_context.idx_current_token;
 
 	while (i < token_list.size()) {
@@ -77,14 +77,14 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const RGNodePin &parent
 
 		switch (current_token->token_id) {
 			case TokenId::NewLine:
-				if (keep_new_line) {
+				if (keep_new_line == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
 					++i;
 					return peff::NULLOPT;
 				}
 				break;
 			case TokenId::Whitespace:
-				if (keep_whitespace) {
+				if (keep_whitespace == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
 					++i;
 					return peff::NULLOPT;
@@ -93,7 +93,7 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const RGNodePin &parent
 			case TokenId::LineComment:
 			case TokenId::BlockComment:
 			case TokenId::DocumentationComment:
-				if (keep_comment) {
+				if (keep_comment == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
 					++i;
 					return peff::NULLOPT;
@@ -155,7 +155,7 @@ SLKC_API peff::Option<SyntaxError> Parser::collect_token(const RGNodePin &parent
 	return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), i - 1 }, SyntaxErrorKind::ExpectingMoreTokens);
 }
 
-SLKC_API Token *Parser::peek_token(bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+SLKC_API Token *Parser::peek_token(TokenIgnoringPolicy keep_new_line, TokenIgnoringPolicy keep_whitespace, TokenIgnoringPolicy keep_comment) {
 	size_t i = parse_context.idx_current_token;
 
 	while (i < token_list.size()) {
@@ -164,17 +164,17 @@ SLKC_API Token *Parser::peek_token(bool keep_new_line, bool keep_whitespace, boo
 
 		switch (current_token->token_id) {
 			case TokenId::NewLine:
-				if (keep_new_line)
+				if (keep_new_line == TokenIgnoringPolicy::Keep)
 					return current_token;
 				break;
 			case TokenId::Whitespace:
-				if (keep_whitespace)
+				if (keep_whitespace == TokenIgnoringPolicy::Keep)
 					return current_token;
 				break;
 			case TokenId::LineComment:
 			case TokenId::BlockComment:
 			case TokenId::DocumentationComment:
-				if (keep_comment)
+				if (keep_comment == TokenIgnoringPolicy::Keep)
 					return current_token;
 				break;
 			default:
@@ -187,20 +187,20 @@ SLKC_API Token *Parser::peek_token(bool keep_new_line, bool keep_whitespace, boo
 	return token_list.back().get();
 }
 
-SLKC_API peff::Option<SyntaxError> Parser::collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+SLKC_API peff::Option<SyntaxError> Parser::collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, TokenIgnoringPolicy keep_new_line, TokenIgnoringPolicy keep_whitespace, TokenIgnoringPolicy keep_comment) {
 	SLKC_RETURN_IF_PARSE_ERROR(to_next_token(parent_node, keep_new_line, keep_whitespace, keep_comment));
 	SLKC_RETURN_IF_PARSE_ERROR(expect_token(peek_token(), token_kind));
 	SLKC_RETURN_IF_PARSE_ERROR(collect_token(parent_node));
 	return peff::NULLOPT;
 }
 
-SLKC_API peff::Option<SyntaxError> Parser::collect_and_next_token(const RGNodePin &parent_node, bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+SLKC_API peff::Option<SyntaxError> Parser::collect_and_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line, TokenIgnoringPolicy keep_whitespace, TokenIgnoringPolicy keep_comment) {
 	SLKC_RETURN_IF_PARSE_ERROR(to_next_token(parent_node, keep_new_line, keep_whitespace, keep_comment));
 	SLKC_RETURN_IF_PARSE_ERROR(collect_token(parent_node));
 	return peff::NULLOPT;
 }
 
-SLKC_API peff::Option<SyntaxError> Parser::collect_to_cur_token(const RGNodePin &parent_node, bool keep_new_line, bool keep_whitespace, bool keep_comment) {
+SLKC_API peff::Option<SyntaxError> Parser::collect_to_cur_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line, TokenIgnoringPolicy keep_whitespace, TokenIgnoringPolicy keep_comment) {
 	SLKC_RETURN_IF_PARSE_ERROR(to_next_token(parent_node, keep_new_line, keep_whitespace, keep_comment));
 	return peff::NULLOPT;
 }
@@ -598,7 +598,282 @@ SLKC_API ParseCoroutine Parser::parse_id_ref(const RGNodePin &id_ref_node_out, b
 	co_return peff::NULLOPT;
 }
 
+SLKC_API ParseCoroutine Parser::parse_inheritance_slot(RGNodePin parent, RGNodePin *node_pin_out) {
+	RGNodePin slot_out;
+	if (!(slot_out = make_rg_node(get_global())))
+		co_return gen_oom_syntax_error();
+	slot_out->node_kind = RGNodeKind::InheritanceSlot;
+
+	peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
+		if (node_pin_out)
+			*node_pin_out = slot_out;
+	});
+
+	if (parent)
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
+
+	Token *token;
+	if ((token = peek_token())->token_id == TokenId::LParenthesis) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
+
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(slot_out, nullptr)(this));
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(slot_out, TokenId::RParenthesis));
+	}
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_impl_item(RGNodePin parent, RGNodePin *node_pin_out) {
+	RGNodePin slot_out;
+	if (!(slot_out = make_rg_node(get_global())))
+		co_return gen_oom_syntax_error();
+	slot_out->node_kind = RGNodeKind::ImplItem;
+
+	peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
+		if (node_pin_out)
+			*node_pin_out = slot_out;
+	});
+
+	if (parent)
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
+
+	Token *token;
+	if ((token = peek_token())->token_id == TokenId::TraitKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
+	}
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(slot_out, nullptr)(this));
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_impl_list(RGNodePin parent, RGNodePin *node_pin_out) {
+	RGNodePin slot_out;
+	if (!(slot_out = make_rg_node(get_global())))
+		co_return gen_oom_syntax_error();
+	slot_out->node_kind = RGNodeKind::ImplItem;
+
+	peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
+		if (node_pin_out)
+			*node_pin_out = slot_out;
+	});
+
+	if (parent)
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
+
+	Token *token;
+	if ((token = peek_token())->token_id == TokenId::Colon) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
+
+		while (true) {
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_impl_item(slot_out, nullptr)(this));
+
+			if ((token = peek_token())->token_id != TokenId::AddOp)
+				break;
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
+		}
+	}
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_fn(const RGNodePin &fn_node) {
+	fn_node->node_kind = RGNodeKind::FnDef;
+
+	Token *token;
+	switch ((token = peek_token())->token_id) {
+		case TokenId::FnKeyword:
+		case TokenId::AsyncKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+			break;
+		default:
+			std::terminate();
+	}
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::Id));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::LParenthesis));
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding(fn_node, nullptr)(this));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RParenthesis));
+
+	if ((token = peek_token())->token_id == TokenId::ConstKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+	}
+
+	if ((token = peek_token())->token_id == TokenId::RestrictKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+	}
+
+	if ((token = peek_token())->token_id == TokenId::VirtualKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+	}
+
+	if ((token = peek_token())->token_id == TokenId::OverrideKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+		if ((token = peek_token())->token_id == TokenId::LParenthesis) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(fn_node, nullptr)(this));
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RParenthesis));
+		}
+	}
+
+	if ((token = peek_token())->token_id == TokenId::ReturnTypeOp) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(fn_node, nullptr)(this));
+	}
+
+	switch ((token = peek_token())->token_id) {
+		case TokenId::LBrace:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
+
+			while (true) {
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(fn_node, nullptr)(this));
+
+				if ((token = peek_token())->token_id == TokenId::RBrace)
+					break;
+			}
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RBrace));
+			break;
+		case TokenId::Semicolon:
+			fn_node->node_kind = RGNodeKind::FnDecl;
+			break;
+		default:
+			if (!syntax_errors.push_back(
+					SyntaxError(
+						TokenRange{
+							module_node,
+							parse_context.idx_current_token },
+						SyntaxErrorKind::UnexpectedToken)))
+				co_return gen_oom_syntax_error();
+	}
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_class(const RGNodePin &cls_node) {
+	cls_node->node_kind = RGNodeKind::ClassDef;
+
+	Token *token;
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::ClassKeyword));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::Id));
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_inheritance_slot(cls_node, nullptr)(this));
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_impl_list(cls_node, nullptr)(this));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::LBrace));
+
+	while (true) {
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_program_stmt(cls_node)(this));
+
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+	}
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::RBrace));
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_interface(const RGNodePin &interface_node) {
+	interface_node->node_kind = RGNodeKind::InterfaceDef;
+
+	Token *token;
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::InterfaceKeyword));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::Id));
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_impl_list(interface_node, nullptr)(this));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::LBrace));
+
+	while (true) {
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_program_stmt(interface_node)(this));
+
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+	}
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::RBrace));
+
+	co_return peff::NULLOPT;
+}
+
+SLKC_API ParseCoroutine Parser::parse_trait(const RGNodePin &trait_node) {
+	trait_node->node_kind = RGNodeKind::TraitDef;
+
+	Token *token;
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::InterfaceKeyword));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::Id));
+
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_impl_list(trait_node, nullptr)(this));
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::LBrace));
+
+	while (true) {
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_program_stmt(trait_node)(this));
+
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+	}
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::RBrace));
+
+	co_return peff::NULLOPT;
+}
+
 SLKC_API ParseCoroutine Parser::parse_program_stmt(const RGNodePin &module_node) {
+	Token *token;
+
+	while (true) {
+		if ((token = peek_token())->token_id == TokenId::End)
+			break;
+
+		RGNodePin member;
+		if (!(member = make_rg_node(get_global())))
+			co_return gen_oom_syntax_error();
+
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, member);
+
+		switch (token->token_id) {
+			case TokenId::FnKeyword:
+			case TokenId::AsyncKeyword:
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_fn(member)(this));
+				break;
+			case TokenId::ClassKeyword:
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_class(member)(this));
+				break;
+			case TokenId::InterfaceKeyword:
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_interface(member)(this));
+				break;
+			case TokenId::TraitKeyword:
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_trait(member)(this));
+				break;
+			case TokenId::VarKeyword:
+			case TokenId::LetKeyword: {
+				member->node_kind = RGNodeKind::GlobalVar;
+
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(member, nullptr)(this));
+
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(member, TokenId::Semicolon));
+				break;
+			}
+			default:
+				co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+		}
+	}
 }
 
 SLKC_API ParseCoroutine Parser::parse_program(const RGNodePin &module_node) {

@@ -255,6 +255,8 @@ SLKC_API std::string_view get_token_name(uint32_t token_id) {
 			return "throw";
 		case TokenId::TypeofKeyword:
 			return "typeof";
+		case TokenId::TraitKeyword:
+			return "trait";
 		case TokenId::TrueKeyword:
 			return "true";
 		case TokenId::TryKeyword:
