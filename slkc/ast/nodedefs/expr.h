@@ -54,7 +54,7 @@ namespace slkc {
 
 		public:
 			SLKC_API ExprNode(ExprKind expr_kind, Global *global);
-			SLKC_API ExprNode(const ExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API ExprNode(const ExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~ExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -86,12 +86,12 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> operand;
+			AstNodePtr<ExprNode> operand;
 			UnaryOp unary_op;
 			TokenIndex sti_operator = INVALID_TOKEN_INDEX;
 
 			SLKC_API UnaryExprNode(Global *global);
-			SLKC_API UnaryExprNode(const UnaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API UnaryExprNode(const UnaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~UnaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -140,7 +140,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> lhs, rhs;
+			AstNodePtr<ExprNode> lhs, rhs;
 			BinaryOp binary_op;
 
 			TokenIndex sti_operator_prefix = INVALID_TOKEN_INDEX;
@@ -148,7 +148,7 @@ namespace slkc {
 			TokenIndex sti_operator_suffix = INVALID_TOKEN_INDEX;
 
 			SLKC_API BinaryExprNode(Global *global);
-			SLKC_API BinaryExprNode(const BinaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API BinaryExprNode(const BinaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~BinaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -160,13 +160,13 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> condition, true_branch, false_branch;
+			AstNodePtr<ExprNode> condition, true_branch, false_branch;
 
 			TokenIndex sti_operator_question = INVALID_TOKEN_INDEX;
 			TokenIndex sti_operator_colon = INVALID_TOKEN_INDEX;
 
 			SLKC_API TernaryExprNode(Global *global);
-			SLKC_API TernaryExprNode(const TernaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API TernaryExprNode(const TernaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~TernaryExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -181,7 +181,7 @@ namespace slkc {
 			OwnedIdRef id_ref;
 
 			SLKC_API IdRefExprNode(Global *global);
-			SLKC_API IdRefExprNode(const IdRefExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API IdRefExprNode(const IdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~IdRefExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -193,13 +193,13 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> head_expr;
+			AstNodePtr<ExprNode> head_expr;
 			OwnedIdRef id_ref;
 
 			TokenIndex sti_separator = INVALID_TOKEN_INDEX;
 
 			SLKC_API HeadedIdRefExprNode(Global *global);
-			SLKC_API HeadedIdRefExprNode(const HeadedIdRefExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API HeadedIdRefExprNode(const HeadedIdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~HeadedIdRefExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -216,7 +216,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I8LiteralExprNode(Global *global, int8_t literal);
-			SLKC_API I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~I8LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -233,7 +233,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I16LiteralExprNode(Global *global, int16_t literal);
-			SLKC_API I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~I16LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -250,7 +250,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I32LiteralExprNode(Global *global, int32_t literal);
-			SLKC_API I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~I32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -267,7 +267,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API I64LiteralExprNode(Global *global, int64_t literal);
-			SLKC_API I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~I64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -284,7 +284,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U8LiteralExprNode(Global *global, uint8_t literal);
-			SLKC_API U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~U8LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -301,7 +301,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U16LiteralExprNode(Global *global, uint16_t literal);
-			SLKC_API U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~U16LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -318,7 +318,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U32LiteralExprNode(Global *global, uint32_t literal);
-			SLKC_API U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~U32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -335,7 +335,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API U64LiteralExprNode(Global *global, uint64_t literal);
-			SLKC_API U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~U64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -352,7 +352,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API F32LiteralExprNode(Global *global, float literal);
-			SLKC_API F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~F32LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -369,7 +369,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API F64LiteralExprNode(Global *global, double literal);
-			SLKC_API F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~F64LiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -386,7 +386,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API StringLiteralExprNode(Global *global, GlobalSharedStringRef literal);
-			SLKC_API StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~StringLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -403,7 +403,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API BoolLiteralExprNode(Global *global, bool literal);
-			SLKC_API BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~BoolLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -418,7 +418,7 @@ namespace slkc {
 			TokenIndex sti_literal = INVALID_TOKEN_INDEX;
 
 			SLKC_API NullLiteralExprNode(Global *global);
-			SLKC_API NullLiteralExprNode(const NullLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API NullLiteralExprNode(const NullLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~NullLiteralExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -430,14 +430,14 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			peff::DynArray<NodePtr<ExprNode>> elements;
+			peff::DynArray<AstNodePtr<ExprNode>> elements;
 
 			TokenIndex sti_left_brace = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_element_separators;
 
 			SLKC_API InitializerListExprNode(Global *global);
-			SLKC_API InitializerListExprNode(const InitializerListExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API InitializerListExprNode(const InitializerListExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~InitializerListExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -449,15 +449,15 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> target;
-			peff::DynArray<NodePtr<ExprNode>> args;
+			AstNodePtr<ExprNode> target;
+			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API CallExprNode(Global *global);
-			SLKC_API CallExprNode(const CallExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API CallExprNode(const CallExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~CallExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -469,15 +469,15 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> target;
-			peff::DynArray<NodePtr<ExprNode>> args;
+			AstNodePtr<ExprNode> target;
+			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API SubscriptExprNode(Global *global);
-			SLKC_API SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~SubscriptExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -490,7 +490,7 @@ namespace slkc {
 
 		public:
 			TypeName target_type;
-			peff::DynArray<NodePtr<ExprNode>> args;
+			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_new_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
@@ -498,7 +498,7 @@ namespace slkc {
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API NewExprNode(Global *global);
-			SLKC_API NewExprNode(const NewExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API NewExprNode(const NewExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~NewExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -511,7 +511,7 @@ namespace slkc {
 
 		public:
 			TypeName target_type;
-			peff::DynArray<NodePtr<ExprNode>> args;
+			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_alloca_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
@@ -519,7 +519,7 @@ namespace slkc {
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
 			SLKC_API AllocaExprNode(Global *global);
-			SLKC_API AllocaExprNode(const AllocaExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API AllocaExprNode(const AllocaExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~AllocaExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -532,22 +532,22 @@ namespace slkc {
 
 		public:
 			TypeName target_type;
-			NodePtr<ExprNode> operand;
+			AstNodePtr<ExprNode> operand;
 			bool is_nullable = false;
 
 			TokenIndex sti_as_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_nullable_token = INVALID_TOKEN_INDEX;
 
 			SLKC_API CastExprNode(Global *global);
-			SLKC_API CastExprNode(const CastExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API CastExprNode(const CastExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~CastExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
 
 		struct MatchExprBranch final {
-			NodePtr<ExprNode> pattern;
-			NodePtr<ExprNode> result_value;
+			AstNodePtr<ExprNode> pattern;
+			AstNodePtr<ExprNode> result_value;
 			TokenIndex sti_case_keyword = INVALID_TOKEN_INDEX,
 					   sti_default_keyword = INVALID_TOKEN_INDEX,
 					   sti_colon = INVALID_TOKEN_INDEX;
@@ -566,7 +566,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> condition;
+			AstNodePtr<ExprNode> condition;
 			TypeName return_type;
 			peff::DynArray<MatchExprBranch> branches;
 
@@ -577,7 +577,7 @@ namespace slkc {
 			peff::DynArray<TokenIndex> sti_case_separators;
 
 			SLKC_API MatchExprNode(Global *global);
-			SLKC_API MatchExprNode(const MatchExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API MatchExprNode(const MatchExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MatchExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -589,13 +589,13 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			NodePtr<ExprNode> operand;
+			AstNodePtr<ExprNode> operand;
 
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API GroupExprNode(Global *global);
-			SLKC_API GroupExprNode(const GroupExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API GroupExprNode(const GroupExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~GroupExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

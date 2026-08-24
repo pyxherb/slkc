@@ -7,42 +7,43 @@
 namespace slkc {
 	namespace ast {
 		template <typename T>
-		class NodePin final {
+		class AstNodePin final {
 		private:
-			using ThisType = NodePin<T>;
+			using ThisType = AstNodePin<T>;
 			Global *_global;
-			NodeIndex _node_index;
+			AstNodeIndex _node_index;
 			union {
 				T *_ptr;
 				PinFailReason _fail_reason;
 			};
 
-			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, NodeIndex node_index) {
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
 				_node_index = node_index;
-				global->pin_node(node_index);
+				global->pin_ast_node(node_index);
 			}
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_ptr)
-					_global->unpin_node(_node_index);
+				if (_global && _ptr)
+					_global->unpin_ast_node(_node_index);
 			}
 
-			SLAKE_FORCEINLINE NodePin() : _global(nullptr), _node_index(INVALID_NODE_INDEX), _ptr(nullptr) {}
-			SLAKE_FORCEINLINE explicit NodePin(Global *global, NodeIndex node_index, T *ptr) : _global(global), _node_index(node_index), _ptr(ptr) {
+			SLAKE_FORCEINLINE AstNodePin() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX), _ptr(nullptr) {}
+			SLAKE_FORCEINLINE explicit AstNodePin(Global *global, AstNodeIndex node_index, T *ptr) : _global(global), _node_index(node_index), _ptr(ptr) {
 			}
-			SLAKE_FORCEINLINE explicit NodePin(NodeIndex node_index, PinFailReason reason) : _global(nullptr), _node_index(node_index), _fail_reason(reason) {
+			SLAKE_FORCEINLINE explicit AstNodePin(PinFailReason reason) : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX), _fail_reason(reason) {
 			}
-			SLAKE_FORCEINLINE ~NodePin() {
+			SLAKE_FORCEINLINE ~AstNodePin() {
 				reset();
 			}
 
-			SLAKE_FORCEINLINE NodePin(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				_global->pin_node(_node_index);
+			SLAKE_FORCEINLINE AstNodePin(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				_global->pin_ast_node(_node_index);
 			}
-			SLAKE_FORCEINLINE NodePin(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				rhs._node_index = INVALID_NODE_INDEX;
+			SLAKE_FORCEINLINE AstNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				rhs._global = nullptr;
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
@@ -55,7 +56,8 @@ namespace slkc {
 				reset();
 				_global = rhs._global;
 				_node_index = rhs._node_index;
-				rhs._node_index = INVALID_NODE_INDEX;
+				rhs._global = nullptr;
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 
 				return *this;
 			}
@@ -64,7 +66,7 @@ namespace slkc {
 				return _ptr;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_index() const noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_index() const noexcept {
 				return _node_index;
 			}
 
@@ -119,45 +121,45 @@ namespace slkc {
 			}
 
 			template <typename T1>
-			SLAKE_FORCEINLINE NodePin<T1> cast_to() const noexcept {
-				_global->pin_node(_node_index);
-				return NodePin<T1>(_global, _node_index, static_cast<T1 *>(_ptr));
+			SLAKE_FORCEINLINE AstNodePin<T1> cast_to() const noexcept {
+				_global->pin_ast_node(_node_index);
+				return AstNodePin<T1>(_global, _node_index, static_cast<T1 *>(_ptr));
 			}
 		};
 
 		template <typename T>
-		class NodePtr final {
+		class AstNodePtr final {
 		private:
-			using ThisType = NodePtr<T>;
+			using ThisType = AstNodePtr<T>;
 			Global *_global;
-			NodeIndex _node_index;
+			AstNodeIndex _node_index;
 
-			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, NodeIndex node_index) {
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
 				_node_index = node_index;
-				global->ref_node(node_index);
+				global->ref_ast_node(node_index);
 			}
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_node_index != INVALID_NODE_INDEX)
-					_global->unref_node(_node_index);
+				if (_node_index != INVALID_AST_NODE_INDEX)
+					_global->unref_ast_node(_node_index);
 			}
 
-			SLAKE_FORCEINLINE NodePtr() : _global(nullptr), _node_index(INVALID_NODE_INDEX) {}
-			SLAKE_FORCEINLINE NodePtr(const NodePin<T> &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {}
-			SLAKE_FORCEINLINE explicit NodePtr(Global *global, NodeIndex node_index) : _global(global), _node_index(node_index) {
-				global->ref_node(node_index);
+			SLAKE_FORCEINLINE AstNodePtr() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX) {}
+			SLAKE_FORCEINLINE AstNodePtr(const AstNodePin<T> &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {}
+			SLAKE_FORCEINLINE explicit AstNodePtr(Global *global, AstNodeIndex node_index) : _global(global), _node_index(node_index) {
+				global->ref_ast_node(node_index);
 			}
-			SLAKE_FORCEINLINE ~NodePtr() {
+			SLAKE_FORCEINLINE ~AstNodePtr() {
 				reset();
 			}
 
-			SLAKE_FORCEINLINE NodePtr(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				_global->ref_node(_node_index);
+			SLAKE_FORCEINLINE AstNodePtr(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				_global->ref_ast_node(_node_index);
 			}
-			SLAKE_FORCEINLINE NodePtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				rhs._node_index = INVALID_NODE_INDEX;
+			SLAKE_FORCEINLINE AstNodePtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
@@ -170,7 +172,7 @@ namespace slkc {
 				reset();
 				_global = rhs._global;
 				_node_index = rhs._node_index;
-				rhs._node_index = INVALID_NODE_INDEX;
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 
 				return *this;
 			}
@@ -179,7 +181,7 @@ namespace slkc {
 				return _global;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_index() const noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_index() const noexcept {
 				return _node_index;
 			}
 
@@ -188,15 +190,15 @@ namespace slkc {
 			///
 			/// @return A nonnull pointer to the pinned object if success, or a null pointer indicating that the pinning fails.
 			///
-			SLAKE_FORCEINLINE NodePin<T> pin() const noexcept {
-				auto result = _global->pin_node(_node_index);
+			SLAKE_FORCEINLINE AstNodePin<T> pin() const noexcept {
+				auto result = _global->pin_ast_node(_node_index);
 				if (result.has_error())
-					return NodePin<T>(_node_index, std::move(result).error());
-				return NodePin<T>(_global, _node_index, static_cast<T*>(std::move(result).value()));
+					return AstNodePin<T>(std::move(result).error());
+				return AstNodePin<T>(_global, _node_index, static_cast<T *>(std::move(result).value()));
 			}
 
-			SLAKE_FORCEINLINE static NodePtr<T> from_pin(NodePin<T> pin) noexcept {
-				return NodePtr<T>(pin._global, pin._node_index);
+			SLAKE_FORCEINLINE static AstNodePtr<T> from_pin(AstNodePin<T> pin) noexcept {
+				return AstNodePtr<T>(pin._global, pin._node_index);
 			}
 
 			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
@@ -230,14 +232,14 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE operator bool() const noexcept {
-				return _node_index != INVALID_NODE_INDEX;
+				return _node_index != INVALID_AST_NODE_INDEX;
 			}
 
 			template <typename T1>
-			SLAKE_FORCEINLINE NodePtr<T1> cast_to() const noexcept {
+			SLAKE_FORCEINLINE AstNodePtr<T1> cast_to() const noexcept {
 				static_assert(std::is_convertible_v<T *, T1 *>);
 
-				return NodePtr<T1>(_global, _node_index);
+				return AstNodePtr<T1>(_global, _node_index);
 			}
 		};
 
@@ -271,25 +273,35 @@ namespace slkc {
 		/// @tparam Args Arguments to be passed to the constructor.
 		///
 		template <typename T, typename... Args>
-		SLAKE_FORCEINLINE NodePin<T> make_node(Global *global, Args &&...args)
+		SLAKE_FORCEINLINE AstNodePin<T> make_ast_node(Global *global, Args &&...args)
 			PEFF_REQUIRES_CONCEPT(std::constructible_from<T, Global *, Args...>) {
 			T *node = peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), global, std::forward<Args>(args)...);
 			if (!node)
-				return NodePin<T>();
+				return AstNodePin<T>();
 			peff::ScopeGuard sg([global, node]() noexcept {
 				peff::destroy_and_release<T>(global->get_allocator(), node, alignof(T));
 			});
-			if (!global->map_node(node).has_value())
-				return NodePin<T>();
+
+			{
+				auto result = global->map_ast_node(node);
+				if (!result.has_value())
+					return AstNodePin<T>(PinFailReason::OutOfMemory);
+				if (result.value() == INVALID_AST_NODE_INDEX)
+					return AstNodePin<T>(PinFailReason::OutOfNodeIndex);
+			}
+
+			{
+				auto result = global->pin_ast_node(node->get_node_index());
+				assert(!result.has_error());
+			}
+
 			sg.release();
 
-			global->pin_node(node->get_node_index());
-
-			return NodePin<T>(global, node->get_node_index(), node);
+			return AstNodePin<T>(global, node->get_node_index(), node);
 		}
 
 		///
-		/// @brief Duplication operation version of @c make_node.
+		/// @brief Duplication operation version of @c make_ast_node.
 		///
 		/// @tparam T Type of node to be made.
 		/// @tparam Args Argument types to be passed to the constructor.
@@ -298,7 +310,7 @@ namespace slkc {
 		/// @param args Arguments to be passed to the constructor.
 		///
 		template <typename T, typename... Args>
-		SLAKE_FORCEINLINE T *make_node_dup(Global *global, Args &&...args)
+		SLAKE_FORCEINLINE T *make_dup_ast_node(Global *global, Args &&...args)
 			PEFF_REQUIRES_CONCEPT(std::constructible_from<T, Args...>) {
 			return peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), std::forward<Args>(args)...);
 		}
@@ -317,39 +329,39 @@ namespace slkc {
 
 /// @brief Macro used for declaring a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DECL() \
-	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept override
+	[[nodiscard]] SLKC_API virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept override
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
-#define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                                               \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept {                       \
-		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node_dup<name>(duplication_context.get_global(), *this, duplication_context, node_index)); \
-                                                                                                                                                                             \
-		if (!ptr)                                                                                                                                                            \
-			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                                 \
-                                                                                                                                                                             \
-		return ptr.release();                                                                                                                                                \
+#define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                                                   \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                        \
+		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_dup_ast_node<name>(duplication_context.get_global(), *this, duplication_context, node_index)); \
+                                                                                                                                                                                 \
+		if (!ptr)                                                                                                                                                                \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                                     \
+                                                                                                                                                                                 \
+		return ptr.release();                                                                                                                                                    \
 	}
 
 /// @brief Macro used for defining a null instance of the duplication method for an AST node class.
-#define SLKC_NULL_AST_DUPLICATE_FN_DEF(name)                                                                                                           \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept { \
-		peff::panic("The class " #name " cannot be duplicated");                                                                                       \
-		PEFF_UNREACHABLE();                                                                                                                            \
+#define SLKC_NULL_AST_DUPLICATE_FN_DEF(name)                                                                                                              \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept { \
+		peff::panic("The class " #name " cannot be duplicated");                                                                                          \
+		PEFF_UNREACHABLE();                                                                                                                               \
 	}
 
 /// @brief Macro used for defining a simple instance of the duplication method with a result output for an AST node class.
-#define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                                          \
-	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept {                              \
-		peff::Option<DuplicationError> error;                                                                                                                                       \
-		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_node_dup<name>(duplication_context.get_global(), *this, duplication_context, node_index, error)); \
-                                                                                                                                                                                    \
-		if (!ptr)                                                                                                                                                                   \
-			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                                        \
-                                                                                                                                                                                    \
-		if (error.has_value())                                                                                                                                                      \
-			return std::move(error).value();                                                                                                                                        \
-                                                                                                                                                                                    \
-		return static_cast<Node *>(ptr.release());                                                                                                                                  \
+#define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                                              \
+	SLKC_API peff::Result<Node *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                               \
+		peff::Option<DuplicationError> error;                                                                                                                                           \
+		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_dup_ast_node<name>(duplication_context.get_global(), *this, duplication_context, node_index, error)); \
+                                                                                                                                                                                        \
+		if (!ptr)                                                                                                                                                                       \
+			return slkc::ast::DuplicationError::OutOfMemory;                                                                                                                            \
+                                                                                                                                                                                        \
+		if (error.has_value())                                                                                                                                                          \
+			return std::move(error).value();                                                                                                                                            \
+                                                                                                                                                                                        \
+		return static_cast<Node *>(ptr.release());                                                                                                                                      \
 	}
 
 #endif

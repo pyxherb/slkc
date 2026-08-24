@@ -29,7 +29,7 @@ SLKC_API void Token::dealloc() {
 	peff::destroy_and_release<Token>(allocator.get(), this, alignof(std::max_align_t));
 }
 
-SLKC_API std::string_view get_token_name(uint32_t token_id) {
+SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 	switch (token_id) {
 		case TokenId::End:
 			return "end of file";

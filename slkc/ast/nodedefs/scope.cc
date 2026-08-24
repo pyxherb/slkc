@@ -4,7 +4,7 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API Scope::Scope(NodeIndex owner_node, Global *global)
+SLKC_API Scope::Scope(AstNodeIndex owner_node, Global *global)
 	: _global(global),
 	  owner_node(owner_node),
 	  members(global->get_allocator()),
@@ -18,7 +18,7 @@ SLKC_API Scope::Scope(NodeIndex owner_node, Global *global)
 SLKC_API Scope::~Scope() {
 }
 
-SLKC_API size_t Scope::push_member(NodePtr<MemberNode> member_node) noexcept {
+SLKC_API size_t Scope::push_member(AstNodePtr<MemberNode> member_node) noexcept {
 	size_t n = members.size();
 
 	if (!members.shrink_to_fit())
@@ -31,7 +31,7 @@ SLKC_API size_t Scope::push_member(NodePtr<MemberNode> member_node) noexcept {
 	return n;
 }
 
-SLKC_API ScopeMemberOpResult Scope::add_member(NodePtr<MemberNode> member_node) noexcept {
+SLKC_API ScopeMemberOpResult Scope::add_member(AstNodePtr<MemberNode> member_node) noexcept {
 	size_t index;
 
 	if ((index = push_member(member_node)) == SIZE_MAX) {
@@ -52,7 +52,7 @@ SLKC_API ScopeMemberOpResult Scope::add_member(NodePtr<MemberNode> member_node) 
 }
 
 SLKC_API ScopeMemberOpResult Scope::index_member(size_t index_in_member_array) noexcept {
-	NodePin<MemberNode> m = members.at(index_in_member_array).pin();
+	AstNodePin<MemberNode> m = members.at(index_in_member_array).pin();
 
 	if (!m) {
 		switch (m.get_fail_reason()) {
@@ -84,7 +84,7 @@ SLKC_API void Scope::remove_member(const std::string_view &name) noexcept {
 	}
 }
 
-SLKC_API size_t Scope::push_generic_param(NodePtr<GenericParamNode> generic_param_node) noexcept {
+SLKC_API size_t Scope::push_generic_param(AstNodePtr<GenericParamNode> generic_param_node) noexcept {
 	size_t n = generic_params.size();
 
 	if (!generic_params.shrink_to_fit())
@@ -97,7 +97,7 @@ SLKC_API size_t Scope::push_generic_param(NodePtr<GenericParamNode> generic_para
 	return n;
 }
 
-SLKC_API ScopeMemberOpResult Scope::add_generic_param(NodePtr<GenericParamNode> generic_param_node) noexcept {
+SLKC_API ScopeMemberOpResult Scope::add_generic_param(AstNodePtr<GenericParamNode> generic_param_node) noexcept {
 	size_t index;
 
 	if ((index = push_generic_param(generic_param_node)) == SIZE_MAX) {
@@ -112,7 +112,7 @@ SLKC_API ScopeMemberOpResult Scope::add_generic_param(NodePtr<GenericParamNode> 
 }
 
 SLKC_API ScopeMemberOpResult Scope::index_generic_param(size_t index_in_generic_param_array) noexcept {
-	NodePin<GenericParamNode> m = generic_params.at(index_in_generic_param_array).pin();
+	AstNodePin<GenericParamNode> m = generic_params.at(index_in_generic_param_array).pin();
 
 	if (!m) {
 		switch (m.get_fail_reason()) {
@@ -144,7 +144,7 @@ SLKC_API void Scope::remove_generic_param(const std::string_view &name) noexcept
 	}
 }
 
-SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex new_owner_node, DuplicationContext &duplication_context) {
+SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIndex new_owner_node, DuplicationContext &duplication_context) {
 	std::unique_ptr<Scope, peff::DeallocableDeleter<Scope>> new_scope(Scope::alloc(new_owner_node, _global));
 
 	if (!new_scope)
@@ -160,7 +160,7 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex
 			auto result = duplication_context.push_task(members[i]);
 			if (!result.has_error())
 				return std::move(result).error();
-			new_scope->members[i] = NodePtr<MemberNode>(duplication_context.get_global(), std::move(result).value());
+			new_scope->members[i] = AstNodePtr<MemberNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 
@@ -180,7 +180,7 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex
 			auto result = duplication_context.push_task(anonymous_imports[i]);
 			if (!result.has_error())
 				return std::move(result).error();
-			new_scope->anonymous_imports[i] = NodePtr<ImportNode>(duplication_context.get_global(), std::move(result).value());
+			new_scope->anonymous_imports[i] = AstNodePtr<ImportNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 
@@ -226,7 +226,7 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(NodeIndex
 			auto result = duplication_context.push_task(generic_params[i]);
 			if (!result.has_error())
 				return std::move(result).error();
-			new_scope->generic_params[i] = NodePtr<GenericParamNode>(duplication_context.get_global(), std::move(result).value());
+			new_scope->generic_params[i] = AstNodePtr<GenericParamNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 

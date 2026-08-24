@@ -27,7 +27,7 @@ namespace slkc {
 
 		class MemberNode : public Node {
 		private:
-			NodeIndex _parent_node_index = INVALID_NODE_INDEX;
+			AstNodeIndex _parent_node_index = INVALID_AST_NODE_INDEX;
 			peff::UniquePtr<Scope, peff::DeallocableDeleter<Scope>> _self_scope;
 
 		protected:
@@ -39,7 +39,7 @@ namespace slkc {
 			AccessModifier access_modifier;
 
 			SLKC_API MemberNode(NodeType ast_node_type, Global *global);
-			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MemberNode();
 
 			SLKC_API bool alloc_scope() noexcept;
@@ -48,23 +48,23 @@ namespace slkc {
 				return _self_scope.get();
 			}
 
-			SLAKE_FORCEINLINE NodePtr<MemberNode> get_parent() const noexcept {
-				return NodePtr<MemberNode>(get_global(), _parent_node_index);
+			SLAKE_FORCEINLINE AstNodePtr<MemberNode> get_parent() const noexcept {
+				return AstNodePtr<MemberNode>(get_global(), _parent_node_index);
 			}
 
-			SLAKE_FORCEINLINE void set_parent(NodeIndex node) noexcept {
+			SLAKE_FORCEINLINE void set_parent(AstNodeIndex node) noexcept {
 				_parent_node_index = node;
 			}
 
 			SLAKE_FORCEINLINE bool set_name(std::string_view name) {
-				assert(_parent_node_index == INVALID_NODE_INDEX);
+				assert(_parent_node_index == INVALID_AST_NODE_INDEX);
 				if (!(self_name = GlobalSharedStringRef(get_global()->register_shared_string(name))))
 					return false;
 				return true;
 			}
-			
+
 			SLAKE_FORCEINLINE void set_name(const GlobalSharedStringRef &name) {
-				assert(_parent_node_index == INVALID_NODE_INDEX);
+				assert(_parent_node_index == INVALID_AST_NODE_INDEX);
 				self_name = name;
 			}
 
@@ -88,7 +88,7 @@ namespace slkc {
 			peff::Option<TokenList> module_source_token_list;
 
 			SLKC_API ModuleNode(Global *global);
-			SLKC_API ModuleNode(const ModuleNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ModuleNode(const ModuleNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ModuleNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

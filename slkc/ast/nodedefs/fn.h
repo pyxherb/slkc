@@ -32,7 +32,7 @@ namespace slkc {
 			peff::DynArray<BindingEntry> params;
 			TypeName return_type;
 			peff::Option<TypeName> overriden_type;
-			NodePtr<BlockStmtNode> body;
+			AstNodePtr<BlockStmtNode> body;
 
 			FnOverloadingFlags overloading_flags = 0;
 			FnOverloadingKind overloading_kind = FnOverloadingKind::Regular;
@@ -53,7 +53,7 @@ namespace slkc {
 				idx_generic_param_comma_tokens;
 
 			SLKC_API FnOverloadingNode(Global *global);
-			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnOverloadingNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -66,10 +66,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			peff::DynArray<NodePtr<FnOverloadingNode>> overloadings;
+			peff::DynArray<AstNodePtr<FnOverloadingNode>> overloadings;
 
 			SLKC_API FnNode(Global *global);
-			SLKC_API FnNode(const FnNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API FnNode(const FnNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

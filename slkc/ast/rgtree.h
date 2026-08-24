@@ -8,7 +8,7 @@
 
 namespace slkc {
 	namespace ast {
-		namespace RGNodeKind {
+		namespace GreenNodeKind {
 			enum {
 				/// @brief Invalid node type.
 				Invalid = 0x10000000,
@@ -122,7 +122,7 @@ namespace slkc {
 			};
 		}
 
-		enum class RGTypeNameKind : uint8_t {
+		enum class GreenNodeTypeNameKind : uint8_t {
 			Invalid = 0,
 			/// @brief An i8 type name.
 			I8TypeName,
@@ -166,7 +166,7 @@ namespace slkc {
 			ArrayTypeName,
 		};
 
-		enum class RGExprKind : uint8_t {
+		enum class GreenNodeExprKind : uint8_t {
 			Invalid = 0,
 
 			/// @brief A unary expression.
@@ -245,7 +245,7 @@ namespace slkc {
 			Group,
 		};
 
-		enum class RGUnaryExprOp : uint8_t {
+		enum class GreenNodeUnaryExprOp : uint8_t {
 			LNot,	   // Logical NOT !
 			Not,	   // Bitwise NOT ~
 			Neg,	   // Negation -
@@ -253,7 +253,7 @@ namespace slkc {
 			Unpacking  // Unpacking ...
 		};
 
-		enum class RGBinaryExprOp : uint8_t {
+		enum class GreenNodeBinaryExprOp : uint8_t {
 			Add = 0,  // Adding +
 			Sub,	  // Subtraction -
 			Mul,	  // Multiplicaton *
@@ -292,7 +292,7 @@ namespace slkc {
 			Comma,	// Comma ,
 		};
 
-		enum class RGStmtKind : uint8_t {
+		enum class GreenNodeStmtKind : uint8_t {
 			Invalid = 0,
 
 			/// @brief An if statement.
@@ -333,108 +333,106 @@ namespace slkc {
 			return kind >= static_cast<uint32_t>(TokenId::End) && kind < static_cast<uint32_t>(TokenId::MaxToken);
 		}
 
-		SLAKE_FORCEINLINE bool is_rg_node_kind(TokenKind kind) noexcept {
-			return kind >= static_cast<uint32_t>(RGNodeKind::Invalid) && kind < static_cast<uint32_t>(RGNodeKind::Max);
-		}
+		struct GreenNode;
 
-		struct RGNode;
-
-		class RGNodePin final {
+		class GreenNodePin final {
 		private:
-			using ThisType = RGNodePin;
+			using ThisType = GreenNodePin;
 			Global *_global;
-			RGNodeIndex _rg_node_index;
+			GreenNodeIndex _green_node_index;
 			union {
-				RGNode *_ptr;
+				GreenNode *_ptr;
 				PinFailReason _fail_reason;
 			};
 
-			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, NodeIndex node_index) {
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
-				_rg_node_index = node_index;
-				global->pin_rg_node(node_index);
+				_green_node_index = node_index;
+				global->pin_green_node(node_index);
 			}
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_ptr)
-					_global->unpin_rg_node(_rg_node_index);
+				if (_global && _ptr)
+					_global->unpin_green_node(_green_node_index);
 			}
 
-			SLAKE_FORCEINLINE RGNodePin() : _global(nullptr), _rg_node_index(INVALID_NODE_INDEX), _ptr(nullptr) {}
-			SLAKE_FORCEINLINE explicit RGNodePin(Global *global, NodeIndex node_index, RGNode *ptr) : _global(global), _rg_node_index(node_index), _ptr(ptr) {
+			SLAKE_FORCEINLINE GreenNodePin() : _global(nullptr), _green_node_index(INVALID_AST_NODE_INDEX), _ptr(nullptr) {}
+			SLAKE_FORCEINLINE explicit GreenNodePin(Global *global, AstNodeIndex node_index, GreenNode *ptr) : _global(global), _green_node_index(node_index), _ptr(ptr) {
 			}
-			SLAKE_FORCEINLINE explicit RGNodePin(NodeIndex node_index, PinFailReason reason) : _global(nullptr), _rg_node_index(node_index), _fail_reason(reason) {
+			SLAKE_FORCEINLINE explicit GreenNodePin(PinFailReason reason) : _global(nullptr), _green_node_index(INVALID_GREEN_NODE_INDEX), _fail_reason(reason) {
 			}
-			SLAKE_FORCEINLINE ~RGNodePin() {
+			SLAKE_FORCEINLINE ~GreenNodePin() {
 				reset();
 			}
-			SLAKE_FORCEINLINE RGNodePin(const ThisType &rhs) noexcept : _global(rhs._global), _rg_node_index(rhs._rg_node_index) {
-				_global->pin_rg_node(_rg_node_index);
+			SLAKE_FORCEINLINE GreenNodePin(const ThisType &rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index) {
+				_global->pin_green_node(_green_node_index);
 			}
-			SLAKE_FORCEINLINE RGNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _rg_node_index(rhs._rg_node_index) {
-				rhs._rg_node_index = INVALID_NODE_INDEX;
+			SLAKE_FORCEINLINE GreenNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index) {
+				rhs._global = nullptr;
+				rhs._green_node_index = INVALID_AST_NODE_INDEX;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
 				reset();
-				_set_and_inc_ref(rhs._global, rhs._rg_node_index);
+				_set_and_inc_ref(rhs._global, rhs._green_node_index);
 
 				return *this;
 			}
 			SLAKE_FORCEINLINE ThisType &operator=(ThisType &&rhs) noexcept {
 				reset();
 				_global = rhs._global;
-				_rg_node_index = rhs._rg_node_index;
-				rhs._rg_node_index = INVALID_NODE_INDEX;
+				_green_node_index = rhs._green_node_index;
+				rhs._global = nullptr;
+				rhs._green_node_index = INVALID_AST_NODE_INDEX;
 
 				return *this;
 			}
 
-			SLAKE_FORCEINLINE RGNode *get() const noexcept {
+			SLAKE_FORCEINLINE GreenNode *get() const noexcept {
 				return _ptr;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_index() const noexcept {
-				return _rg_node_index;
+			SLAKE_FORCEINLINE AstNodeIndex get_index() const noexcept {
+				return _green_node_index;
 			}
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return _global;
 			}
 
-			SLAKE_FORCEINLINE RGNode *operator->() const noexcept {
+			SLAKE_FORCEINLINE GreenNode *operator->() const noexcept {
 				return _ptr;
 			}
 
 			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 
-				if (_rg_node_index > rhs._rg_node_index)
+				if (_green_node_index > rhs._green_node_index)
 					return 1;
-				if (_rg_node_index < rhs._rg_node_index)
+				if (_green_node_index < rhs._green_node_index)
 					return -1;
 				return 0;
 			}
 
 			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
-				return _rg_node_index < rhs._rg_node_index;
+				return _green_node_index < rhs._green_node_index;
 			}
 
 			SLAKE_FORCEINLINE bool operator>(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
-				return _rg_node_index > rhs._rg_node_index;
+				return _green_node_index > rhs._green_node_index;
 			}
 
 			SLAKE_FORCEINLINE bool operator==(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
-				return _rg_node_index == rhs._rg_node_index;
+				return _green_node_index == rhs._green_node_index;
 			}
 
 			SLAKE_FORCEINLINE bool operator!=(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
-				return _rg_node_index != rhs._rg_node_index;
+				return _green_node_index != rhs._green_node_index;
 			}
 
 			SLAKE_FORCEINLINE operator bool() const noexcept {
@@ -450,38 +448,38 @@ namespace slkc {
 			}
 		};
 
-		class RGNodePtr final {
+		class GreenNodePtr final {
 		private:
-			using ThisType = RGNodePtr;
+			using ThisType = GreenNodePtr;
 			Global *_global;
-			NodeIndex _node_index;
+			AstNodeIndex _node_index;
 
-			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, NodeIndex node_index) {
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
 				_node_index = node_index;
-				global->ref_rg_node(node_index);
+				global->ref_green_node(node_index);
 			}
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_node_index != INVALID_NODE_INDEX)
-					_global->unref_rg_node(_node_index);
+				if (_node_index != INVALID_AST_NODE_INDEX)
+					_global->unref_green_node(_node_index);
 			}
 
-			SLAKE_FORCEINLINE RGNodePtr() : _global(nullptr), _node_index(INVALID_NODE_INDEX) {}
-			SLAKE_FORCEINLINE RGNodePtr(const RGNodePin &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {}
-			SLAKE_FORCEINLINE explicit RGNodePtr(Global *global, NodeIndex node_index) : _global(global), _node_index(node_index) {
-				global->ref_rg_node(node_index);
+			SLAKE_FORCEINLINE GreenNodePtr() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX) {}
+			SLAKE_FORCEINLINE GreenNodePtr(const GreenNodePin &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {}
+			SLAKE_FORCEINLINE explicit GreenNodePtr(Global *global, AstNodeIndex node_index) : _global(global), _node_index(node_index) {
+				global->ref_green_node(node_index);
 			}
-			SLAKE_FORCEINLINE ~RGNodePtr() {
+			SLAKE_FORCEINLINE ~GreenNodePtr() {
 				reset();
 			}
 
-			SLAKE_FORCEINLINE RGNodePtr(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				_global->ref_rg_node(_node_index);
+			SLAKE_FORCEINLINE GreenNodePtr(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				_global->ref_green_node(_node_index);
 			}
-			SLAKE_FORCEINLINE RGNodePtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				rhs._node_index = INVALID_NODE_INDEX;
+			SLAKE_FORCEINLINE GreenNodePtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
@@ -494,7 +492,7 @@ namespace slkc {
 				reset();
 				_global = rhs._global;
 				_node_index = rhs._node_index;
-				rhs._node_index = INVALID_NODE_INDEX;
+				rhs._node_index = INVALID_AST_NODE_INDEX;
 
 				return *this;
 			}
@@ -503,7 +501,7 @@ namespace slkc {
 				return _global;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_index() const noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_index() const noexcept {
 				return _node_index;
 			}
 
@@ -512,15 +510,15 @@ namespace slkc {
 			///
 			/// @return A nonnull pointer to the pinned object if success, or a null pointer indicating that the pinning fails.
 			///
-			SLAKE_FORCEINLINE RGNodePin pin() const noexcept {
-				auto result = _global->pin_rg_node(_node_index);
+			SLAKE_FORCEINLINE GreenNodePin pin() const noexcept {
+				auto result = _global->pin_green_node(_node_index);
 				if (result.has_error())
-					return RGNodePin(_node_index, std::move(result).error());
-				return RGNodePin(_global, _node_index, std::move(result).value());
+					return GreenNodePin(std::move(result).error());
+				return GreenNodePin(_global, _node_index, std::move(result).value());
 			}
 
-			SLAKE_FORCEINLINE static RGNodePtr from_pin(RGNodePin pin) noexcept {
-				return RGNodePtr(pin);
+			SLAKE_FORCEINLINE static GreenNodePtr from_pin(GreenNodePin pin) noexcept {
+				return GreenNodePtr(pin);
 			}
 
 			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
@@ -554,86 +552,126 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE operator bool() const noexcept {
-				return _node_index != INVALID_NODE_INDEX;
+				return _node_index != INVALID_AST_NODE_INDEX;
 			}
 		};
 
-		enum class RGNodeIndexingResult : uint8_t {
-			Success = 0,
-			PinIOError,
-			OutOfMemory,
+		using GreenNodeChildList = peff::DynArray<GreenNodePtr>;
+
+		struct TypeNameGreenNodeExData {
+			GreenNodeTypeNameKind type_name_kind;
 		};
 
-		using RGNodeChildList = peff::DynArray<RGNodePtr>;
-
-		struct TypeNameRGNodeExData {
-			RGTypeNameKind type_name_kind;
-		};
-
-		struct ExprRGNodeExData {
-			RGExprKind expr_kind;
+		struct ExprGreenNodeExData {
+			GreenNodeExprKind expr_kind;
 			union {
-				RGUnaryExprOp unary_expr_op;
-				RGBinaryExprOp binary_expr_op;
+				GreenNodeUnaryExprOp unary_expr_op;
+				GreenNodeBinaryExprOp binary_expr_op;
 			};
 
-			SLAKE_FORCEINLINE ExprRGNodeExData(RGExprKind kind) : expr_kind(kind) {}
-			SLAKE_FORCEINLINE ExprRGNodeExData(RGUnaryExprOp op) : expr_kind(RGExprKind::Unary), unary_expr_op(op) {}
-			SLAKE_FORCEINLINE ExprRGNodeExData(RGBinaryExprOp op) : expr_kind(RGExprKind::Binary), binary_expr_op(op) {}
+			SLAKE_FORCEINLINE ExprGreenNodeExData(GreenNodeExprKind kind) : expr_kind(kind) {}
+			SLAKE_FORCEINLINE ExprGreenNodeExData(GreenNodeUnaryExprOp op) : expr_kind(GreenNodeExprKind::Unary), unary_expr_op(op) {}
+			SLAKE_FORCEINLINE ExprGreenNodeExData(GreenNodeBinaryExprOp op) : expr_kind(GreenNodeExprKind::Binary), binary_expr_op(op) {}
 		};
 
-		struct StmtRGNodeExData {
-			RGStmtKind stmt_kind;
+		struct StmtGreenNodeExData {
+			GreenNodeStmtKind stmt_kind;
 		};
 
-		struct RGNode {
+		struct GreenNode {
 		private:
 			Global *_global;
-			NodeIndex _node_index;
+			AstNodeIndex _node_index;
 
 			friend class Global;
 
 		public:
 			TokenPtr source_token;
-			RGNodeChildList children;
-			std::variant<std::monostate, TypeNameRGNodeExData, ExprRGNodeExData, StmtRGNodeExData> exdata;
+			GreenNodeChildList children;
+			TextWidth text_width = 0;
+			std::variant<std::monostate, TypeNameGreenNodeExData, ExprGreenNodeExData, StmtGreenNodeExData> exdata;
 			TokenKind node_kind;
 
-			SLKC_API RGNode(Global *global);
-			SLKC_API ~RGNode();
+			SLKC_API GreenNode(Global *global);
+			SLKC_API ~GreenNode();
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return _global;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_node_index() const noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_node_index() const noexcept {
 				return _node_index;
 			}
 
-			SLAKE_FORCEINLINE void set_node_index(NodeIndex index) noexcept {
+			SLAKE_FORCEINLINE void set_node_index(AstNodeIndex index) noexcept {
 				_node_index = index;
 			}
 
-			SLAKE_FORCEINLINE bool push_child(RGNodePtr child) noexcept {
+			SLAKE_FORCEINLINE bool push_child(GreenNodePtr child) noexcept {
 				return children.push_back(std::move(child));
 			}
+
+			SLKC_API peff::Option<PinFailReason> compute_text_width_shallow() noexcept;
 		};
 
-		SLAKE_FORCEINLINE RGNodePin make_rg_node(Global *global) {
-			RGNode *node = peff::alloc_and_construct<RGNode>(global->get_allocator(), alignof(RGNode), global);
+		SLAKE_FORCEINLINE GreenNodePin make_green_node(Global *global) {
+			GreenNode *node = peff::alloc_and_construct<GreenNode>(global->get_allocator(), alignof(GreenNode), global);
 			if (!node)
-				return RGNodePin();
+				return GreenNodePin();
 			peff::ScopeGuard sg([global, node]() noexcept {
-				peff::destroy_and_release<RGNode>(global->get_allocator(), node, alignof(RGNode));
+				peff::destroy_and_release<GreenNode>(global->get_allocator(), node, alignof(GreenNode));
 			});
-			if (!global->map_rg_node(node).has_value())
-				return RGNodePin();
+
+			auto result = global->map_green_node(node);
+			if (!result.has_value())
+				return GreenNodePin(PinFailReason::OutOfMemory);
+			if (result.value() == INVALID_AST_NODE_INDEX)
+				return GreenNodePin(PinFailReason::OutOfNodeIndex);
+
+			{
+				auto result = global->pin_green_node(node->get_node_index());
+				assert(!result.has_error());
+			}
+
 			sg.release();
 
-			global->pin_rg_node(node->get_node_index());
-
-			return RGNodePin(global, node->get_node_index(), node);
+			return GreenNodePin(global, node->get_node_index(), node);
 		}
+
+		struct RedNode;
+
+		using RedNodePtr = peff::SharedPtr<RedNode>;
+
+		struct RedNode {
+			size_t offset;
+			RedNodePtr parent;
+			GreenNodePtr green;
+		};
+
+		enum class GreenNodeIndexingResult : uint8_t {
+			Success = 0,
+			PinIOError,
+			OutOfMemory,
+		};
+
+		struct GreenNodeChildrenIndex {
+		private:
+			peff::HashMap<TokenKind, size_t> children_index;
+
+		public:
+			SLAKE_FORCEINLINE GreenNodeChildrenIndex(peff::Alloc *allocator) : children_index(allocator) {
+			}
+			GreenNodeChildrenIndex(GreenNodeChildrenIndex &&) = default;
+
+			GreenNodeChildrenIndex &operator=(GreenNodeChildrenIndex &&) = default;
+
+			SLKC_API ~GreenNodeChildrenIndex();
+
+			SLKC_API GreenNodeIndexingResult index_node(const GreenNodePin &node) noexcept;
+			SLAKE_FORCEINLINE void reset() noexcept {
+				children_index.clear();
+			}
+		};
 	}
 }
 

@@ -8,7 +8,7 @@ SLKC_API Node::Node(NodeType ast_node_type, Global *global)
 	  _global(global) {
 }
 
-SLKC_API Node::Node(const Node &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API Node::Node(const Node &other, DuplicationContext &context, AstNodeIndex node_index)
 	: _ast_node_type(other._ast_node_type),
 	  _global(other._global),
 	  _node_index(node_index) {
@@ -31,23 +31,23 @@ SLKC_API DumpResult Node::do_dump(DumpContext &dump_context, wandjson::ObjectVal
 SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()), post_run_hooks(global->get_allocator()) {
 }
 
-SLKC_API peff::Result<NodeIndex, DuplicationError> DuplicationContext::push_task(NodeIndex node_index) noexcept {
-	if (node_index == INVALID_NODE_INDEX)
-		return +INVALID_NODE_INDEX;
+SLKC_API peff::Result<AstNodeIndex, DuplicationError> DuplicationContext::push_task(AstNodeIndex node_index) noexcept {
+	if (node_index == INVALID_AST_NODE_INDEX)
+		return +INVALID_AST_NODE_INDEX;
 
-	if (!task_list.push_back({ INVALID_NODE_INDEX, node_index }))
+	if (!task_list.push_back({ INVALID_AST_NODE_INDEX, node_index }))
 		return DuplicationError::OutOfMemory;
 
 	peff::ScopeGuard sg([this]() noexcept {
 		task_list.pop_back();
 	});
 
-	auto result = global->map_node(nullptr);
+	auto result = global->map_ast_node(nullptr);
 
 	if (!result.has_value())
 		return DuplicationError::OutOfMemory;
 
-	if (*result == INVALID_NODE_INDEX)
+	if (*result == INVALID_AST_NODE_INDEX)
 		return DuplicationError::NoSlot;
 
 	task_list.back().dest = *result;
@@ -70,7 +70,7 @@ SLKC_API peff::Result<TypeName, DuplicationError> DuplicationContext::push_task(
 
 	TypeName tn = type_name;
 
-	tn.set_def(NodePtr<TypeNameDefNode>(global, result_index.value()));
+	tn.set_def(AstNodePtr<TypeNameDefNode>(global, result_index.value()));
 
 	return tn;
 }
@@ -85,26 +85,9 @@ SLKC_API DumpContext::DumpContext(
 	  allocator(allocator) {
 }
 
-SLKC_API DumpResult DumpContext::push_task(wandjson::ObjectValue *dest, NodeIndex src, bool deep) noexcept {
+SLKC_API DumpResult DumpContext::push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept {
 	if (!task_list.push_back({ src, dest, deep }))
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
-}
-
-SLKC_API WidthComputingContext::WidthComputingContext(
-	Global *global,
-	peff::Alloc *allocator,
-	wandjson::ObjectValue *root_value)
-	: global(global),
-	  root_value(root_value),
-	  task_list(allocator),
-	  allocator(allocator) {
-}
-
-SLKC_API peff::Option<WidthComputingError> WidthComputingContext::push_task(NodeIndex parent, NodeIndex child) noexcept {
-	if (!task_list.push_back({ parent, child }))
-		return WidthComputingError::OutOfMemory;
-
-	return peff::NULLOPT;
 }

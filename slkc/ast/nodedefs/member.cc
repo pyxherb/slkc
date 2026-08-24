@@ -8,7 +8,7 @@ SLKC_API DumpResult MemberNode::do_dump(DumpContext &dump_context, wandjson::Obj
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (_parent_node_index != INVALID_NODE_INDEX) {
+	if (_parent_node_index != INVALID_AST_NODE_INDEX) {
 		if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), _parent_node_index))))
 			return DumpResult::OutOfMemory;
 		if (!target_object->insert("outer_node_index", v.release()))
@@ -36,7 +36,7 @@ SLKC_API MemberNode::MemberNode(NodeType ast_node_type, Global *global)
 SLKC_API MemberNode::MemberNode(
 	const MemberNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: Node(other, context, node_index),
 	  self_name(other.self_name),
@@ -65,7 +65,7 @@ SLKC_API DumpResult ModuleNode::do_dump(DumpContext &dump_context, wandjson::Obj
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_module_keyword", v.release()))
 		return DumpResult::OutOfMemory;
-	
+
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_module_decl_semicolon))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_module_decl_semicolon", v.release()))
@@ -81,7 +81,7 @@ SLKC_API ModuleNode::ModuleNode(Global *global)
 SLKC_API ModuleNode::ModuleNode(
 	const ModuleNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_module_keyword(other.sti_module_keyword),

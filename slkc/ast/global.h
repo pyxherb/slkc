@@ -11,7 +11,7 @@ namespace slkc {
 			NodeRegistry *next_zero_ref = nullptr;
 			size_t ref_count = 0, pin_count = 0;
 			std::unique_ptr<Node, peff::DeallocableDeleter<Node>> in_memory;
-			NodeIndex self_index;
+			AstNodeIndex self_index;
 
 			SLAKE_FORCEINLINE NodeRegistry() {
 			}
@@ -22,23 +22,23 @@ namespace slkc {
 			}
 		};
 
-		struct RGNodeRegistry final {
-			RGNodeRegistry *next_zero_ref = nullptr;
+		struct GreenNodeRegistry final {
+			GreenNodeRegistry *next_zero_ref = nullptr;
 			size_t ref_count = 0, pin_count = 0;
 			// Use void* to avoid forward declaration issue.
 			void *in_memory = nullptr;
-			NodeIndex self_index;
+			AstNodeIndex self_index;
 
-			SLAKE_FORCEINLINE RGNodeRegistry() {
+			SLAKE_FORCEINLINE GreenNodeRegistry() {
 			}
 
-			SLKC_API ~RGNodeRegistry();
+			SLKC_API ~GreenNodeRegistry();
 
-			SLAKE_FORCEINLINE RGNodeRegistry(RGNodeRegistry &&rhs) : in_memory(rhs.in_memory), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
+			SLAKE_FORCEINLINE GreenNodeRegistry(GreenNodeRegistry &&rhs) : in_memory(rhs.in_memory), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
 				rhs.in_memory = nullptr;
 				rhs.ref_count = 0;
 				rhs.pin_count = 0;
-				rhs.self_index = INVALID_RGNODE_INDEX;
+				rhs.self_index = INVALID_GREEN_NODE_INDEX;
 			}
 		};
 
@@ -70,10 +70,11 @@ namespace slkc {
 
 		enum class PinFailReason : uint8_t {
 			OutOfMemory = 0,
-			IOError
+			IOError,
+			OutOfNodeIndex,
 		};
 
-		struct RGNode;
+		struct GreenNode;
 
 		class Global final {
 		private:
@@ -82,95 +83,96 @@ namespace slkc {
 			peff::Set<GlobalSharedString, std::less<std::string_view>> _shared_strings;
 			std::mutex _shared_strings_mutex;
 
-			peff::Map<NodeIndex, NodeRegistry> _node_registries;
+			peff::Map<AstNodeIndex, NodeRegistry> _node_registries;
 			NodeRegistry *_zero_ref_node_registry_list = nullptr;
 			std::recursive_mutex _node_registries_mutex;
-			NodeIndex _min_free_node_index = 0;
+			AstNodeIndex _min_free_node_index = 0;
 
-			peff::Map<RGNodeIndex, RGNodeRegistry> _rg_node_registries;
-			RGNodeRegistry *_zero_ref_rg_node_registry_list = nullptr;
-			std::recursive_mutex _rg_node_registries_mutex;
-			RGNodeIndex _min_free_rg_node_index = 0;
+			peff::Map<GreenNodeIndex, GreenNodeRegistry> _green_node_registries;
+			GreenNodeRegistry *_zero_ref_green_node_registry_list = nullptr;
+			std::recursive_mutex _green_node_registries_mutex;
+			GreenNodeIndex _min_free_green_node_index = 0;
 
-			NodeIndex _root_module = INVALID_NODE_INDEX;
+			AstNodeIndex _root_module = INVALID_AST_NODE_INDEX;
 
-			SLKC_API void _clear_zero_ref_node_registry_list() noexcept;
-			SLKC_API void _clear_zero_ref_rg_node_registry_list() noexcept;
+			SLKC_API void _clear_zero_ref_ast_node_registry_list() noexcept;
+			SLKC_API void _clear_zero_ref_green_node_registry_list() noexcept;
 
 			///
 			/// @brief Allocate a node index.
 			/// @note This function requires the @c _node_registries_mutex to be locked.
 			///
-			/// @return Allocated node index, @c INVALID_NODE_INDEX if there is no slot.
+			/// @return Allocated node index, @c INVALID_AST_NODE_INDEX if there is no slot.
 			///
-			[[nodiscard]] SLKC_API NodeIndex _alloc_node_index() noexcept;
-			[[nodiscard]] SLKC_API RGNodeIndex _alloc_rg_node_index() noexcept;
+			[[nodiscard]] SLKC_API AstNodeIndex _alloc_ast_node_index() noexcept;
+			[[nodiscard]] SLKC_API GreenNodeIndex _alloc_green_node_index() noexcept;
 
-			SLKC_API void _add_node_to_deferred_deleting_list(NodeRegistry *rgnode_registry) noexcept;
-			SLKC_API void _add_rg_node_to_deferred_deleting_list(RGNodeRegistry *rgnode_registry) noexcept;
+			SLKC_API void _add_ast_node_to_deferred_deleting_list(NodeRegistry *rgnode_registry) noexcept;
+			SLKC_API void _add_green_node_to_deferred_deleting_list(GreenNodeRegistry *rgnode_registry) noexcept;
 
 		public:
 			SLKC_API Global(peff::Alloc *allocator) noexcept;
+			SLKC_API ~Global() noexcept;
 
 			SLAKE_FORCEINLINE peff::Alloc *get_allocator() noexcept {
 				return resource_allocator.get();
 			}
 
-			SLAKE_FORCEINLINE void ref_node(NodeIndex index) noexcept {
-				_clear_zero_ref_node_registry_list();
+			SLAKE_FORCEINLINE void ref_ast_node(AstNodeIndex index) noexcept {
+				_clear_zero_ref_ast_node_registry_list();
 				++_node_registries.at(index).ref_count;
 			}
-			SLKC_API void unref_node(NodeIndex index) noexcept;
-			SLKC_API peff::Result<Node *, PinFailReason> pin_node(NodeIndex index) noexcept;
-			SLKC_API void unpin_node(NodeIndex index) noexcept;
+			SLKC_API void unref_ast_node(AstNodeIndex index) noexcept;
+			SLKC_API peff::Result<Node *, PinFailReason> pin_ast_node(AstNodeIndex index) noexcept;
+			SLKC_API void unpin_ast_node(AstNodeIndex index) noexcept;
 			///
 			/// @brief Allocate a node index and map a node object.
 			///
 			/// @param node
-			/// @return @c peff::NULLOPT if out of memory, @c INVALID_NODE_INDEX if no slot.
+			/// @return @c peff::NULLOPT if out of memory, @c INVALID_AST_NODE_INDEX if no slot.
 			///
-			[[nodiscard]] SLKC_API peff::Option<NodeIndex> map_node(Node *node, NodeIndex node_index = INVALID_NODE_INDEX) noexcept;
+			[[nodiscard]] SLKC_API peff::Option<AstNodeIndex> map_ast_node(Node *node, AstNodeIndex node_index = INVALID_AST_NODE_INDEX) noexcept;
 			///
 			/// @brief Remap an existed node index.
 			///
 			/// @param node_index Node index to be remapped.
 			/// @param node Node to be mapped to the memory.
 			///
-			SLKC_API void remap_node(NodeIndex node_index, Node *node) noexcept;
-			SLKC_API void unmap_node(NodeIndex node_index) noexcept;
-			SLKC_API peff::Result<NodeIndex, DuplicationError> duplicate_node(NodeIndex node_index) noexcept;
-			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept;
-			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_node(peff::Alloc *allocator, NodeIndex node_index) noexcept;
+			SLKC_API void remap_ast_node(AstNodeIndex node_index, Node *node) noexcept;
+			SLKC_API void unmap_ast_node(AstNodeIndex node_index) noexcept;
+			SLKC_API peff::Result<AstNodeIndex, DuplicationError> duplicate_ast_node(AstNodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_ast_node(peff::Alloc *allocator, AstNodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_ast_node(peff::Alloc *allocator, AstNodeIndex node_index) noexcept;
 
-			SLAKE_FORCEINLINE void ref_rg_node(RGNodeIndex index) noexcept {
-				_clear_zero_ref_rg_node_registry_list();
-				++_rg_node_registries.at(index).ref_count;
+			SLAKE_FORCEINLINE void ref_green_node(GreenNodeIndex index) noexcept {
+				_clear_zero_ref_green_node_registry_list();
+				++_green_node_registries.at(index).ref_count;
 			}
-			SLKC_API void unref_rg_node(RGNodeIndex index) noexcept;
-			SLKC_API peff::Result<RGNode *, PinFailReason> pin_rg_node(RGNodeIndex index) noexcept;
-			SLKC_API void unpin_rg_node(RGNodeIndex index) noexcept;
+			SLKC_API void unref_green_node(GreenNodeIndex index) noexcept;
+			SLKC_API peff::Result<GreenNode *, PinFailReason> pin_green_node(GreenNodeIndex index) noexcept;
+			SLKC_API void unpin_green_node(GreenNodeIndex index) noexcept;
 			///
 			/// @brief Allocate a node index and map a node object.
 			///
 			/// @param node
-			/// @return @c peff::NULLOPT if out of memory, @c INVALID_NODE_INDEX if no slot.
+			/// @return @c peff::NULLOPT if out of memory, @c INVALID_AST_NODE_INDEX if no slot.
 			///
-			[[nodiscard]] SLKC_API peff::Option<RGNodeIndex> map_rg_node(RGNode *node, RGNodeIndex node_index = INVALID_RGNODE_INDEX) noexcept;
+			[[nodiscard]] SLKC_API peff::Option<GreenNodeIndex> map_green_node(GreenNode *node, GreenNodeIndex node_index = INVALID_GREEN_NODE_INDEX) noexcept;
 			///
 			/// @brief Remap an existed node index.
 			///
 			/// @param node_index Node index to be remapped.
 			/// @param node Node to be mapped to the memory.
 			///
-			SLKC_API void remap_rg_node(RGNodeIndex node_index, RGNode *node) noexcept;
-			SLKC_API void unmap_rg_node(RGNodeIndex node_index) noexcept;
+			SLKC_API void remap_green_node(GreenNodeIndex node_index, GreenNode *node) noexcept;
+			SLKC_API void unmap_green_node(GreenNodeIndex node_index) noexcept;
 
 			SLKC_API GlobalSharedString *register_shared_string(std::string_view sv) noexcept;
 			SLKC_API void unregister_shared_string(std::string_view s) noexcept;
 
 			SLKC_API bool init_root_module() noexcept;
 
-			SLAKE_FORCEINLINE NodeIndex get_root_module_node_index() noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_root_module_node_index() noexcept {
 				return _root_module;
 			}
 		};

@@ -28,7 +28,7 @@ SLKC_API StmtNode::StmtNode(StmtKind stmt_kind, Global *global)
 	  _is_bad(false) {
 }
 
-SLKC_API StmtNode::StmtNode(const StmtNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API StmtNode::StmtNode(const StmtNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: Node(other, context, node_index),
 	  _stmt_kind(other._stmt_kind),
 	  _is_bad(other._is_bad) {
@@ -70,7 +70,7 @@ SLKC_API ExprStmtNode::ExprStmtNode(Global *global)
 	  inner_exprs(global->get_allocator()) {
 }
 
-SLKC_API ExprStmtNode::ExprStmtNode(const ExprStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API ExprStmtNode::ExprStmtNode(const ExprStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  inner_exprs(context.get_global()->get_allocator()) {
 	if (!inner_exprs.resize(other.inner_exprs.size())) {
@@ -84,7 +84,7 @@ SLKC_API ExprStmtNode::ExprStmtNode(const ExprStmtNode &other, DuplicationContex
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		inner_exprs[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		inner_exprs[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -146,7 +146,7 @@ SLKC_API peff::Result<BindingEntry, DuplicationError> BindingEntry::duplicate(Du
 	{
 		auto result = context.push_task(initial_value);
 		if (!result.has_error()) {
-			entry.initial_value = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+			entry.initial_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 		} else {
 			return std::move(result).error();
 		}
@@ -215,7 +215,7 @@ SLKC_API VarDefStmtNode::VarDefStmtNode(Global *global)
 	  sti_binding_separators(global->get_allocator()) {
 }
 
-SLKC_API VarDefStmtNode::VarDefStmtNode(const VarDefStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API VarDefStmtNode::VarDefStmtNode(const VarDefStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  bindings(context.get_global()->get_allocator()),
 	  sti_binding_separators(context.get_global()->get_allocator()) {
@@ -260,7 +260,7 @@ SLKC_API BreakStmtNode::BreakStmtNode(Global *global)
 	: StmtNode(StmtKind::Break, global) {
 }
 
-SLKC_API BreakStmtNode::BreakStmtNode(const BreakStmtNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API BreakStmtNode::BreakStmtNode(const BreakStmtNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: StmtNode(other, context, node_index),
 	  sti_break_keyword(other.sti_break_keyword),
 	  sti_semicolon(other.sti_semicolon) {
@@ -320,7 +320,7 @@ SLKC_API ContinueStmtNode::ContinueStmtNode(Global *global)
 	  sti_continue_values_separators(global->get_allocator()) {
 }
 
-SLKC_API ContinueStmtNode::ContinueStmtNode(const ContinueStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API ContinueStmtNode::ContinueStmtNode(const ContinueStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  continue_values(context.get_global()->get_allocator()),
 	  sti_continue_values_separators(context.get_global()->get_allocator()),
@@ -336,7 +336,7 @@ SLKC_API ContinueStmtNode::ContinueStmtNode(const ContinueStmtNode &other, Dupli
 			error_out = result.error();
 			return;
 		}
-		continue_values[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		continue_values[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	if (!sti_continue_values_separators.build(other.sti_continue_values_separators)) {
 		error_out = DuplicationError::OutOfMemory;
@@ -439,7 +439,7 @@ SLKC_API ForStmtNode::ForStmtNode(Global *global)
 	  step_exprs(global->get_allocator()) {
 }
 
-SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  loop_vars(context.get_global()->get_allocator()),
 	  step_exprs(context.get_global()->get_allocator()),
@@ -466,7 +466,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, DuplicationContext &
 			error_out = std::move(result).error();
 			return;
 		}
-		condition_expr = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition_expr = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!step_exprs.resize(other.step_exprs.size())) {
@@ -480,7 +480,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, DuplicationContext &
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		step_exprs[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		step_exprs[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	{
@@ -489,7 +489,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, DuplicationContext &
 			error_out = std::move(result).error();
 			return;
 		}
-		body = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		body = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -554,7 +554,7 @@ SLKC_API ForEachStmtNode::ForEachStmtNode(Global *global)
 	: StmtNode(StmtKind::ForEach, global) {
 }
 
-SLKC_API ForEachStmtNode::ForEachStmtNode(const ForEachStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API ForEachStmtNode::ForEachStmtNode(const ForEachStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  loop_var_name(other.loop_var_name),
 	  collection_expr(other.collection_expr),
@@ -611,7 +611,7 @@ SLKC_API WhileStmtNode::WhileStmtNode(Global *global)
 	: StmtNode(StmtKind::While, global) {
 }
 
-SLKC_API WhileStmtNode::WhileStmtNode(const WhileStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API WhileStmtNode::WhileStmtNode(const WhileStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  sti_while_keyword(other.sti_while_keyword),
 	  sti_left_parenthesis(other.sti_left_parenthesis),
@@ -622,7 +622,7 @@ SLKC_API WhileStmtNode::WhileStmtNode(const WhileStmtNode &other, DuplicationCon
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		condition_expr = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition_expr = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(body.get_index());
@@ -630,7 +630,7 @@ SLKC_API WhileStmtNode::WhileStmtNode(const WhileStmtNode &other, DuplicationCon
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		body = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		body = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -685,7 +685,7 @@ SLKC_API DoWhileStmtNode::DoWhileStmtNode(Global *global)
 	: StmtNode(StmtKind::DoWhile, global) {
 }
 
-SLKC_API DoWhileStmtNode::DoWhileStmtNode(const DoWhileStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API DoWhileStmtNode::DoWhileStmtNode(const DoWhileStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  sti_do_keyword(other.sti_do_keyword),
 	  sti_while_keyword(other.sti_while_keyword),
@@ -697,7 +697,7 @@ SLKC_API DoWhileStmtNode::DoWhileStmtNode(const DoWhileStmtNode &other, Duplicat
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		condition_expr = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition_expr = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(body.get_index());
@@ -705,7 +705,7 @@ SLKC_API DoWhileStmtNode::DoWhileStmtNode(const DoWhileStmtNode &other, Duplicat
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		body = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		body = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -744,7 +744,7 @@ SLKC_API ReturnStmtNode::ReturnStmtNode(Global *global)
 	: StmtNode(StmtKind::Return, global) {
 }
 
-SLKC_API ReturnStmtNode::ReturnStmtNode(const ReturnStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API ReturnStmtNode::ReturnStmtNode(const ReturnStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  sti_return_keyword(other.sti_return_keyword),
 	  sti_semicolon(other.sti_semicolon) {
@@ -754,7 +754,7 @@ SLKC_API ReturnStmtNode::ReturnStmtNode(const ReturnStmtNode &other, Duplication
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		return_value = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		return_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -793,7 +793,7 @@ SLKC_API YieldStmtNode::YieldStmtNode(Global *global)
 	: StmtNode(StmtKind::Yield, global) {
 }
 
-SLKC_API YieldStmtNode::YieldStmtNode(const YieldStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API YieldStmtNode::YieldStmtNode(const YieldStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  sti_yield_keyword(other.sti_yield_keyword),
 	  sti_semicolon(other.sti_semicolon) {
@@ -803,7 +803,7 @@ SLKC_API YieldStmtNode::YieldStmtNode(const YieldStmtNode &other, DuplicationCon
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		return_value = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		return_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -859,7 +859,7 @@ SLKC_API IfStmtNode::IfStmtNode(Global *global)
 	: StmtNode(StmtKind::If, global) {
 }
 
-SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  sti_if_keyword(other.sti_if_keyword),
 	  sti_left_parenthesis(other.sti_left_parenthesis),
@@ -870,7 +870,7 @@ SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &con
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		condition = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(true_branch.get_index());
@@ -878,7 +878,7 @@ SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &con
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		true_branch = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		true_branch = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(false_branch.get_index());
@@ -886,7 +886,7 @@ SLKC_API IfStmtNode::IfStmtNode(const IfStmtNode &other, DuplicationContext &con
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		false_branch = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		false_branch = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -902,13 +902,13 @@ SLKC_API peff::Result<SwitchStmtBranch, DuplicationError> SwitchStmtBranch::dupl
 		auto result = context.push_task(pattern.get_index());
 		if (!result)
 			return DuplicationError::OutOfMemory;
-		branch.pattern = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		branch.pattern = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(body.get_index());
 		if (!result)
 			return DuplicationError::OutOfMemory;
-		branch.body = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		branch.body = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 	branch.sti_case_keyword = sti_case_keyword;
 	branch.sti_default_keyword = sti_default_keyword;
@@ -996,7 +996,7 @@ SLKC_API SwitchStmtNode::SwitchStmtNode(Global *global)
 	  branches(global->get_allocator()) {
 }
 
-SLKC_API SwitchStmtNode::SwitchStmtNode(const SwitchStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API SwitchStmtNode::SwitchStmtNode(const SwitchStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  branches(context.get_global()->get_allocator()),
 	  sti_switch_keyword(other.sti_switch_keyword),
@@ -1010,7 +1010,7 @@ SLKC_API SwitchStmtNode::SwitchStmtNode(const SwitchStmtNode &other, Duplication
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		condition = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!branches.resize(other.branches.size())) {
@@ -1074,7 +1074,7 @@ SLKC_API BlockStmtNode::BlockStmtNode(Global *global)
 	  inner_stmts(global->get_allocator()) {
 }
 
-SLKC_API BlockStmtNode::BlockStmtNode(const BlockStmtNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API BlockStmtNode::BlockStmtNode(const BlockStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: StmtNode(other, context, node_index),
 	  inner_stmts(context.get_global()->get_allocator()) {
 	if (!inner_stmts.resize(other.inner_stmts.size())) {
@@ -1088,7 +1088,7 @@ SLKC_API BlockStmtNode::BlockStmtNode(const BlockStmtNode &other, DuplicationCon
 			error_out = DuplicationError::OutOfMemory;
 			return;
 		}
-		inner_stmts[i] = NodePtr<StmtNode>(context.get_global(), std::move(result).value());
+		inner_stmts[i] = AstNodePtr<StmtNode>(context.get_global(), std::move(result).value());
 	}
 }
 

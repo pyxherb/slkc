@@ -30,7 +30,7 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(Global *global)
 SLKC_API FnOverloadingNode::FnOverloadingNode(
 	const FnOverloadingNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  idx_param_comma_tokens(context.get_global()->get_allocator()),
@@ -132,7 +132,7 @@ SLKC_API FnNode::FnNode(Global *global)
 SLKC_API FnNode::FnNode(
 	const FnNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  overloadings(context.get_global()->get_allocator()) {
@@ -150,7 +150,7 @@ SLKC_API FnNode::FnNode(
 			error_out = std::move(result).error();
 			return;
 		}
-		overloadings[i] = NodePtr<FnOverloadingNode>(context.get_global(), std::move(result).value());
+		overloadings[i] = AstNodePtr<FnOverloadingNode>(context.get_global(), std::move(result).value());
 	}
 }
 

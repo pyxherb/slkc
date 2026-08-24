@@ -58,7 +58,7 @@ namespace slkc {
 
 		struct TypeName final {
 		private:
-			NodePtr<TypeNameDefNode> _typename_def;
+			AstNodePtr<TypeNameDefNode> _typename_def;
 
 		public:
 			TokenRange token_range;
@@ -67,11 +67,11 @@ namespace slkc {
 		private:
 			TypeNameKind _tn_kind;
 			bool _is_const : 1;
-			
+
 			bool _is_final : 1;
-			
+
 			bool _is_local : 1;
-			
+
 			TypeNameShareability shareability : 2 = TypeNameShareability::Unspecified;
 
 			bool _is_nullable : 1;
@@ -88,7 +88,7 @@ namespace slkc {
 				  _is_ref(false),
 				  _is_readonly_ref(false) {}
 
-			SLAKE_FORCEINLINE TypeName(TypeNameKind tn_kind, NodePtr<TypeNameDefNode> typename_def)
+			SLAKE_FORCEINLINE TypeName(TypeNameKind tn_kind, AstNodePtr<TypeNameDefNode> typename_def)
 				: _tn_kind(tn_kind),
 				  _typename_def(typename_def),
 				  _is_const(false),
@@ -105,16 +105,16 @@ namespace slkc {
 			TypeName &operator=(const TypeName &rhs) = default;
 			TypeName &operator=(TypeName &&rhs) = default;
 
-			SLAKE_FORCEINLINE NodePtr<TypeNameDefNode> get_def() const noexcept {
+			SLAKE_FORCEINLINE AstNodePtr<TypeNameDefNode> get_def() const noexcept {
 				return _typename_def;
 			}
 
 			template <typename T>
-			SLAKE_FORCEINLINE NodePtr<T> get_typed_def() const noexcept {
+			SLAKE_FORCEINLINE AstNodePtr<T> get_typed_def() const noexcept {
 				return _typename_def.cast_to<T>();
 			}
 
-			SLAKE_FORCEINLINE void set_def(const NodePtr<TypeNameDefNode> &typename_def) noexcept {
+			SLAKE_FORCEINLINE void set_def(const AstNodePtr<TypeNameDefNode> &typename_def) noexcept {
 				_typename_def = typename_def;
 			}
 
@@ -135,7 +135,7 @@ namespace slkc {
 			SLAKE_FORCEINLINE bool is_const() const noexcept {
 				return _is_const;
 			}
-				
+
 			/// @brief Set if the type name is with `const` modifier.
 			///
 			/// @param b Whether the type name will be set to be with `const` modifier.
@@ -156,8 +156,8 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_final(bool b) noexcept {
 				_is_final = b;
 			}
-			
-			
+
+
 			SLAKE_FORCEINLINE TypeNameShareability get_shareability() const noexcept {
 				return shareability;
 			}
@@ -165,7 +165,7 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_shareability(TypeNameShareability s) noexcept {
 				shareability = s;
 			}
-			
+
 			/// @brief Check if the type name is with `local` modifier.
 			///
 			/// @return Whether the type name is with `local` modifier.
@@ -207,7 +207,7 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_ref(bool b) noexcept {
 				_is_ref = b;
 			}
-			
+
 			/// @brief Check if the type name is with `readonly` modifier.
 			///
 			/// @return Whether the type name is with `readonly` modifier.

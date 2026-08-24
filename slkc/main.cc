@@ -1,11 +1,12 @@
-#include "comp/compiler.h"
+#include "ast/parser/parser.h"
+// #include "comp/compiler.h"
 #include <initializer_list>
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
 
 #if SLKC_WITH_LANGUAGE_SERVER
-	#include "server/server.h"
+// #include "server/server.h"
 #endif
 
 struct OptionMatchContext {
@@ -219,7 +220,7 @@ const SingleArgOptionMap g_single_arg_options = {
 			 return EINVAL;
 		 }
 
-		 slkc::sz_default_compile_thread_stack = size;
+		 //  slkc::sz_default_compile_thread_stack = size;
 
 		 return 0;
 	 } },
@@ -288,7 +289,7 @@ const SingleArgOptionMap g_single_arg_options = {
 			 return EINVAL;
 		 }
 
-		 slkc::sz_default_parse_thread_stack = size;
+		 //  slkc::sz_default_parse_thread_stack = size;
 
 		 return 0;
 	 } },
@@ -303,7 +304,7 @@ const CustomOptionMap g_custom_options = {
 
 };
 
-void dump_lexical_error(const slkc::LexicalError &lexical_error, int indent_level = 0) {
+void dump_lexical_error(const slkc::ast::LexicalError &lexical_error, int indent_level = 0) {
 	for (int i = 0; i < indent_level; ++i) {
 		putc('\t', stderr);
 	}
@@ -312,27 +313,27 @@ void dump_lexical_error(const slkc::LexicalError &lexical_error, int indent_leve
 		lexical_error.location.begin_position.line + 1,
 		lexical_error.location.begin_position.column + 1);
 	switch (lexical_error.kind) {
-		case slkc::LexicalErrorKind::UnrecognizedToken:
+		case slkc::ast::LexicalErrorKind::UnrecognizedToken:
 			fprintf(stderr, "Unrecognized token\n");
 			break;
-		case slkc::LexicalErrorKind::UnexpectedEndOfLine:
+		case slkc::ast::LexicalErrorKind::UnexpectedEndOfLine:
 			fprintf(stderr, "Unexpected end of line\n");
 			break;
-		case slkc::LexicalErrorKind::PrematuredEndOfFile:
+		case slkc::ast::LexicalErrorKind::PrematuredEndOfFile:
 			fprintf(stderr, "Prematured end of file\n");
 			break;
-		case slkc::LexicalErrorKind::InvalidEscape:
+		case slkc::ast::LexicalErrorKind::InvalidEscape:
 			fprintf(stderr, "Invalid escape sequence\n");
 			break;
-		case slkc::LexicalErrorKind::OutOfMemory:
+		case slkc::ast::LexicalErrorKind::OutOfMemory:
 			fprintf(stderr, "Out of memory during lexical analysis\n");
 			break;
 	}
 }
 
-void dump_syntax_error(slkc::Parser *parser, const slkc::SyntaxError &syntax_error, int indent_level = 0) {
-	const slkc::Token *begin_token = parser->token_list.at(syntax_error.token_range.begin_index).get();
-	const slkc::Token *end_token = parser->token_list.at(syntax_error.token_range.end_index).get();
+void dump_syntax_error(slkc::ast::Parser *parser, const slkc::ast::SyntaxError &syntax_error, int indent_level = 0) {
+	const slkc::ast::Token *begin_token = parser->token_list.at(syntax_error.token_range.begin).get();
+	const slkc::ast::Token *end_token = parser->token_list.at(syntax_error.token_range.end).get();
 
 	for (int i = 0; i < indent_level; ++i) {
 		putc('\t', stderr);
@@ -344,28 +345,31 @@ void dump_syntax_error(slkc::Parser *parser, const slkc::SyntaxError &syntax_err
 	fprintf(stderr, "Error at %zu, %zu: ", line, column);
 
 	switch (syntax_error.error_kind) {
-		case slkc::SyntaxErrorKind::OutOfMemory:
+		case slkc::ast::SyntaxErrorKind::OutOfMemory:
 			fprintf(stderr, "Out of memory\n");
 			break;
-		case slkc::SyntaxErrorKind::UnexpectedToken:
+		case slkc::ast::SyntaxErrorKind::ExpectingMoreTokens:
+			fprintf(stderr, "Expecting more tokens\n");
+			break;
+		case slkc::ast::SyntaxErrorKind::UnexpectedToken:
 			fprintf(stderr, "Unexpected token\n");
 			break;
-		case slkc::SyntaxErrorKind::ExpectingSingleToken:
+		case slkc::ast::SyntaxErrorKind::ExpectingSingleToken:
 			fprintf(stderr, "Expecting %s\n",
-				slkc::get_token_name(std::get<slkc::ExpectingSingleTokenErrorExData>(syntax_error.ex_data).expecting_token_id));
+				slkc::ast::get_token_name(std::get<slkc::ast::ExpectingSingleTokenErrorExData>(syntax_error.ex_data).expecting_token_id).data());
 			break;
-		case slkc::SyntaxErrorKind::ExpectingTokens: {
+		case slkc::ast::SyntaxErrorKind::ExpectingTokens: {
 			fprintf(stderr, "Expecting ");
 
-			const slkc::ExpectingTokensErrorExData &ex_data = std::get<slkc::ExpectingTokensErrorExData>(syntax_error.ex_data);
+			const slkc::ast::ExpectingTokensErrorExData &ex_data = std::get<slkc::ast::ExpectingTokensErrorExData>(syntax_error.ex_data);
 
 			if (ex_data.expecting_token_ids.size()) {
 				auto it = ex_data.expecting_token_ids.begin();
 
-				fprintf(stderr, "%s", slkc::get_token_name(*it));
+				fprintf(stderr, "%s", slkc::ast::get_token_name(*it).data());
 
 				while (++it != ex_data.expecting_token_ids.end()) {
-					fprintf(stderr, " or %s", slkc::get_token_name(*it));
+					fprintf(stderr, " or %s", slkc::ast::get_token_name(*it).data());
 				}
 			} else {
 				fprintf(stderr, " token");
@@ -374,25 +378,25 @@ void dump_syntax_error(slkc::Parser *parser, const slkc::SyntaxError &syntax_err
 			fprintf(stderr, "\n");
 			break;
 		}
-		case slkc::SyntaxErrorKind::ExpectingId:
+		case slkc::ast::SyntaxErrorKind::ExpectingId:
 			fprintf(stderr, "Expecting an identifier\n");
 			break;
-		case slkc::SyntaxErrorKind::ExpectingExpr:
+		case slkc::ast::SyntaxErrorKind::ExpectingExpr:
 			fprintf(stderr, "Expecting an expression\n");
 			break;
-		case slkc::SyntaxErrorKind::ExpectingStmt:
+		case slkc::ast::SyntaxErrorKind::ExpectingStmt:
 			fprintf(stderr, "Expecting a statement\n");
 			break;
-		case slkc::SyntaxErrorKind::ExpectingDecl:
+		case slkc::ast::SyntaxErrorKind::ExpectingDecl:
 			fprintf(stderr, "Expecting a declaration\n");
 			break;
-		case slkc::SyntaxErrorKind::NoMatchingTokensFound:
+		case slkc::ast::SyntaxErrorKind::NoMatchingTokensFound:
 			fprintf(stderr, "Matching token not found\n");
 			break;
-		case slkc::SyntaxErrorKind::ConflictingDefinitions: {
+		case slkc::ast::SyntaxErrorKind::ConflictingDefinitions: {
 			fprintf(stderr, "Definition of ");
 
-			const slkc::ConflictingDefinitionsErrorExData &ex_data = std::get<slkc::ConflictingDefinitionsErrorExData>(syntax_error.ex_data);
+			const slkc::ast::ConflictingDefinitionsErrorExData &ex_data = std::get<slkc::ast::ConflictingDefinitionsErrorExData>(syntax_error.ex_data);
 
 			fprintf(stderr, "'%s' conflicts with other definitions\n", ex_data.member_name.data());
 			break;
@@ -403,9 +407,9 @@ void dump_syntax_error(slkc::Parser *parser, const slkc::SyntaxError &syntax_err
 	}
 }
 
-void dump_syntax_warning(slkc::Parser *parser, const slkc::SyntaxWarning &syntax_warning, int indent_level = 0) {
-	const slkc::Token *begin_token = parser->token_list.at(syntax_warning.token_range.begin_index).get();
-	const slkc::Token *end_token = parser->token_list.at(syntax_warning.token_range.end_index).get();
+void dump_syntax_warning(slkc::ast::Parser *parser, const slkc::ast::SyntaxWarning &syntax_warning, int indent_level = 0) {
+	const slkc::ast::Token *begin_token = parser->token_list.at(syntax_warning.token_range.begin).get();
+	const slkc::ast::Token *end_token = parser->token_list.at(syntax_warning.token_range.end).get();
 
 	for (int i = 0; i < indent_level; ++i) {
 		putc('\t', stderr);
@@ -417,7 +421,7 @@ void dump_syntax_warning(slkc::Parser *parser, const slkc::SyntaxWarning &syntax
 	fprintf(stderr, "Warning at %zu, %zu: ", line, column);
 
 	switch (syntax_warning.warning_kind) {
-		case slkc::SyntaxWarningKind::ScopeOpIsOmittableInIdRef:
+		case slkc::ast::SyntaxWarningKind::ScopeOpIsOmittableInIdRef:
 			fprintf(stderr, ":: is omittable in this context\n");
 			break;
 		default:
@@ -426,7 +430,7 @@ void dump_syntax_warning(slkc::Parser *parser, const slkc::SyntaxWarning &syntax
 	}
 }
 
-void dump_compilation_error(peff::SharedPtr<slkc::Parser> parser, const slkc::CompilationError &error, int indent_level = 0) {
+/*void dump_compilation_error(peff::SharedPtr<slkc::Parser> parser, const slkc::CompilationError &error, int indent_level = 0) {
 	const slkc::Token *begin_token = parser->token_list.at(error.token_range.begin_index).get();
 	const slkc::Token *end_token = parser->token_list.at(error.token_range.end_index).get();
 
@@ -737,7 +741,7 @@ public:
 		fwrite(src, size, 1, stdout);
 		return true;
 	}
-};
+};*/
 
 int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
@@ -832,203 +836,194 @@ int main(int argc, char *argv[]) {
 			return EIO;
 		}
 
-		peff::SharedPtr<slkc::Document> document(peff::make_shared<slkc::Document>(peff::default_allocator(), peff::default_allocator()));
+		slkc::ast::Global global(peff::default_allocator());
 
-		peff::SharedPtr<slkc::FileSystemExternalModuleProvider> fs_external_mod_provider;
+		{
+			/*peff::SharedPtr<slkc::FileSystemExternalModuleProvider> fs_external_mod_provider;
 
-		if (!(fs_external_mod_provider = peff::make_shared<slkc::FileSystemExternalModuleProvider>(peff::default_allocator(), peff::default_allocator()))) {
-			print_error("Out of memory");
-			return ENOMEM;
-		}
-
-		for (auto &i : include_dirs) {
-			if (!fs_external_mod_provider->import_paths.push_back(std::move(i))) {
+			if (!(fs_external_mod_provider = peff::make_shared<slkc::FileSystemExternalModuleProvider>(peff::default_allocator(), peff::default_allocator()))) {
 				print_error("Out of memory");
 				return ENOMEM;
 			}
-		}
 
-		include_dirs.clear_and_shrink();
-
-		if (!document->external_module_providers.push_back(fs_external_mod_provider.cast_to<slkc::ExternalModuleProvider>())) {
-			print_error("Out of memory");
-			return ENOMEM;
-		}
-
-		slkc::NodePtr<slkc::ModuleNode> mod;
-		if (!(mod = slkc::make_ast_node<slkc::ModuleNode>(peff::default_allocator(), peff::default_allocator(), document))) {
-			print_error("Error allocating memory for the target module");
-			return ENOMEM;
-		}
-		if (!mod->alloc_scope()) {
-			print_error("Error allocating memory for the target module");
-			return ENOMEM;
-		}
-		mod->access_modifier = slake::make_access_modifier(slake::AccessMode::Public, slake::ACCESS_STATIC);
-
-		document->main_module = mod.get();
-
-		slkc::TokenList token_list(peff::default_allocator());
-		{
-			slkc::Lexer lexer(peff::default_allocator());
-
-			std::string_view sv(buf.get(), file_size);
-
-			if (auto e = lexer.lex(mod.get(), sv, peff::default_allocator(), document); e) {
-				dump_lexical_error(*e);
-				return -1;
+			for (auto &i : include_dirs) {
+				if (!fs_external_mod_provider->import_paths.push_back(std::move(i))) {
+					print_error("Out of memory");
+					return ENOMEM;
+				}
 			}
 
-			token_list = std::move(lexer.token_list);
-		}
+			include_dirs.clear_and_shrink();
 
-		std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
-			slake::Runtime::alloc(peff::default_allocator(), peff::default_allocator()));
-		if (!runtime) {
-			print_error("Error allocating memory for the runtime");
-			return ENOMEM;
-		}
-		{
+			if (!document->external_module_providers.push_back(fs_external_mod_provider.cast_to<slkc::ExternalModuleProvider>())) {
+				print_error("Out of memory");
+				return ENOMEM;
+			}*/
+
+			slkc::ast::AstNodePin<slkc::ast::ModuleNode> mod;
+			if (!(mod = slkc::ast::make_ast_node<slkc::ast::ModuleNode>(&global))) {
+				print_error("Error allocating memory for the target module");
+				return ENOMEM;
+			}
+
+			slkc::ast::TokenList token_list(peff::default_allocator());
 			{
-				peff::SharedPtr<slkc::Parser> parser;
-				if (!(parser = peff::make_shared<slkc::Parser>(peff::default_allocator(), document, std::move(token_list), peff::default_allocator()))) {
-					print_error("Error allocating memory for the parser");
-					return ENOMEM;
+				slkc::ast::Lexer lexer(peff::default_allocator());
+
+				std::string_view sv(buf.get(), file_size);
+
+				if (auto e = lexer.lex(&global, mod.get_index(), sv, peff::default_allocator()); e) {
+					dump_lexical_error(*e);
+					return -1;
 				}
 
-				slkc::NodePtr<slkc::ModuleNode> root_mod;
-				if (!(root_mod = slkc::make_ast_node<slkc::ModuleNode>(peff::default_allocator(), peff::default_allocator(), document))) {
-					print_error("Error allocating memory for the root module");
-					return ENOMEM;
-				}
-				if (!root_mod->alloc_scope()) {
-					print_error("Error allocating memory for the root module");
-					return ENOMEM;
-				}
-				root_mod->access_modifier = slake::make_access_modifier(slake::AccessMode::Public, slake::ACCESS_STATIC);
-				document->root_module = root_mod;
+				token_list = std::move(lexer.token_list);
+			}
 
-				slkc::IdRefPtr module_name;
-
-				bool encountered_errors = false;
-				if (auto e = parser->parse(mod, module_name); e) {
-					encountered_errors = true;
-					dump_syntax_error(parser.get(), *e);
-				}
-
-				for (auto &i : parser->syntax_warnings) {
-					dump_syntax_warning(parser.get(), i);
-				}
-
-				for (auto &i : parser->syntax_errors) {
-					encountered_errors = true;
-					dump_syntax_error(parser.get(), i);
-				}
-
-				slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
-				if (module_name) {
-					if (auto e = complete_parent_modules(&compile_env, module_name.get(), mod); e) {
-						encountered_errors = true;
-						dump_compilation_error(parser, *e);
+			std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
+				slake::Runtime::alloc(peff::default_allocator(), peff::default_allocator()));
+			if (!runtime) {
+				print_error("Error allocating memory for the runtime");
+				return ENOMEM;
+			}
+			{
+				{
+					peff::SharedPtr<slkc::ast::Parser> parser;
+					if (!(parser = peff::make_shared<slkc::ast::Parser>(peff::default_allocator(), &global, std::move(token_list), peff::default_allocator()))) {
+						print_error("Error allocating memory for the parser");
+						return ENOMEM;
 					}
-				}
 
-				slake::HostObjectRef<slake::ModuleObject> mod_obj;
+					slkc::ast::OwnedIdRef module_name(global.get_allocator());
 
-				if (module_name) {
-					mod_obj = slake::ModuleObject::alloc(runtime.get());
-					mod_obj->set_access(slake::make_access_modifier(slake::AccessMode::Public, slake::ACCESS_STATIC));
+					slkc::ast::GreenNodePin root_module_tree = slkc::ast::make_green_node(&global);
+					if (!root_module_tree) {
+						print_error("Error allocating memory for the root module's tree");
+						return ENOMEM;
+					}
 
-					slake::HostObjectRef<slake::ModuleObject> last_module = runtime->get_root_object();
+					bool encountered_errors = false;
+					if (auto e = parser->parse(root_module_tree); e) {
+						encountered_errors = true;
+						dump_syntax_error(parser.get(), *e);
+					}
 
-					for (size_t i = 0; i < module_name->entries.size() - 1; ++i) {
-						slkc::IdRefEntry &e = module_name->entries.at(i);
+					for (auto &i : parser->syntax_warnings) {
+						dump_syntax_warning(parser.get(), i);
+					}
 
-						if (auto cur_mod = last_module->get_member(e.name); cur_mod) {
-							last_module = (slake::ModuleObject *)cur_mod.as_object;
+					for (auto &i : parser->syntax_errors) {
+						encountered_errors = true;
+						dump_syntax_error(parser.get(), i);
+					}
 
-							continue;
+					printf("Text width: %zu\n", root_module_tree->text_width);
+
+					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
+					if (module_name) {
+						if (auto e = complete_parent_modules(&compile_env, module_name.get(), mod); e) {
+							encountered_errors = true;
+							dump_compilation_error(parser, *e);
 						}
+					}
 
-						slake::HostObjectRef<slake::ModuleObject> cur_module;
+					slake::HostObjectRef<slake::ModuleObject> mod_obj;
 
-						if (!(cur_module = slake::ModuleObject::alloc(runtime.get()))) {
-							puts("Error dumping compiled module!");
-						}
+					if (module_name) {
+						mod_obj = slake::ModuleObject::alloc(runtime.get());
+						mod_obj->set_access(slake::make_access_modifier(slake::AccessMode::Public, slake::ACCESS_STATIC));
 
-						if (!cur_module->set_name(e.name)) {
-							puts("Error dumping compiled module!");
-						}
+						slake::HostObjectRef<slake::ModuleObject> last_module = runtime->get_root_object();
 
-						if (last_module) {
-							if (!last_module->add_member(cur_module.get())) {
+						for (size_t i = 0; i < module_name->entries.size() - 1; ++i) {
+							slkc::IdRefEntry &e = module_name->entries.at(i);
+
+							if (auto cur_mod = last_module->get_member(e.name); cur_mod) {
+								last_module = (slake::ModuleObject *)cur_mod.as_object;
+
+								continue;
+							}
+
+							slake::HostObjectRef<slake::ModuleObject> cur_module;
+
+							if (!(cur_module = slake::ModuleObject::alloc(runtime.get()))) {
 								puts("Error dumping compiled module!");
 							}
-							cur_module->set_parent(last_module.get());
+
+							if (!cur_module->set_name(e.name)) {
+								puts("Error dumping compiled module!");
+							}
+
+							if (last_module) {
+								if (!last_module->add_member(cur_module.get())) {
+									puts("Error dumping compiled module!");
+								}
+								cur_module->set_parent(last_module.get());
+							}
+
+							last_module = cur_module;
 						}
 
-						last_module = cur_module;
-					}
+						if (!mod_obj->set_name(module_name->entries.back().name)) {
+							puts("Error dumping compiled module!");
+						}
 
-					if (!mod_obj->set_name(module_name->entries.back().name)) {
-						puts("Error dumping compiled module!");
-					}
+						if (!last_module->add_member(mod_obj.get())) {
+							puts("Error dumping compiled module!");
+						}
+						mod_obj->set_parent(last_module.get());
+					} else
+						mod_obj = runtime->get_root_object();
 
-					if (!last_module->add_member(mod_obj.get())) {
-						puts("Error dumping compiled module!");
-					}
-					mod_obj->set_parent(last_module.get());
-				} else
-					mod_obj = runtime->get_root_object();
-
-				if (auto e = slkc::compile_module_like_node(&compile_env, mod, mod_obj.get()); e) {
-					encountered_errors = true;
-					dump_compilation_error(parser, *e);
-				}
-
-				// Sort errors in order.
-				std::sort(compile_env.errors.data(), compile_env.errors.data() + compile_env.errors.size());
-
-				for (auto &i : compile_env.warnings) {
-					dump_compilation_warning(parser, i);
-				}
-
-				for (auto &i : compile_env.errors) {
-					encountered_errors = true;
-					dump_compilation_error(parser, i);
-				}
-
-				if (!encountered_errors) {
-					FILE *fp;
-
-					if (!(fp = fopen(g_output_file_name, "wb"))) {
-						print_error("Error opening the output file");
-					}
-					FileWriter w(fp);
-					if (auto e = slkc::dump_module(peff::default_allocator(), &w, mod_obj.get())) {
+					if (auto e = slkc::compile_module_like_node(&compile_env, mod, mod_obj.get()); e) {
 						encountered_errors = true;
 						dump_compilation_error(parser, *e);
 					}
 
-					ANSIDumpWriter dump_writer;
-					slkc::Decompiler decompiler;
+					// Sort errors in order.
+					std::sort(compile_env.errors.data(), compile_env.errors.data() + compile_env.errors.size());
 
-					// decompiler.dump_cfg = true;
-
-					if (!decompiler.decompile_module(peff::default_allocator(), &dump_writer, mod_obj.get())) {
-						puts("Error dumping compiled module!");
+					for (auto &i : compile_env.warnings) {
+						dump_compilation_warning(parser, i);
 					}
-				}
-			}
 
-			// The document must be cleared manually at the end or the memory will leak!
-			document->root_module.reset();
-			document->generic_cache_dir.clear();
-			document->external_module_providers.clear_and_shrink();
-			mod.reset();
-			fs_external_mod_provider.reset();
-			// document->clear_deferred_destructible_ast_nodes();
-			document.reset();
+					for (auto &i : compile_env.errors) {
+						encountered_errors = true;
+						dump_compilation_error(parser, i);
+					}
+
+					if (!encountered_errors) {
+						FILE *fp;
+
+						if (!(fp = fopen(g_output_file_name, "wb"))) {
+							print_error("Error opening the output file");
+						}
+						FileWriter w(fp);
+						if (auto e = slkc::dump_module(peff::default_allocator(), &w, mod_obj.get())) {
+							encountered_errors = true;
+							dump_compilation_error(parser, *e);
+						}
+
+						ANSIDumpWriter dump_writer;
+						slkc::Decompiler decompiler;
+
+						// decompiler.dump_cfg = true;
+
+						if (!decompiler.decompile_module(peff::default_allocator(), &dump_writer, mod_obj.get())) {
+							puts("Error dumping compiled module!");
+						}
+					}*/
+				}
+
+				// The document must be cleared manually at the end or the memory will leak!
+				/*document->root_module.reset();
+				document->generic_cache_dir.clear();
+				document->external_module_providers.clear_and_shrink();
+				mod.reset();
+				fs_external_mod_provider.reset();
+				// document->clear_deferred_destructible_ast_nodes();
+				document.reset();*/
+			}
 		}
 	}
 

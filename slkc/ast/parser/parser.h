@@ -259,7 +259,7 @@ namespace slkc {
 
 			Global *global;
 
-			NodePtr<NodeIndex> module_node;
+			AstNodePtr<AstNodeIndex> module_node;
 			TokenList token_list;
 
 			struct ParseContext {
@@ -286,13 +286,13 @@ namespace slkc {
 				Keep
 			};
 
-			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 			SLKC_API void next_token();
-			SLKC_API peff::Option<SyntaxError> collect_token(const RGNodePin &parent_node);
+			SLKC_API peff::Option<SyntaxError> collect_token(const GreenNodePin &parent_node);
 			SLKC_API Token *peek_token(TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
-			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
-			SLKC_API peff::Option<SyntaxError> collect_and_expect_token(const RGNodePin &parent_node, TokenKind token_kind, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
-			SLKC_API peff::Option<SyntaxError> collect_to_cur_token(const RGNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_and_expect_token(const GreenNodePin &parent_node, TokenKind token_kind, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
+			SLKC_API peff::Option<SyntaxError> collect_to_cur_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 
 			[[nodiscard]] SLAKE_FORCEINLINE peff::Option<SyntaxError> expect_token(Token *token, TokenKind token_kind) {
 				if (token->token_id != token_kind) {
@@ -324,49 +324,49 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding(RGNodePin parent, RGNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding_list(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_args(const RGNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(const RGNodePin &args_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, const GreenNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(peff::Alloc *allocator, const GreenNodePin &args_node_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(RGNodePin parent, RGNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(const RGNodePin &id_ref_entry_node_out, bool requires_generic_distinguisher);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(const RGNodePin &id_ref_node_out, bool requires_generic_distinguisher);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(peff::Alloc *allocator, const GreenNodePin &id_ref_entry_node_out, bool requires_generic_distinguisher);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(peff::Alloc *allocator, const GreenNodePin &id_ref_node_out, bool requires_generic_distinguisher);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(RGNodePin parent, RGNodePin *node_pin_out, int precedence);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, int precedence);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_inheritance_slot(RGNodePin parent, RGNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(RGNodePin parent, RGNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_inheritance_slot(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(const RGNodePin &parent_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(peff::Alloc *allocator, const GreenNodePin &parent_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(const RGNodePin &fn_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(peff::Alloc *allocator, const GreenNodePin &fn_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_class(const RGNodePin &cls_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_class(peff::Alloc *allocator, const GreenNodePin &cls_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_interface(const RGNodePin &interface_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_interface(peff::Alloc *allocator, const GreenNodePin &interface_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_trait(const RGNodePin &trait_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_trait(peff::Alloc *allocator, const GreenNodePin &trait_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_except(const RGNodePin &except_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_except(peff::Alloc *allocator, const GreenNodePin &except_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_struct(const RGNodePin &struct_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_struct(peff::Alloc *allocator, const GreenNodePin &struct_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_const_enum(const RGNodePin &enum_node);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_scoped_enum(const RGNodePin &enum_node);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_const_and_scoped_enum_item(RGNodePin parent, RGNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum(const RGNodePin &enum_node);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_case(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_const_enum(peff::Alloc *allocator, const GreenNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_scoped_enum(peff::Alloc *allocator, const GreenNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_const_and_scoped_enum_item(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum(peff::Alloc *allocator, const GreenNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_case(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(peff::Alloc *allocator, const GreenNodePin &module_node);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_program(const RGNodePin &module_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_program(peff::Alloc *allocator, const GreenNodePin &module_node);
 
 		public:
-			[[nodiscard]] SLKC_API peff::Option<SyntaxError> parse(const RGNodePin &module_node);
+			[[nodiscard]] SLKC_API peff::Option<SyntaxError> parse(const GreenNodePin &module_node);
 		};
 	}
 }
@@ -374,23 +374,27 @@ namespace slkc {
 #define SLKC_CO_RETURN_IF_PARSE_ERROR(expr)          \
 	do {                                             \
 		if (peff::Option<SyntaxError> _ = (expr); _) \
-			co_return std::move(_);                  \
+			co_return std::move(_).value();          \
 	} while (0)
 
 #define SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(expr)                \
 	do {                                                      \
 		if (peff::Option<SyntaxError> _ = co_await (expr); _) \
-			co_return std::move(_);                           \
+			co_return std::move(_).value();                   \
 	} while (0)
 
 #define SLKC_RETURN_IF_PARSE_ERROR(expr)             \
 	do {                                             \
 		if (peff::Option<SyntaxError> _ = (expr); _) \
-			return std::move(_);                     \
+			return std::move(_).value();             \
 	} while (0)
 
-#define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode) \
-	if (!(dest)->push_child(subnode))                       \
-	co_return gen_oom_syntax_error()
+#define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode, ...) \
+	if (!(dest)->push_child(subnode))                            \
+		co_return gen_oom_syntax_error();                        \
+	peff::ScopeGuard push_rgnode_text_width_guard_##__VA_ARGS__( \
+		[&dest, &subnode]() noexcept {                           \
+			dest->text_width += subnode->text_width;             \
+		})
 
 #endif

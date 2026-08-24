@@ -74,7 +74,7 @@ SLKC_API GenericParamNode::GenericParamNode(Global *global)
 SLKC_API GenericParamNode::GenericParamNode(
 	const GenericParamNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  generic_constraint(context.get_global()),
@@ -183,7 +183,7 @@ SLKC_API ClassNode::ClassNode(Global *global)
 SLKC_API ClassNode::ClassNode(
 	const ClassNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_class_keyword(other.sti_class_keyword),
@@ -290,7 +290,7 @@ SLKC_API InterfaceNode::InterfaceNode(Global *global)
 SLKC_API InterfaceNode::InterfaceNode(
 	const InterfaceNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_interface_keyword(other.sti_interface_keyword),
@@ -354,7 +354,7 @@ SLKC_API ExceptNode::ExceptNode(Global *global)
 SLKC_API ExceptNode::ExceptNode(
 	const ExceptNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_except_keyword(other.sti_except_keyword),
@@ -407,7 +407,7 @@ SLKC_API TraitNode::TraitNode(Global *global)
 SLKC_API TraitNode::TraitNode(
 	const TraitNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_trait_keyword(other.sti_trait_keyword),
@@ -509,7 +509,7 @@ SLKC_API StructNode::StructNode(Global *global)
 SLKC_API StructNode::StructNode(
 	const StructNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_struct_keyword(other.sti_struct_keyword),
@@ -537,6 +537,8 @@ SLKC_API StructNode::~StructNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(StructNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ConstEnumNode);
 
 SLKC_API DumpResult ConstEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
@@ -578,7 +580,7 @@ SLKC_API ConstEnumNode::ConstEnumNode(Global *global)
 SLKC_API ConstEnumNode::ConstEnumNode(
 	const ConstEnumNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_const_keyword(other.sti_const_keyword),
@@ -594,6 +596,8 @@ SLKC_API ConstEnumNode::~ConstEnumNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ConstEnumNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ScopedEnumNode);
 
 SLKC_API DumpResult ScopedEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
@@ -630,7 +634,7 @@ SLKC_API ScopedEnumNode::ScopedEnumNode(Global *global)
 SLKC_API ScopedEnumNode::ScopedEnumNode(
 	const ScopedEnumNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_enum_keyword(other.sti_enum_keyword),
@@ -645,6 +649,8 @@ SLKC_API ScopedEnumNode::~ScopedEnumNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ScopedEnumNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(UnionEnumNode);
 
 SLKC_API DumpResult UnionEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
@@ -691,7 +697,7 @@ SLKC_API UnionEnumNode::UnionEnumNode(Global *global)
 SLKC_API UnionEnumNode::UnionEnumNode(
 	const UnionEnumNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_enum_keyword(other.sti_enum_keyword),
@@ -707,6 +713,8 @@ SLKC_API UnionEnumNode::~UnionEnumNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnionEnumNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(AttributeNode);
 
 SLKC_API DumpResult AttributeNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
@@ -743,7 +751,7 @@ SLKC_API AttributeNode::AttributeNode(Global *global)
 SLKC_API AttributeNode::AttributeNode(
 	const AttributeNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_attribute_keyword(other.sti_attribute_keyword),
@@ -758,6 +766,8 @@ SLKC_API AttributeNode::~AttributeNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AttributeNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ImportNode);
 
 SLKC_API DumpResult ImportNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
@@ -785,7 +795,7 @@ SLKC_API ImportNode::ImportNode(Global *global)
 SLKC_API ImportNode::ImportNode(
 	const ImportNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
 	  sti_import_keyword(other.sti_import_keyword),

@@ -8,24 +8,24 @@
 
 namespace slkc {
 	namespace ast {
-		using NodeIndex = uint64_t;
-		using RGNodeIndex = uint64_t;
+		using AstNodeIndex = uint64_t;
+		using GreenNodeIndex = uint64_t;
 		using TokenIndex = uint32_t;
 		using TokenKind = uint32_t;
-		using TokenSubkind = uint32_t;
+		using TextWidth = size_t;
 
-		constexpr NodeIndex INVALID_NODE_INDEX = (std::numeric_limits<NodeIndex>::max)();
-		constexpr RGNodeIndex INVALID_RGNODE_INDEX = (std::numeric_limits<RGNodeIndex>::max)();
+		constexpr AstNodeIndex INVALID_AST_NODE_INDEX = (std::numeric_limits<AstNodeIndex>::max)();
+		constexpr GreenNodeIndex INVALID_GREEN_NODE_INDEX = (std::numeric_limits<GreenNodeIndex>::max)();
 		constexpr TokenIndex INVALID_TOKEN_INDEX = (std::numeric_limits<TokenIndex>::max)();
 
 		struct TokenRange {
-			NodeIndex source_node;
+			AstNodeIndex source_node;
 			TokenIndex begin, end;
 
 			TokenRange() = default;
-			SLAKE_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex begin, TokenIndex end)
+			SLAKE_FORCEINLINE TokenRange(AstNodeIndex source_node, TokenIndex begin, TokenIndex end)
 				: source_node(source_node), begin(begin), end(end) {}
-			SLAKE_FORCEINLINE TokenRange(NodeIndex source_node, TokenIndex index)
+			SLAKE_FORCEINLINE TokenRange(AstNodeIndex source_node, TokenIndex index)
 				: source_node(source_node), begin(index), end(index) {}
 		};
 

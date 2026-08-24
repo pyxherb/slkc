@@ -3,14 +3,14 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin_out, int precedence) {
+SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, int precedence) {
 	Token *token;
-	RGNodePin lhs, rhs;
+	GreenNodePin lhs, rhs;
 
-	if (!(lhs = make_rg_node(get_global())))
+	if (!(lhs = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
 
-	lhs->node_kind = RGNodeKind::Expr;
+	lhs->node_kind = GreenNodeKind::Expr;
 
 	peff::ScopeGuard sg([&lhs, &parent, node_pin_out]() noexcept {
 		if (parent)
@@ -19,172 +19,169 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 			*node_pin_out = lhs;
 	});
 
-	if (parent) {
-		if (!(parent->push_child({}))) {
-			sg.release();
-			co_return gen_oom_syntax_error();
-		}
-	} else
+	if (!(parent->push_child({}))) {
 		sg.release();
+		co_return gen_oom_syntax_error();
+	}
 
 	switch ((token = peek_token())->token_id) {
 		case TokenId::ThisKeyword:
 		case TokenId::ScopeOp:
 		case TokenId::Id: {
-			lhs->exdata = ExprRGNodeExData(RGExprKind::IdRef);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::IdRef);
 
-			RGNodePin inner_id_ref;
-			if (!(inner_id_ref = make_rg_node(get_global())))
+			GreenNodePin inner_id_ref;
+			if (!(inner_id_ref = make_green_node(get_global())))
 				co_return gen_oom_syntax_error();
 			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, inner_id_ref);
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(inner_id_ref, true)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(allocator, inner_id_ref, true)(this));
 
 			break;
 		}
 		case TokenId::LParenthesis: {
-			lhs->exdata = ExprRGNodeExData(RGExprKind::Group);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Group);
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, -10)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, -10)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
 			break;
 		}
 		case TokenId::NewKeyword: {
-			lhs->exdata = ExprRGNodeExData(RGExprKind::New);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::New);
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(lhs, nullptr)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(allocator, lhs, nullptr)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LParenthesis));
 
-			RGNodePin args;
+			GreenNodePin args;
 
-			if (!(args = make_rg_node(get_global())))
+			if (!(args = make_green_node(get_global())))
 				co_return gen_oom_syntax_error();
 
 			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(args, TokenId::RParenthesis, TokenId::Comma)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
 			break;
 		}
 		case TokenId::I8Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::I8Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::I8Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::I16Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::I16Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::I16Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::I32Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::I32Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::I32Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::I64Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::I64Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::I64Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::U8Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::U8Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::U8Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::U16Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::U16Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::U16Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::U32Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::U32Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::U32Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::U64Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::U64Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::U64Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::F32Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::F32Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::F32Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::F64Literal:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::F64Literal);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::F64Literal);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::StringLiteral:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::StringLiteral);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::StringLiteral);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::TrueKeyword:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::BoolLiteral);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::BoolLiteral);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::FalseKeyword:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::BoolLiteral);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::BoolLiteral);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::NullKeyword:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::NullLiteral);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::NullLiteral);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::LBrace:
-			lhs->exdata = ExprRGNodeExData(RGExprKind::InitializerList);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::InitializerList);
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBrace));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(lhs, TokenId::RBrace, TokenId::Comma)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, lhs, TokenId::RBrace, TokenId::Comma)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBrace));
 			break;
 		case TokenId::VarArg:
-			lhs->exdata = ExprRGNodeExData(RGUnaryExprOp::Unpacking);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::Unpacking);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::SubOp:
-			lhs->exdata = ExprRGNodeExData(RGUnaryExprOp::Neg);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::Neg);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::AddOp:
-			lhs->exdata = ExprRGNodeExData(RGUnaryExprOp::Move);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::Move);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::NotOp:
-			lhs->exdata = ExprRGNodeExData(RGUnaryExprOp::Not);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::Not);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::LNotOp:
-			lhs->exdata = ExprRGNodeExData(RGUnaryExprOp::LNot);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::LNot);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
 		case TokenId::MatchKeyword: {
-			lhs->exdata = ExprRGNodeExData(RGExprKind::Match);
+			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Match);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LParenthesis));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBrace));
 
 			while (true) {
-				RGNodePin case_node;
+				GreenNodePin case_node;
 
-				if (!(case_node = make_rg_node(get_global())))
+				if (!(case_node = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, case_node);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node, TokenId::CaseKeyword));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(case_node, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, case_node, nullptr, 0)(this));
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node, TokenId::Colon));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(case_node, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, case_node, nullptr, 0)(this));
 
 				if ((token = peek_token())->token_id == TokenId::RBrace)
 					break;
@@ -218,13 +215,13 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 				if (precedence > 140)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGExprKind::Call);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Call);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
@@ -232,14 +229,14 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LParenthesis));
 
-				RGNodePin args;
+				GreenNodePin args;
 
-				if (!(args = make_rg_node(get_global())))
+				if (!(args = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(args, TokenId::RParenthesis, TokenId::Comma)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
 				break;
@@ -248,13 +245,13 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 				if (precedence > 140)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGExprKind::Subscript);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Subscript);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
@@ -262,14 +259,14 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBracket));
 
-				RGNodePin args;
+				GreenNodePin args;
 
-				if (!(args = make_rg_node(get_global())))
+				if (!(args = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_subscript_args(args)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_subscript_args(allocator, args)(this));
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBracket));
 				break;
@@ -278,674 +275,674 @@ SLKC_API ParseCoroutine Parser::parse_expr(RGNodePin parent, RGNodePin *node_pin
 				if (precedence > 140)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGExprKind::HeadedIdRef);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::HeadedIdRef);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				RGNodePin inner_id_ref;
-				if (!(inner_id_ref = make_rg_node(get_global())))
+				GreenNodePin inner_id_ref;
+				if (!(inner_id_ref = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, inner_id_ref);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, inner_id_ref, 1);
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(inner_id_ref, true)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(allocator, inner_id_ref, true)(this));
 				break;
 			}
 			case TokenId::AsKeyword: {
 				if (precedence > 130)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGExprKind::Cast);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Cast);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(lhs, nullptr)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(allocator, lhs, nullptr)(this));
 				break;
 			}
 			case TokenId::MulOp: {
 				if (precedence > 120)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Mul);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Mul);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 121)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 121)(this));
 				break;
 			}
 			case TokenId::DivOp: {
 				if (precedence > 120)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Div);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Div);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 121)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 121)(this));
 				break;
 			}
 			case TokenId::ModOp: {
 				if (precedence > 120)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Mod);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Mod);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 121)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 121)(this));
 				break;
 			}
 			case TokenId::AddOp: {
 				if (precedence > 110)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Mul);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Mul);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 111)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 111)(this));
 				break;
 			}
 			case TokenId::SubOp: {
 				if (precedence > 120)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Sub);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Sub);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 111)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 111)(this));
 				break;
 			}
 			case TokenId::ShlOp: {
 				if (precedence > 100)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Mul);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Mul);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 101)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 101)(this));
 				break;
 			}
 			case TokenId::ShrOp: {
 				if (precedence > 100)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Mul);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Mul);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 101)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 101)(this));
 				break;
 			}
 			case TokenId::CmpOp: {
 				if (precedence > 90)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Cmp);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Cmp);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 91)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 91)(this));
 				break;
 			}
 			case TokenId::GtOp: {
 				if (precedence > 80)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Gt);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Gt);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 81)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 81)(this));
 				break;
 			}
 			case TokenId::GtEqOp: {
 				if (precedence > 80)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::GtEq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::GtEq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 81)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 81)(this));
 				break;
 			}
 			case TokenId::LtOp: {
 				if (precedence > 80)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Lt);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Lt);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 81)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 81)(this));
 				break;
 			}
 			case TokenId::LtEqOp: {
 				if (precedence > 80)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::LtEq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::LtEq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 81)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 81)(this));
 				break;
 			}
 			case TokenId::EqOp: {
 				if (precedence > 70)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Eq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Eq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 71)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 71)(this));
 				break;
 			}
 			case TokenId::NeqOp: {
 				if (precedence > 70)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Neq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Neq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 71)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 71)(this));
 				break;
 			}
 			case TokenId::StrictEqOp: {
 				if (precedence > 70)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Eq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Eq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 71)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 71)(this));
 				break;
 			}
 			case TokenId::StrictNeqOp: {
 				if (precedence > 70)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Neq);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Neq);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 71)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 71)(this));
 				break;
 			}
 			case TokenId::AndOp: {
 				if (precedence > 60)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::And);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::And);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 61)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 61)(this));
 				break;
 			}
 			case TokenId::XorOp: {
 				if (precedence > 50)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Xor);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Xor);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 51)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 51)(this));
 				break;
 			}
 			case TokenId::OrOp: {
 				if (precedence > 40)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Or);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Or);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 41)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 41)(this));
 				break;
 			}
 			case TokenId::LAndOp: {
 				if (precedence > 30)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::LAnd);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::LAnd);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 31)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 31)(this));
 				break;
 			}
 			case TokenId::LOrOp: {
 				if (precedence > 20)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::LOr);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::LOr);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 21)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 21)(this));
 				break;
 			}
 			case TokenId::Question: {
 				if (precedence > 10)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGExprKind::Ternary);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Ternary);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 10)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 10)(this));
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::Colon));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 10)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 10)(this));
 				break;
 			}
 			case TokenId::AssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::Assign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::Assign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::AddAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::AddAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::AddAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::SubAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::SubAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::SubAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::MulAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::MulAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::MulAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::DivAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::DivAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::DivAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::ModAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::ModAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::ModAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::AndAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::AndAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::AndAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::OrAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::OrAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::OrAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::XorAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::XorAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::XorAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::ShlAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::ShlAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::ShlAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			case TokenId::ShrAssignOp: {
 				if (precedence > 1)
 					goto end;
 
-				RGNodePin old_lhs = std::move(lhs);
-				if (!(lhs = make_rg_node(get_global())))
+				GreenNodePin old_lhs = std::move(lhs);
+				if (!(lhs = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				lhs->node_kind = RGNodeKind::Expr;
+				lhs->node_kind = GreenNodeKind::Expr;
 
-				lhs->exdata = ExprRGNodeExData(RGBinaryExprOp::ShrAssign);
+				lhs->exdata = ExprGreenNodeExData(GreenNodeBinaryExprOp::ShrAssign);
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(lhs, nullptr, 0)(this));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
 				break;
 			}
 			default:

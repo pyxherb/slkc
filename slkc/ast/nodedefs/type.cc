@@ -26,7 +26,7 @@ SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	const CustomTypeDefNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: Node(other, context, node_index),
 	  referred_name(context.get_global()->get_allocator()) {
@@ -70,7 +70,7 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	const ArrayTypeDefNode &other,
 	DuplicationContext &context,
-	NodeIndex node_index,
+	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: Node(other, context, node_index) {
 	{

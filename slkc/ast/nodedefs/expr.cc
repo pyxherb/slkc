@@ -28,7 +28,7 @@ SLKC_API ExprNode::ExprNode(ExprKind expr_kind, Global *global)
 	  _is_bad(false) {
 }
 
-SLKC_API ExprNode::ExprNode(const ExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API ExprNode::ExprNode(const ExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: Node(other, context, node_index),
 	  _expr_kind(other._expr_kind),
 	  _is_bad(other._is_bad) {
@@ -69,7 +69,7 @@ SLKC_API UnaryExprNode::UnaryExprNode(Global *global)
 	: ExprNode(ExprKind::Unary, global) {
 }
 
-SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  unary_op(other.unary_op),
 	  sti_operator(other.sti_operator) {
@@ -82,7 +82,7 @@ SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, DuplicationCon
 			error_out = std::move(result).error();
 			return;
 		}
-		operand = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		operand = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -137,7 +137,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(Global *global)
 	: ExprNode(ExprKind::Binary, global) {
 }
 
-SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  binary_op(other.binary_op),
 	  sti_operator_prefix(other.sti_operator_prefix),
@@ -152,7 +152,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, Duplication
 			error_out = std::move(result).error();
 			return;
 		}
-		lhs = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		lhs = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(other.rhs.get_index());
@@ -160,7 +160,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, Duplication
 			error_out = std::move(result).error();
 			return;
 		}
-		rhs = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		rhs = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -211,7 +211,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(Global *global)
 	: ExprNode(ExprKind::Ternary, global) {
 }
 
-SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  sti_operator_question(other.sti_operator_question),
 	  sti_operator_colon(other.sti_operator_colon) {
@@ -223,7 +223,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, Duplicat
 			error_out = std::move(result).error();
 			return;
 		}
-		condition = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		condition = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(other.true_branch.get_index());
@@ -231,7 +231,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, Duplicat
 			error_out = std::move(result).error();
 			return;
 		}
-		true_branch = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		true_branch = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 	{
 		auto result = context.push_task(other.false_branch.get_index());
@@ -239,7 +239,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, Duplicat
 			error_out = std::move(result).error();
 			return;
 		}
-		false_branch = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		false_branch = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 }
 
@@ -269,7 +269,7 @@ SLKC_API IdRefExprNode::IdRefExprNode(Global *global)
 	  id_ref(global->get_allocator()) {
 }
 
-SLKC_API IdRefExprNode::IdRefExprNode(const IdRefExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API IdRefExprNode::IdRefExprNode(const IdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  id_ref(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
@@ -319,7 +319,7 @@ SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(Global *global)
 	  id_ref(global->get_allocator()) {
 }
 
-SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  id_ref(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
@@ -331,7 +331,7 @@ SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &oth
 			error_out = std::move(result).error();
 			return;
 		}
-		head_expr = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		head_expr = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	auto result = id_ref.duplicate(context.get_global()->get_allocator());
@@ -372,7 +372,7 @@ SLKC_API I8LiteralExprNode::I8LiteralExprNode(Global *global, int8_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I8LiteralExprNode::I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API I8LiteralExprNode::I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -408,7 +408,7 @@ SLKC_API I16LiteralExprNode::I16LiteralExprNode(Global *global, int16_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I16LiteralExprNode::I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API I16LiteralExprNode::I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -444,7 +444,7 @@ SLKC_API I32LiteralExprNode::I32LiteralExprNode(Global *global, int32_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I32LiteralExprNode::I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API I32LiteralExprNode::I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -480,7 +480,7 @@ SLKC_API I64LiteralExprNode::I64LiteralExprNode(Global *global, int64_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I64LiteralExprNode::I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API I64LiteralExprNode::I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -516,7 +516,7 @@ SLKC_API U8LiteralExprNode::U8LiteralExprNode(Global *global, uint8_t literal)
 	  literal(literal) {
 }
 
-SLKC_API U8LiteralExprNode::U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API U8LiteralExprNode::U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -552,7 +552,7 @@ SLKC_API U16LiteralExprNode::U16LiteralExprNode(Global *global, uint16_t literal
 	  literal(literal) {
 }
 
-SLKC_API U16LiteralExprNode::U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API U16LiteralExprNode::U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -588,7 +588,7 @@ SLKC_API U32LiteralExprNode::U32LiteralExprNode(Global *global, uint32_t literal
 	  literal(literal) {
 }
 
-SLKC_API U32LiteralExprNode::U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API U32LiteralExprNode::U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -624,7 +624,7 @@ SLKC_API U64LiteralExprNode::U64LiteralExprNode(Global *global, uint64_t literal
 	  literal(literal) {
 }
 
-SLKC_API U64LiteralExprNode::U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API U64LiteralExprNode::U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -660,7 +660,7 @@ SLKC_API F32LiteralExprNode::F32LiteralExprNode(Global *global, float literal)
 	  literal(literal) {
 }
 
-SLKC_API F32LiteralExprNode::F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API F32LiteralExprNode::F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -696,7 +696,7 @@ SLKC_API F64LiteralExprNode::F64LiteralExprNode(Global *global, double literal)
 	  literal(literal) {
 }
 
-SLKC_API F64LiteralExprNode::F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API F64LiteralExprNode::F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -732,7 +732,7 @@ SLKC_API StringLiteralExprNode::StringLiteralExprNode(Global *global, GlobalShar
 	  literal(literal) {
 }
 
-SLKC_API StringLiteralExprNode::StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API StringLiteralExprNode::StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -768,7 +768,7 @@ SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(Global *global, bool literal)
 	  literal(literal) {
 }
 
-SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -798,7 +798,7 @@ SLKC_API NullLiteralExprNode::NullLiteralExprNode(Global *global)
 	: ExprNode(ExprKind::Null, global) {
 }
 
-SLKC_API NullLiteralExprNode::NullLiteralExprNode(const NullLiteralExprNode &other, DuplicationContext &context, NodeIndex node_index)
+SLKC_API NullLiteralExprNode::NullLiteralExprNode(const NullLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  sti_literal(other.sti_literal) {
 }
@@ -865,7 +865,7 @@ SLKC_API InitializerListExprNode::InitializerListExprNode(Global *global)
 	  sti_element_separators(global->get_allocator()) {
 }
 
-SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  elements(context.get_global()->get_allocator()),
 	  sti_left_brace(other.sti_left_brace),
@@ -884,7 +884,7 @@ SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListE
 			return;
 		}
 
-		elements[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		elements[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!sti_element_separators.build(other.sti_element_separators)) {
@@ -961,7 +961,7 @@ SLKC_API CallExprNode::CallExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
@@ -971,7 +971,7 @@ SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, DuplicationContex
 			error_out = std::move(result).error();
 			return;
 		}
-		target = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		target = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!args.resize(other.args.size())) {
@@ -987,7 +987,7 @@ SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, DuplicationContex
 			return;
 		}
 
-		args[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		args[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!sti_arg_separators.build(other.sti_arg_separators)) {
@@ -1064,7 +1064,7 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
@@ -1074,7 +1074,7 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, Du
 			error_out = std::move(result).error();
 			return;
 		}
-		target = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		target = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!args.resize(other.args.size())) {
@@ -1090,7 +1090,7 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, Du
 			return;
 		}
 
-		args[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		args[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!sti_arg_separators.build(other.sti_arg_separators)) {
@@ -1172,7 +1172,7 @@ SLKC_API NewExprNode::NewExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_new_keyword(other.sti_new_keyword),
@@ -1201,7 +1201,7 @@ SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, DuplicationContext &
 			return;
 		}
 
-		args[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		args[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!sti_arg_separators.build(other.sti_arg_separators)) {
@@ -1283,7 +1283,7 @@ SLKC_API AllocaExprNode::AllocaExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_alloca_keyword(other.sti_alloca_keyword),
@@ -1312,7 +1312,7 @@ SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, Duplication
 			return;
 		}
 
-		args[i] = NodePtr<ExprNode>(context.get_global(), std::move(result).value());
+		args[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 	}
 
 	if (!sti_arg_separators.build(other.sti_arg_separators)) {
@@ -1362,7 +1362,7 @@ SLKC_API CastExprNode::CastExprNode(Global *global)
 	: ExprNode(ExprKind::Null, global) {
 }
 
-SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  is_nullable(other.is_nullable),
 	  sti_as_keyword(other.sti_as_keyword),
@@ -1382,7 +1382,7 @@ SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, DuplicationContex
 			error_out = std::move(result).error();
 			return;
 		}
-		operand = NodePtr<ExprNode>(context.get_global(), result.value());
+		operand = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 }
 
@@ -1400,14 +1400,14 @@ SLKC_API peff::Result<MatchExprBranch, DuplicationError> MatchExprBranch::do_dup
 		auto result = context.push_task(pattern.get_index());
 		if (result.has_error())
 			return std::move(result).error();
-		branch.pattern = NodePtr<ExprNode>(context.get_global(), result.value());
+		branch.pattern = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 
 	{
 		auto result = context.push_task(result_value.get_index());
 		if (result.has_error())
 			return std::move(result).error();
-		branch.result_value = NodePtr<ExprNode>(context.get_global(), result.value());
+		branch.result_value = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 
 	branch.sti_case_keyword = sti_case_keyword;
@@ -1527,7 +1527,7 @@ SLKC_API MatchExprNode::MatchExprNode(Global *global)
 	  sti_case_separators(global->get_allocator()) {
 }
 
-SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  branches(context.get_global()->get_allocator()),
 	  sti_match_keyword(other.sti_match_keyword),
@@ -1541,7 +1541,7 @@ SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, DuplicationCon
 			error_out = std::move(result).error();
 			return;
 		}
-		condition = NodePtr<ExprNode>(context.get_global(), result.value());
+		condition = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 
 	{
@@ -1609,7 +1609,7 @@ SLKC_API GroupExprNode::GroupExprNode(Global *global)
 	: ExprNode(ExprKind::Group, global) {
 }
 
-SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, DuplicationContext &context, NodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  sti_left_parenthesis(other.sti_left_parenthesis),
 	  sti_right_parenthesis(other.sti_right_parenthesis) {
@@ -1619,7 +1619,7 @@ SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, DuplicationCon
 			error_out = std::move(result).error();
 			return;
 		}
-		operand = NodePtr<ExprNode>(context.get_global(), result.value());
+		operand = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 }
 

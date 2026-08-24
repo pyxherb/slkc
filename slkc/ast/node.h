@@ -72,7 +72,7 @@ namespace slkc {
 		struct DuplicationContext final {
 		private:
 			struct DuplicationTask {
-				NodeIndex dest, src;
+				AstNodeIndex dest, src;
 			};
 
 			Global *global;
@@ -83,7 +83,7 @@ namespace slkc {
 
 		public:
 			SLKC_API DuplicationContext(Global *global);
-			SLKC_API peff::Result<NodeIndex, DuplicationError> push_task(NodeIndex node_index) noexcept;
+			SLKC_API peff::Result<AstNodeIndex, DuplicationError> push_task(AstNodeIndex node_index) noexcept;
 			SLKC_API peff::Result<TypeName, DuplicationError> push_task(const TypeName &type_name) noexcept;
 
 			[[nodiscard]] SLKC_API bool push_post_run_hook(DuplicationContextHook *hook) noexcept;
@@ -96,7 +96,7 @@ namespace slkc {
 		struct DumpContext final {
 		private:
 			struct DumpTask {
-				NodeIndex src;
+				AstNodeIndex src;
 				wandjson::ObjectValue *dest;
 				bool deep;
 			};
@@ -111,7 +111,7 @@ namespace slkc {
 
 		public:
 			SLKC_API DumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
-			SLKC_API DumpResult push_task(wandjson::ObjectValue *dest, NodeIndex src, bool deep) noexcept;
+			SLKC_API DumpResult push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept;
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return global;
@@ -126,10 +126,10 @@ namespace slkc {
 		private:
 			Global *const _global;
 			const NodeType _ast_node_type;
-			NodeIndex _node_index = INVALID_NODE_INDEX;
+			AstNodeIndex _node_index = INVALID_AST_NODE_INDEX;
 
 		protected:
-			[[nodiscard]] virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, NodeIndex node_index) const noexcept = 0;
+			[[nodiscard]] virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept = 0;
 
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
@@ -137,7 +137,7 @@ namespace slkc {
 
 		public:
 			SLKC_API Node(NodeType ast_node_type, Global *global);
-			SLKC_API Node(const Node &other, DuplicationContext &context, NodeIndex node_index);
+			SLKC_API Node(const Node &other, DuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~Node();
 
 			virtual void dealloc() noexcept = 0;
@@ -150,11 +150,11 @@ namespace slkc {
 				return _global;
 			}
 
-			SLAKE_FORCEINLINE NodeIndex get_node_index() const noexcept {
+			SLAKE_FORCEINLINE AstNodeIndex get_node_index() const noexcept {
 				return _node_index;
 			}
-			
-			SLAKE_FORCEINLINE void set_node_index(NodeIndex node_index) noexcept {
+
+			SLAKE_FORCEINLINE void set_node_index(AstNodeIndex node_index) noexcept {
 				_node_index = node_index;
 			}
 		};
