@@ -341,10 +341,25 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(RGNodePin parent, RGNodePin *node_pin_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(RGNodePin parent, RGNodePin *node_pin_out);
 
+			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(const RGNodePin &parent_node);
+
 			[[nodiscard]] SLKC_API ParseCoroutine parse_fn(const RGNodePin &fn_node);
+
 			[[nodiscard]] SLKC_API ParseCoroutine parse_class(const RGNodePin &cls_node);
+
 			[[nodiscard]] SLKC_API ParseCoroutine parse_interface(const RGNodePin &interface_node);
+
 			[[nodiscard]] SLKC_API ParseCoroutine parse_trait(const RGNodePin &trait_node);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_except(const RGNodePin &except_node);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_struct(const RGNodePin &struct_node);
+
+			[[nodiscard]] SLKC_API ParseCoroutine parse_const_enum(const RGNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_scoped_enum(const RGNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_const_and_scoped_enum_item(RGNodePin parent, RGNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum(const RGNodePin &enum_node);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_union_enum_case(RGNodePin parent, RGNodePin *node_pin_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_program_stmt(const RGNodePin &module_node);
 

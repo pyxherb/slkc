@@ -13,6 +13,9 @@ namespace slkc {
 				/// @brief Invalid node type.
 				Invalid = 0x10000000,
 
+				/// @brief An operator name.
+				OperatorName,
+
 				/// @brief A type name.
 				TypeName,
 
@@ -78,20 +81,34 @@ namespace slkc {
 
 				/// @brief A class definition.
 				ClassDef,
+
 				/// @brief An interface definition.
 				InterfaceDef,
+
 				/// @brief A trait definition.
 				TraitDef,
+
 				/// @brief An exception definition.
 				ExceptDef,
+
 				/// @brief A struct definition.
 				StructDef,
-				/// @brief A constant enum definition.
+
+				/// @brief An unknown kind of enumeration declaration.
+				UnknownEnumDecl,
+
+				/// @brief A constant enumeration definition.
 				ConstEnumDef,
-				/// @brief A scoped enum definition.
+
+				/// @brief A scoped enumeration definition.
 				ScopedEnumDef,
-				/// @brief An union enum definition.
+
+				/// @brief A constant and scoped enumeration item.
+				ConstAndScopedEnumItem,
+
+				/// @brief An union enumeartion definition.
 				UnionEnumDef,
+
 				/// @brief An attribute definition.
 				AttributeDef,
 
