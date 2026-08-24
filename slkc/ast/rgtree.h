@@ -353,11 +353,11 @@ namespace slkc {
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_global && _ptr)
+				if (_global && (_green_node_index != INVALID_GREEN_NODE_INDEX))
 					_global->unpin_green_node(_green_node_index);
 			}
 
-			SLAKE_FORCEINLINE GreenNodePin() : _global(nullptr), _green_node_index(INVALID_AST_NODE_INDEX), _ptr(nullptr) {}
+			SLAKE_FORCEINLINE GreenNodePin() : _global(nullptr), _green_node_index(INVALID_GREEN_NODE_INDEX), _ptr(nullptr) {}
 			SLAKE_FORCEINLINE explicit GreenNodePin(Global *global, AstNodeIndex node_index, GreenNode *ptr) : _global(global), _green_node_index(node_index), _ptr(ptr) {
 			}
 			SLAKE_FORCEINLINE explicit GreenNodePin(PinFailReason reason) : _global(nullptr), _green_node_index(INVALID_GREEN_NODE_INDEX), _fail_reason(reason) {
@@ -365,12 +365,13 @@ namespace slkc {
 			SLAKE_FORCEINLINE ~GreenNodePin() {
 				reset();
 			}
-			SLAKE_FORCEINLINE GreenNodePin(const ThisType &rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index) {
+			SLAKE_FORCEINLINE GreenNodePin(const ThisType &rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index), _ptr(rhs._ptr) {
 				_global->pin_green_node(_green_node_index);
 			}
-			SLAKE_FORCEINLINE GreenNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index) {
+			SLAKE_FORCEINLINE GreenNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index), _ptr(rhs._ptr) {
 				rhs._global = nullptr;
 				rhs._green_node_index = INVALID_AST_NODE_INDEX;
+				rhs._ptr = nullptr;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
@@ -383,8 +384,10 @@ namespace slkc {
 				reset();
 				_global = rhs._global;
 				_green_node_index = rhs._green_node_index;
+				_ptr = rhs._ptr;
 				rhs._global = nullptr;
 				rhs._green_node_index = INVALID_AST_NODE_INDEX;
+				rhs._ptr = nullptr;
 
 				return *this;
 			}
@@ -467,8 +470,10 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE GreenNodePtr() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX) {}
-			SLAKE_FORCEINLINE GreenNodePtr(const GreenNodePin &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {}
-			SLAKE_FORCEINLINE explicit GreenNodePtr(Global *global, AstNodeIndex node_index) : _global(global), _node_index(node_index) {
+			SLAKE_FORCEINLINE GreenNodePtr(const GreenNodePin &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {
+				_global->ref_green_node(_node_index);
+			}
+			SLAKE_FORCEINLINE explicit GreenNodePtr(Global *global, GreenNodeIndex node_index) : _global(global), _node_index(node_index) {
 				global->ref_green_node(node_index);
 			}
 			SLAKE_FORCEINLINE ~GreenNodePtr() {
@@ -492,6 +497,7 @@ namespace slkc {
 				reset();
 				_global = rhs._global;
 				_node_index = rhs._node_index;
+				rhs._global = nullptr;
 				rhs._node_index = INVALID_AST_NODE_INDEX;
 
 				return *this;
@@ -518,7 +524,7 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE static GreenNodePtr from_pin(GreenNodePin pin) noexcept {
-				return GreenNodePtr(pin);
+				return GreenNodePtr(pin.get_global(), pin.get_index());
 			}
 
 			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
@@ -578,8 +584,9 @@ namespace slkc {
 			GreenNodeStmtKind stmt_kind;
 		};
 
-		struct GreenNode {
+		struct GreenNode final {
 		private:
+			GreenNode *_next_destructible = nullptr;
 			Global *_global;
 			AstNodeIndex _node_index;
 
@@ -622,11 +629,13 @@ namespace slkc {
 				peff::destroy_and_release<GreenNode>(global->get_allocator(), node, alignof(GreenNode));
 			});
 
-			auto result = global->map_green_node(node);
-			if (!result.has_value())
-				return GreenNodePin(PinFailReason::OutOfMemory);
-			if (result.value() == INVALID_AST_NODE_INDEX)
-				return GreenNodePin(PinFailReason::OutOfNodeIndex);
+			{
+				auto result = global->map_green_node(node);
+				if (!result.has_value())
+					return GreenNodePin(PinFailReason::OutOfMemory);
+				if (result.value() == INVALID_AST_NODE_INDEX)
+					return GreenNodePin(PinFailReason::OutOfNodeIndex);
+			}
 
 			{
 				auto result = global->pin_green_node(node->get_node_index());
@@ -634,6 +643,9 @@ namespace slkc {
 			}
 
 			sg.release();
+
+			if(node->get_node_index() == 2)
+				puts("");
 
 			return GreenNodePin(global, node->get_node_index(), node);
 		}

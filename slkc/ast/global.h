@@ -8,9 +8,8 @@
 namespace slkc {
 	namespace ast {
 		struct NodeRegistry final {
-			NodeRegistry *next_zero_ref = nullptr;
 			size_t ref_count = 0, pin_count = 0;
-			std::unique_ptr<Node, peff::DeallocableDeleter<Node>> in_memory;
+			AstNode *in_memory;
 			AstNodeIndex self_index;
 
 			SLAKE_FORCEINLINE NodeRegistry() {
@@ -20,13 +19,16 @@ namespace slkc {
 				rhs.ref_count = 0;
 				rhs.pin_count = 0;
 			}
+
+			SLKC_API ~NodeRegistry();
 		};
 
+		struct GreenNode;
+
 		struct GreenNodeRegistry final {
-			GreenNodeRegistry *next_zero_ref = nullptr;
 			size_t ref_count = 0, pin_count = 0;
 			// Use void* to avoid forward declaration issue.
-			void *in_memory = nullptr;
+			GreenNode *in_memory = nullptr;
 			AstNodeIndex self_index;
 
 			SLAKE_FORCEINLINE GreenNodeRegistry() {
@@ -74,8 +76,6 @@ namespace slkc {
 			OutOfNodeIndex,
 		};
 
-		struct GreenNode;
-
 		class Global final {
 		private:
 			peff::RcObjectPtr<peff::Alloc> resource_allocator;
@@ -84,12 +84,12 @@ namespace slkc {
 			std::mutex _shared_strings_mutex;
 
 			peff::Map<AstNodeIndex, NodeRegistry> _node_registries;
-			NodeRegistry *_zero_ref_node_registry_list = nullptr;
+			AstNode *_zero_ref_node_registry_list = nullptr;
 			std::recursive_mutex _node_registries_mutex;
 			AstNodeIndex _min_free_node_index = 0;
 
 			peff::Map<GreenNodeIndex, GreenNodeRegistry> _green_node_registries;
-			GreenNodeRegistry *_zero_ref_green_node_registry_list = nullptr;
+			GreenNode *_zero_ref_green_node_registry_list = nullptr;
 			std::recursive_mutex _green_node_registries_mutex;
 			GreenNodeIndex _min_free_green_node_index = 0;
 
@@ -107,8 +107,10 @@ namespace slkc {
 			[[nodiscard]] SLKC_API AstNodeIndex _alloc_ast_node_index() noexcept;
 			[[nodiscard]] SLKC_API GreenNodeIndex _alloc_green_node_index() noexcept;
 
-			SLKC_API void _add_ast_node_to_deferred_deleting_list(NodeRegistry *rgnode_registry) noexcept;
-			SLKC_API void _add_green_node_to_deferred_deleting_list(GreenNodeRegistry *rgnode_registry) noexcept;
+			SLKC_API void _add_ast_node_to_deferred_deleting_list(AstNode *node_registry) noexcept;
+			SLKC_API void _add_green_node_to_deferred_deleting_list(GreenNode *green_node_registry) noexcept;
+
+			friend struct GreenNodeRegistry;
 
 		public:
 			SLKC_API Global(peff::Alloc *allocator) noexcept;
@@ -123,7 +125,7 @@ namespace slkc {
 				++_node_registries.at(index).ref_count;
 			}
 			SLKC_API void unref_ast_node(AstNodeIndex index) noexcept;
-			SLKC_API peff::Result<Node *, PinFailReason> pin_ast_node(AstNodeIndex index) noexcept;
+			SLKC_API peff::Result<AstNode *, PinFailReason> pin_ast_node(AstNodeIndex index) noexcept;
 			SLKC_API void unpin_ast_node(AstNodeIndex index) noexcept;
 			///
 			/// @brief Allocate a node index and map a node object.
@@ -131,14 +133,14 @@ namespace slkc {
 			/// @param node
 			/// @return @c peff::NULLOPT if out of memory, @c INVALID_AST_NODE_INDEX if no slot.
 			///
-			[[nodiscard]] SLKC_API peff::Option<AstNodeIndex> map_ast_node(Node *node, AstNodeIndex node_index = INVALID_AST_NODE_INDEX) noexcept;
+			[[nodiscard]] SLKC_API peff::Option<AstNodeIndex> map_ast_node(AstNode *node, AstNodeIndex node_index = INVALID_AST_NODE_INDEX) noexcept;
 			///
 			/// @brief Remap an existed node index.
 			///
 			/// @param node_index Node index to be remapped.
 			/// @param node Node to be mapped to the memory.
 			///
-			SLKC_API void remap_ast_node(AstNodeIndex node_index, Node *node) noexcept;
+			SLKC_API void remap_ast_node(AstNodeIndex node_index, AstNode *node) noexcept;
 			SLKC_API void unmap_ast_node(AstNodeIndex node_index) noexcept;
 			SLKC_API peff::Result<AstNodeIndex, DuplicationError> duplicate_ast_node(AstNodeIndex node_index) noexcept;
 			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_ast_node(peff::Alloc *allocator, AstNodeIndex node_index) noexcept;

@@ -6,7 +6,7 @@ using namespace slkc::ast;
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CustomTypeDefNode);
 
 SLKC_API DumpResult CustomTypeDefNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
-	SLKC_RETURN_IF_DUMP_FAILED(Node::do_dump(dump_context, target_object, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
@@ -20,7 +20,7 @@ SLKC_API DumpResult CustomTypeDefNode::do_dump(DumpContext &dump_context, wandjs
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
-	: Node(NodeType::TypeNameDef, global), referred_name(global->get_allocator()) {
+	: AstNode(NodeType::TypeNameDef, global), referred_name(global->get_allocator()) {
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
@@ -28,7 +28,7 @@ SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	DuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: Node(other, context, node_index),
+	: AstNode(other, context, node_index),
 	  referred_name(context.get_global()->get_allocator()) {
 	{
 		auto result = other.referred_name.duplicate(context.get_global()->get_allocator());
@@ -50,7 +50,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CustomTypeDefNode);
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ArrayTypeDefNode);
 
 SLKC_API DumpResult ArrayTypeDefNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
-	SLKC_RETURN_IF_DUMP_FAILED(Node::do_dump(dump_context, target_object, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
@@ -64,7 +64,7 @@ SLKC_API DumpResult ArrayTypeDefNode::do_dump(DumpContext &dump_context, wandjso
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
-	: Node(NodeType::TypeNameDef, global) {
+	: AstNode(NodeType::TypeNameDef, global) {
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
@@ -72,7 +72,7 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	DuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: Node(other, context, node_index) {
+	: AstNode(other, context, node_index) {
 	{
 		auto element_type_result = context.push_task(other.element_type);
 		if (!element_type_result.has_error()) {

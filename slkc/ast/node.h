@@ -122,23 +122,24 @@ namespace slkc {
 			}
 		};
 
-		class Node {
+		class AstNode {
 		private:
+			AstNode *_next_destructible = nullptr;
 			Global *const _global;
 			const NodeType _ast_node_type;
 			AstNodeIndex _node_index = INVALID_AST_NODE_INDEX;
 
 		protected:
-			[[nodiscard]] virtual peff::Result<Node *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept = 0;
+			[[nodiscard]] virtual peff::Result<AstNode *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept = 0;
 
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
 			friend Global;
 
 		public:
-			SLKC_API Node(NodeType ast_node_type, Global *global);
-			SLKC_API Node(const Node &other, DuplicationContext &context, AstNodeIndex node_index);
-			SLKC_API virtual ~Node();
+			SLKC_API AstNode(NodeType ast_node_type, Global *global);
+			SLKC_API AstNode(const AstNode &other, DuplicationContext &context, AstNodeIndex node_index);
+			SLKC_API virtual ~AstNode();
 
 			virtual void dealloc() noexcept = 0;
 

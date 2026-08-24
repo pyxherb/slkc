@@ -5,7 +5,7 @@ using namespace slkc;
 using namespace slkc::ast;
 
 SLKC_API DumpResult ExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
-	SLKC_RETURN_IF_DUMP_FAILED(Node::do_dump(dump_context, target_object, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
@@ -23,13 +23,13 @@ SLKC_API DumpResult ExprNode::do_dump(DumpContext &dump_context, wandjson::Objec
 }
 
 SLKC_API ExprNode::ExprNode(ExprKind expr_kind, Global *global)
-	: Node(NodeType::Expr, global),
+	: AstNode(NodeType::Expr, global),
 	  _expr_kind(expr_kind),
 	  _is_bad(false) {
 }
 
 SLKC_API ExprNode::ExprNode(const ExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
-	: Node(other, context, node_index),
+	: AstNode(other, context, node_index),
 	  _expr_kind(other._expr_kind),
 	  _is_bad(other._is_bad) {
 }

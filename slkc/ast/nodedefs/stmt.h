@@ -21,7 +21,7 @@ namespace slkc {
 			Block,	   // Code block
 		};
 
-		class StmtNode : public Node {
+		class StmtNode : public AstNode {
 		protected:
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 

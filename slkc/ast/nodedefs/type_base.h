@@ -42,7 +42,7 @@ namespace slkc {
 			Bad
 		};
 
-		class TypeNameDefNode : public Node {
+		class TypeNameDefNode : public AstNode {
 		public:
 			SLKC_API TypeNameDefNode(peff::Alloc *self_allocator, Global *global);
 			SLKC_API TypeNameDefNode(const TypeNameDefNode &other, peff::Alloc *new_allocator, DuplicationContext &context);

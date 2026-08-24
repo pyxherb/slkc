@@ -44,7 +44,7 @@ namespace slkc {
 			Group,	// Expression group
 		};
 
-		class ExprNode : public Node {
+		class ExprNode : public AstNode {
 		protected:
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 

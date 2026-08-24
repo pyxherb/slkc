@@ -392,7 +392,7 @@ namespace slkc {
 #define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode, ...) \
 	if (!(dest)->push_child(subnode))                            \
 		co_return gen_oom_syntax_error();                        \
-	peff::ScopeGuard push_rgnode_text_width_guard_##__VA_ARGS__( \
+	peff::ScopeGuard push_green_node_text_width_guard_##__VA_ARGS__( \
 		[&dest, &subnode]() noexcept {                           \
 			dest->text_width += subnode->text_width;             \
 		})

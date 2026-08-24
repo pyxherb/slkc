@@ -25,7 +25,7 @@ namespace slkc {
 			TokenIndex sti_native_keyword = INVALID_TOKEN_INDEX;
 		};
 
-		class MemberNode : public Node {
+		class MemberNode : public AstNode {
 		private:
 			AstNodeIndex _parent_node_index = INVALID_AST_NODE_INDEX;
 			peff::UniquePtr<Scope, peff::DeallocableDeleter<Scope>> _self_scope;

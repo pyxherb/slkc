@@ -3,21 +3,21 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API Node::Node(NodeType ast_node_type, Global *global)
+SLKC_API AstNode::AstNode(NodeType ast_node_type, Global *global)
 	: _ast_node_type(ast_node_type),
 	  _global(global) {
 }
 
-SLKC_API Node::Node(const Node &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API AstNode::AstNode(const AstNode &other, DuplicationContext &context, AstNodeIndex node_index)
 	: _ast_node_type(other._ast_node_type),
 	  _global(other._global),
 	  _node_index(node_index) {
 }
 
-SLKC_API Node::~Node() {
+SLKC_API AstNode::~AstNode() {
 }
 
-SLKC_API DumpResult Node::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult AstNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_ast_node_type())))))

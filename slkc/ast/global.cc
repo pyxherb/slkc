@@ -8,11 +8,10 @@
 using namespace slkc;
 using namespace slkc::ast;
 
+SLKC_API NodeRegistry::~NodeRegistry() {
+}
+
 SLKC_API GreenNodeRegistry::~GreenNodeRegistry() {
-	if (this->in_memory) {
-		auto p = static_cast<GreenNode *>(this->in_memory);
-		peff::destroy_and_release<GreenNode>(p->get_global()->get_allocator(), p, alignof(GreenNode));
-	}
 }
 
 SLKC_API GlobalSharedString::GlobalSharedString() noexcept {
@@ -23,14 +22,14 @@ SLKC_API GlobalSharedString::~GlobalSharedString() {
 		_global->get_allocator()->release(_ptr, _length, alignof(char));
 }
 
-SLKC_API void Global::_add_ast_node_to_deferred_deleting_list(NodeRegistry *node_registry) noexcept {
-	node_registry->next_zero_ref = _zero_ref_node_registry_list;
-	_zero_ref_node_registry_list = node_registry;
+SLKC_API void Global::_add_ast_node_to_deferred_deleting_list(AstNode *node) noexcept {
+	node->_next_destructible = _zero_ref_node_registry_list;
+	_zero_ref_node_registry_list = node;
 }
 
-SLKC_API void Global::_add_green_node_to_deferred_deleting_list(GreenNodeRegistry *rgnode_registry) noexcept {
-	rgnode_registry->next_zero_ref = _zero_ref_green_node_registry_list;
-	_zero_ref_green_node_registry_list = rgnode_registry;
+SLKC_API void Global::_add_green_node_to_deferred_deleting_list(GreenNode *green_node) noexcept {
+	green_node->_next_destructible = _zero_ref_green_node_registry_list;
+	_zero_ref_green_node_registry_list = green_node;
 }
 
 SLKC_API Global::Global(peff::Alloc *allocator) noexcept
@@ -50,22 +49,28 @@ SLKC_API Global::~Global() noexcept {
 
 SLKC_API void Global::_clear_zero_ref_ast_node_registry_list() noexcept {
 	while (_zero_ref_node_registry_list) {
-		for (NodeRegistry *i = _zero_ref_node_registry_list; i; i = i->next_zero_ref) {
+		AstNode *i = _zero_ref_node_registry_list;
+		_zero_ref_node_registry_list = nullptr;
+		for (AstNode *next = nullptr; i; i = next) {
 			std::lock_guard g(_node_registries_mutex);
-			peff::destroy_and_release<NodeRegistry>(this->resource_allocator.get(), i, alignof(NodeRegistry));
-			if (i->self_index < _min_free_node_index)
-				_min_free_node_index = i->self_index;
+			next = i->_next_destructible;
+			if (i->_node_index < _min_free_node_index)
+				_min_free_node_index = i->_node_index;
+			i->dealloc();
 		}
 	}
 }
 
 SLKC_API void Global::_clear_zero_ref_green_node_registry_list() noexcept {
 	while (_zero_ref_green_node_registry_list) {
-		for (GreenNodeRegistry *i = _zero_ref_green_node_registry_list; i; i = i->next_zero_ref) {
+		GreenNode *i = _zero_ref_green_node_registry_list;
+		_zero_ref_green_node_registry_list = nullptr;
+		for (GreenNode *next = nullptr; i; i = next) {
 			std::lock_guard g(_green_node_registries_mutex);
-			peff::destroy_and_release<GreenNodeRegistry>(this->resource_allocator.get(), i, alignof(GreenNodeRegistry));
-			if (i->self_index < _min_free_green_node_index)
-				_min_free_green_node_index = i->self_index;
+			next = i->_next_destructible;
+			if (i->_node_index < _min_free_green_node_index)
+				_min_free_green_node_index = i->_node_index;
+			peff::destroy_and_release<GreenNode>(get_allocator(), i, alignof(GreenNode));
 		}
 	}
 }
@@ -75,19 +80,19 @@ SLKC_API void Global::unref_ast_node(AstNodeIndex index) noexcept {
 
 	auto &reg = _node_registries.at(index);
 	if ((!--reg.ref_count) && (!reg.pin_count)) {
-		reg.next_zero_ref = _zero_ref_node_registry_list;
-		_zero_ref_node_registry_list = &reg;
+		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
+		_node_registries.remove(index);
 	}
 }
 
-SLKC_API peff::Result<Node *, PinFailReason> Global::pin_ast_node(AstNodeIndex index) noexcept {
+SLKC_API peff::Result<AstNode *, PinFailReason> Global::pin_ast_node(AstNodeIndex index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	auto &reg = _node_registries.at(index);
 
 	++reg.pin_count;
 
-	return reg.in_memory.get();
+	return +reg.in_memory;
 }
 
 SLKC_API void Global::unpin_ast_node(AstNodeIndex index) noexcept {
@@ -95,8 +100,8 @@ SLKC_API void Global::unpin_ast_node(AstNodeIndex index) noexcept {
 
 	auto &reg = _node_registries.at(index);
 	if ((!reg.ref_count) && (!--reg.pin_count)) {
-		reg.next_zero_ref = _zero_ref_node_registry_list;
-		_zero_ref_node_registry_list = &reg;
+		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
+		_node_registries.remove(index);
 	}
 }
 
@@ -124,7 +129,7 @@ SLKC_API AstNodeIndex Global::_alloc_ast_node_index() noexcept {
 	return INVALID_AST_NODE_INDEX;
 }
 
-SLKC_API peff::Option<AstNodeIndex> Global::map_ast_node(Node *node, AstNodeIndex node_index) noexcept {
+SLKC_API peff::Option<AstNodeIndex> Global::map_ast_node(AstNode *node, AstNodeIndex node_index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	if (node_index == INVALID_AST_NODE_INDEX) {
@@ -136,7 +141,7 @@ SLKC_API peff::Option<AstNodeIndex> Global::map_ast_node(Node *node, AstNodeInde
 
 	NodeRegistry reg;
 
-	reg.in_memory = std::unique_ptr<Node, peff::DeallocableDeleter<Node>>(node);
+	reg.in_memory = node;
 
 	reg.self_index = node_index;
 
@@ -148,12 +153,12 @@ SLKC_API peff::Option<AstNodeIndex> Global::map_ast_node(Node *node, AstNodeInde
 	return node_index;
 }
 
-SLKC_API void Global::remap_ast_node(AstNodeIndex node_index, Node *node) noexcept {
+SLKC_API void Global::remap_ast_node(AstNodeIndex node_index, AstNode *node) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	assert(this->_node_registries.contains(node_index));
 
-	this->_node_registries.at(node_index).in_memory = std::unique_ptr<Node, peff::DeallocableDeleter<Node>>(node);
+	this->_node_registries.at(node_index).in_memory = node;
 }
 
 SLKC_API void Global::unmap_ast_node(AstNodeIndex node_index) noexcept {
@@ -167,8 +172,8 @@ SLKC_API void Global::unref_green_node(AstNodeIndex index) noexcept {
 
 	auto &reg = _green_node_registries.at(index);
 	if ((!--reg.ref_count) && (!reg.pin_count)) {
-		reg.next_zero_ref = _zero_ref_green_node_registry_list;
-		_zero_ref_green_node_registry_list = &reg;
+		_add_green_node_to_deferred_deleting_list(reg.in_memory);
+		_green_node_registries.remove(index);
 	}
 }
 
@@ -180,16 +185,16 @@ SLKC_API peff::Result<GreenNode *, PinFailReason> Global::pin_green_node(GreenNo
 	++reg.pin_count;
 
 	// TODO: Use actual process instead of this.
-	return static_cast<GreenNode *>(reg.in_memory);
+	return +reg.in_memory;
 }
 
 SLKC_API void Global::unpin_green_node(GreenNodeIndex index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	auto &reg = _green_node_registries.at(index);
-	if ((!reg.ref_count) && (!--reg.pin_count)) {
-		reg.next_zero_ref = _zero_ref_green_node_registry_list;
-		_zero_ref_green_node_registry_list = &reg;
+	if ((!--reg.pin_count) && (!reg.ref_count)) {
+		_add_green_node_to_deferred_deleting_list(reg.in_memory);
+		_green_node_registries.remove(index);
 	}
 }
 
@@ -258,8 +263,8 @@ SLKC_API void Global::unmap_green_node(GreenNodeIndex node_index) noexcept {
 SLKC_API peff::Result<AstNodeIndex, DuplicationError> Global::duplicate_ast_node(AstNodeIndex node_index) noexcept {
 	DuplicationContext context(this);
 
-	AstNodePtr<Node> node(this, node_index);
-	AstNodePin<Node> pinned = node.pin();
+	AstNodePtr<AstNode> node(this, node_index);
+	AstNodePin<AstNode> pinned = node.pin();
 
 	AstNodeIndex new_index;
 	{
@@ -290,8 +295,8 @@ SLKC_API peff::Result<AstNodeIndex, DuplicationError> Global::duplicate_ast_node
 		while (old_task_list.size()) {
 			auto task = old_task_list.front();
 
-			AstNodePtr<Node> dup_node(this, task.src);
-			AstNodePin<Node> dup_pinned = dup_node.pin();
+			AstNodePtr<AstNode> dup_node(this, task.src);
+			AstNodePin<AstNode> dup_pinned = dup_node.pin();
 
 			auto dup_result = dup_pinned->do_duplicate(context, new_index);
 
@@ -324,7 +329,7 @@ SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::shallow_dump_ast_no
 		dump_context.task_list = { resource_allocator.get() };
 
 		for (auto i : task_list) {
-			AstNodePtr<Node> node_ptr(this, i.src);
+			AstNodePtr<AstNode> node_ptr(this, i.src);
 			auto pinned_src = node_ptr.pin();
 			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, false));
 		}
@@ -348,7 +353,7 @@ SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::deep_dump_ast_node(
 		dump_context.task_list = { resource_allocator.get() };
 
 		for (auto i : task_list) {
-			AstNodePtr<Node> node_ptr(this, i.src);
+			AstNodePtr<AstNode> node_ptr(this, i.src);
 			auto pinned_src = node_ptr.pin();
 			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, true));
 		}
