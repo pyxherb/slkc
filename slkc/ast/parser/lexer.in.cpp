@@ -503,31 +503,31 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 			*/
 		}
 
-		size_t begin_index = prev_YYCURSOR - src.data(), endIndex = YYCURSOR - src.data();
+		size_t begin_index = prev_YYCURSOR - src.data(), end_index = YYCURSOR - src.data();
 
-		std::string_view str_to_begin = src.substr(0, begin_index), str_to_end = src.substr(0, endIndex);
+		std::string_view str_to_begin = src.substr(0, begin_index), str_to_end = src.substr(0, end_index);
 
 		std::string_view sv = std::string_view(prev_YYCURSOR, YYCURSOR - prev_YYCURSOR);
 		auto s = global->register_shared_string(sv);
-		if(!s)
+		if (!s)
 			goto oom;
-		token->source_text = s;
+		token->source_text = std::move(s);
 
-		size_t idxLastBeginNewline = src.find_last_of('\n', begin_index),
-			   idxLastEndNewline = src.find_last_of('\n', endIndex);
+		size_t idx_last_begin_new_line = src.find_last_of('\n', begin_index),
+			   idx_last_end_new_line = src.find_last_of('\n', end_index);
 
 		token->source_location.module_node = module_node;
 		token->source_location.begin_position = {
 			(size_t)std::count(str_to_begin.begin(), str_to_begin.end(), '\n'),
-			(idxLastBeginNewline == std::string::npos
+			(idx_last_begin_new_line == std::string::npos
 					? begin_index
-					: begin_index - idxLastBeginNewline - 1)
+					: begin_index - idx_last_begin_new_line - 1)
 		};
 		token->source_location.end_position = {
 			(size_t)std::count(str_to_end.begin(), str_to_end.end(), '\n'),
-			(idxLastEndNewline == std::string::npos
-					? endIndex
-					: endIndex - idxLastEndNewline)
+			(idx_last_end_new_line == std::string::npos
+					? end_index
+					: end_index - idx_last_end_new_line)
 		};
 		if (!token_list.push_back(std::move(token)))
 			goto oom;

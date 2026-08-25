@@ -196,13 +196,18 @@ namespace slkc {
 			SLAKE_FORCEINLINE GlobalSharedStringRef() noexcept : _string(nullptr) {
 			}
 			SLAKE_FORCEINLINE GlobalSharedStringRef(GlobalSharedString *string) noexcept : _string(string) {
-				++_string->_ref_count;
+				if (string)
+					++_string->_ref_count;
 			}
 			SLAKE_FORCEINLINE GlobalSharedStringRef(const GlobalSharedStringRef &rhs) noexcept : _string(rhs._string) {
-				++_string->_ref_count;
+				if (_string)
+					++_string->_ref_count;
 			}
 			SLAKE_FORCEINLINE GlobalSharedStringRef(GlobalSharedStringRef &&rhs) noexcept : _string(rhs._string) {
 				rhs._string = nullptr;
+			}
+			SLAKE_FORCEINLINE ~GlobalSharedStringRef() {
+				_reset();
 			}
 
 			SLAKE_FORCEINLINE GlobalSharedStringRef &operator=(const GlobalSharedStringRef &rhs) noexcept {

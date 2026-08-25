@@ -83,21 +83,19 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const GreenNodePin &par
 	TokenIndex &i = parse_context.idx_current_token;
 
 	while (i < token_list.size()) {
-		auto current_token = token_list.at(i);
+		const auto &current_token = token_list.at(i);
 		current_token->index = i;
 
 		switch (current_token->token_id) {
 			case TokenId::NewLine:
 				if (keep_new_line == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
-					++i;
 					return peff::NULLOPT;
 				}
 				break;
 			case TokenId::Whitespace:
 				if (keep_whitespace == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
-					++i;
 					return peff::NULLOPT;
 				}
 				break;
@@ -106,13 +104,11 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const GreenNodePin &par
 			case TokenId::DocumentationComment:
 				if (keep_comment == TokenIgnoringPolicy::Keep) {
 					parse_context.idx_prev_token = parse_context.idx_current_token;
-					++i;
 					return peff::NULLOPT;
 				}
 				break;
 			default:
 				parse_context.idx_prev_token = parse_context.idx_current_token;
-				++i;
 				return peff::NULLOPT;
 		}
 
@@ -128,7 +124,7 @@ SLKC_API void Parser::next_token() {
 	TokenIndex &i = parse_context.idx_current_token;
 
 	if (i < token_list.size()) {
-		auto current_token = token_list.at(i);
+		const auto &current_token = token_list.at(i);
 		current_token->index = i;
 
 		parse_context.idx_prev_token = i;
@@ -153,8 +149,12 @@ SLKC_API peff::Option<SyntaxError> Parser::collect_token(const GreenNodePin &par
 		if (!parent_node->push_child(new_terminal_node))
 			return gen_oom_syntax_error();
 
+		parent_node->text_width += new_terminal_node->text_width;
+
 		parse_context.idx_prev_token = i;
 		++i;
+
+		return peff::NULLOPT;
 	}
 
 	return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), i - 1 }, SyntaxErrorKind::ExpectingMoreTokens);
@@ -1160,12 +1160,15 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 
 		{
 			GreenNodePin module_name;
+
+			if(!(module_name = make_green_node(get_global())))
+				co_return gen_oom_syntax_error();
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, module_name);
 			if ((syntax_error = (co_await parse_id_ref(allocator, module_name, false)(this)))) {
 				if (!syntax_errors.push_back(std::move(syntax_error.value())))
 					co_return gen_oom_syntax_error();
 				syntax_error.reset();
 			}
-			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, module_name);
 		}
 
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(module_node, TokenId::Semicolon));
@@ -1173,6 +1176,7 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 
 	while ((t = peek_token())->token_id != TokenId::End) {
 		if ((syntax_error = (co_await parse_program_stmt(allocator, module_node)(this)))) {
+			co_return syntax_error;
 			// Parse the rest to make sure that we have gained all of the information,
 			// instead of ignoring them.
 			if (!syntax_errors.push_back(std::move(syntax_error.value())))

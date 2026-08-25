@@ -99,7 +99,7 @@ SLKC_API void Global::unpin_ast_node(AstNodeIndex index) noexcept {
 	std::lock_guard g(this->_node_registries_mutex);
 
 	auto &reg = _node_registries.at(index);
-	if ((!reg.ref_count) && (!--reg.pin_count)) {
+	if ((!--reg.pin_count) && (!reg.ref_count)) {
 		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
 		_node_registries.remove(index);
 	}
