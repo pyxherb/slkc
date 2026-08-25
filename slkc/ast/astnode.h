@@ -63,13 +63,13 @@ namespace slkc {
 
 		struct TypeName;
 
-		class DuplicationContextHook {
+		class AstNodeDuplicationContextHook {
 		public:
 			virtual DuplicationError run() = 0;
 			virtual void dealloc() noexcept = 0;
 		};
 
-		struct DuplicationContext final {
+		struct AstNodeDuplicationContext final {
 		private:
 			struct DuplicationTask {
 				AstNodeIndex dest, src;
@@ -77,23 +77,23 @@ namespace slkc {
 
 			Global *global;
 			peff::List<DuplicationTask> task_list;
-			peff::List<std::unique_ptr<DuplicationContextHook, peff::DeallocableDeleter<DuplicationContextHook>>> post_run_hooks;
+			peff::List<std::unique_ptr<AstNodeDuplicationContextHook, peff::DeallocableDeleter<AstNodeDuplicationContextHook>>> post_run_hooks;
 
 			friend class Global;
 
 		public:
-			SLKC_API DuplicationContext(Global *global);
+			SLKC_API AstNodeDuplicationContext(Global *global);
 			SLKC_API peff::Result<AstNodeIndex, DuplicationError> push_task(AstNodeIndex node_index) noexcept;
 			SLKC_API peff::Result<TypeName, DuplicationError> push_task(const TypeName &type_name) noexcept;
 
-			[[nodiscard]] SLKC_API bool push_post_run_hook(DuplicationContextHook *hook) noexcept;
+			[[nodiscard]] SLKC_API bool push_post_run_hook(AstNodeDuplicationContextHook *hook) noexcept;
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
 				return global;
 			}
 		};
 
-		struct DumpContext final {
+		struct AstNodeDumpContext final {
 		private:
 			struct DumpTask {
 				AstNodeIndex src;
@@ -110,7 +110,7 @@ namespace slkc {
 			friend class Global;
 
 		public:
-			SLKC_API DumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
+			SLKC_API AstNodeDumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
 			SLKC_API DumpResult push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept;
 
 			SLAKE_FORCEINLINE Global *get_global() const noexcept {
@@ -130,15 +130,15 @@ namespace slkc {
 			AstNodeIndex _node_index = INVALID_AST_NODE_INDEX;
 
 		protected:
-			[[nodiscard]] virtual peff::Result<AstNode *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept = 0;
+			[[nodiscard]] virtual peff::Result<AstNode *, DuplicationError> do_duplicate(AstNodeDuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept = 0;
 
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
 			friend Global;
 
 		public:
 			SLKC_API AstNode(NodeType ast_node_type, Global *global);
-			SLKC_API AstNode(const AstNode &other, DuplicationContext &context, AstNodeIndex node_index);
+			SLKC_API AstNode(const AstNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~AstNode();
 
 			virtual void dealloc() noexcept = 0;

@@ -144,7 +144,7 @@ SLKC_API void Scope::remove_generic_param(const std::string_view &name) noexcept
 	}
 }
 
-SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIndex new_owner_node, DuplicationContext &duplication_context) {
+SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIndex new_owner_node, AstNodeDuplicationContext &duplication_context) {
 	std::unique_ptr<Scope, peff::DeallocableDeleter<Scope>> new_scope(Scope::alloc(new_owner_node, _global));
 
 	if (!new_scope)
@@ -239,7 +239,7 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 	return new_scope.release();
 }
 
-SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, DumpContext &dump_context, const Scope *scope, bool deep_dump) {
+SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const Scope *scope, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))

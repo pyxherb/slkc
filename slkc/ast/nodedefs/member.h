@@ -31,7 +31,7 @@ namespace slkc {
 			peff::UniquePtr<Scope, peff::DeallocableDeleter<Scope>> _self_scope;
 
 		protected:
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			GlobalSharedStringRef self_name;
@@ -39,7 +39,7 @@ namespace slkc {
 			AccessModifier access_modifier;
 
 			SLKC_API MemberNode(NodeType ast_node_type, Global *global);
-			SLKC_API MemberNode(const MemberNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API MemberNode(const MemberNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MemberNode();
 
 			SLKC_API bool alloc_scope() noexcept;
@@ -79,7 +79,7 @@ namespace slkc {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			TokenIndex sti_module_keyword = INVALID_TOKEN_INDEX,
@@ -88,7 +88,7 @@ namespace slkc {
 			peff::Option<TokenList> module_source_token_list;
 
 			SLKC_API ModuleNode(Global *global);
-			SLKC_API ModuleNode(const ModuleNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ModuleNode(const ModuleNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ModuleNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

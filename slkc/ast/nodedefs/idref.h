@@ -52,8 +52,8 @@ namespace slkc {
 			SLKC_API peff::Option<OwnedIdRef> duplicate(peff::Alloc *new_allocator) const noexcept;
 		};
 
-		SLKC_API DumpResult dump_id_ref_entry(wandjson::ObjectValue *target_object, DumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump);
-		SLKC_API DumpResult dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump);
+		SLKC_API DumpResult dump_id_ref_entry(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump);
+		SLKC_API DumpResult dump_id_ref(wandjson::ArrayValue *target_object, AstNodeDumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump);
 	}
 }
 

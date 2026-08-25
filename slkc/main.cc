@@ -743,6 +743,19 @@ public:
 	}
 };*/
 
+class JsonANSIDumpWriter : public wandjson::Writer {
+	public:
+		virtual ~JsonANSIDumpWriter() {
+
+		}
+
+		[[nodiscard]] virtual bool write(const char *src, size_t size) override {
+			if (!size)
+				return true;
+			return fwrite(src, size, 1, stdout) == 1;
+		}
+	};
+
 int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -908,7 +921,7 @@ int main(int argc, char *argv[]) {
 						dump_syntax_error(parser.get(), *e);
 					}
 
-					if(slkc::ast::compute_green_node_text_width_deep(root_module_tree, peff::default_allocator(), true) != slkc::ast::GreenNodeOperationResult::Success) {
+					if (slkc::ast::compute_green_node_text_width_deep(root_module_tree, peff::default_allocator(), true) != slkc::ast::GreenNodeOperationResult::Success) {
 						std::terminate();
 					}
 
@@ -922,6 +935,20 @@ int main(int argc, char *argv[]) {
 					}
 
 					printf("Text width: %zu\n", root_module_tree->text_width);
+
+					auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree->get_node_index());
+
+					if (result.has_error())
+						std::terminate();
+
+					std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
+
+					JsonANSIDumpWriter writer;
+
+					if(!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
+						std::terminate();
+
+					assert(root_module_tree->text_width == file_size);
 
 					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
 					if (module_name) {

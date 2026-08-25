@@ -250,14 +250,14 @@ namespace slkc {
 		};
 
 		template <typename T>
-		class LambdaDuplicationContextHook : public DuplicationContextHook {
+		class LambdaAstNodeDuplicationContextHook : public AstNodeDuplicationContextHook {
 		public:
 			Global *global;
 			T impl;
 
-			using This = LambdaDuplicationContextHook;
+			using This = LambdaAstNodeDuplicationContextHook;
 
-			SLAKE_FORCEINLINE LambdaDuplicationContextHook(Global *global, T &&impl) : global(global), impl(impl) {}
+			SLAKE_FORCEINLINE LambdaAstNodeDuplicationContextHook(Global *global, T &&impl) : global(global), impl(impl) {}
 			virtual inline DuplicationError run() override {
 				impl();
 			}
@@ -267,8 +267,8 @@ namespace slkc {
 		};
 
 		template <typename T>
-		LambdaDuplicationContextHook<T> *alloc_lambda_duplication_context_hook(DuplicationContext &context, T &&impl) {
-			return peff::alloc_and_construct<LambdaDuplicationContextHook<T>>(context.get_global()->get_allocator(), alignof(LambdaDuplicationContextHook<T>), std::move(impl));
+		LambdaAstNodeDuplicationContextHook<T> *alloc_lambda_duplication_context_hook(AstNodeDuplicationContext &context, T &&impl) {
+			return peff::alloc_and_construct<LambdaAstNodeDuplicationContextHook<T>>(context.get_global()->get_allocator(), alignof(LambdaAstNodeDuplicationContextHook<T>), std::move(impl));
 		}
 
 		///
@@ -335,11 +335,11 @@ namespace slkc {
 
 /// @brief Macro used for declaring a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DECL() \
-	[[nodiscard]] SLKC_API virtual peff::Result<AstNode *, DuplicationError> do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept override
+	[[nodiscard]] SLKC_API virtual peff::Result<AstNode *, DuplicationError> do_duplicate(AstNodeDuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept override
 
 /// @brief Macro used for defining a simple instance of the duplication method for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(name)                                                                                                                                   \
-	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                        \
+	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(AstNodeDuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                        \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_dup_ast_node<name>(duplication_context.get_global(), *this, duplication_context, node_index)); \
                                                                                                                                                                                  \
 		if (!ptr)                                                                                                                                                                \
@@ -350,14 +350,14 @@ namespace slkc {
 
 /// @brief Macro used for defining a null instance of the duplication method for an AST node class.
 #define SLKC_NULL_AST_DUPLICATE_FN_DEF(name)                                                                                                              \
-	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept { \
+	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(AstNodeDuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept { \
 		peff::panic("The class " #name " cannot be duplicated");                                                                                          \
 		PEFF_UNREACHABLE();                                                                                                                               \
 	}
 
 /// @brief Macro used for defining a simple instance of the duplication method with a result output for an AST node class.
 #define SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(name)                                                                                                                              \
-	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(DuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                               \
+	SLKC_API peff::Result<AstNode *, DuplicationError> name::do_duplicate(AstNodeDuplicationContext &duplication_context, AstNodeIndex node_index) const noexcept {                               \
 		peff::Option<DuplicationError> error;                                                                                                                                           \
 		std::unique_ptr<name, peff::DeallocableDeleter<name>> ptr(slkc::ast::make_dup_ast_node<name>(duplication_context.get_global(), *this, duplication_context, node_index, error)); \
                                                                                                                                                                                         \

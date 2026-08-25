@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_ERROR_H_
 #define _SLKC_AST_ERROR_H_
 
-#include "node.h"
+#include "astnode.h"
 
 namespace slkc {
 	namespace ast {

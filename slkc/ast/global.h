@@ -1,9 +1,9 @@
 #ifndef _SLKC_AST_GLOBAL_H_
 #define _SLKC_AST_GLOBAL_H_
 
-#include "node.h"
+#include "astnode.h"
 #include <atomic>
-#include <memory>
+#include <peff/containers/hashmap.h>
 
 namespace slkc {
 	namespace ast {
@@ -80,13 +80,13 @@ namespace slkc {
 		private:
 			peff::RcObjectPtr<peff::Alloc> resource_allocator;
 			// TODO: Use HashMap instead after the alt version of functions are done.
-			peff::Set<GlobalSharedString, std::less<std::string_view>> _shared_strings;
+			peff::HashSet<GlobalSharedString, std::equal_to<std::string_view>, peff::Hasher<std::string_view>> _shared_strings;
 			std::mutex _shared_strings_mutex;
 
-			peff::Map<AstNodeIndex, NodeRegistry> _node_registries;
-			AstNode *_zero_ref_node_registry_list = nullptr;
-			std::recursive_mutex _node_registries_mutex;
-			AstNodeIndex _min_free_node_index = 0;
+			peff::Map<AstNodeIndex, NodeRegistry> _ast_node_registries;
+			AstNode *_zero_ref_ast_node_registry_list = nullptr;
+			std::recursive_mutex _ast_node_registries_mutex;
+			AstNodeIndex _min_free_ast_node_index = 0;
 
 			peff::Map<GreenNodeIndex, GreenNodeRegistry> _green_node_registries;
 			GreenNode *_zero_ref_green_node_registry_list = nullptr;
@@ -122,7 +122,7 @@ namespace slkc {
 
 			SLAKE_FORCEINLINE void ref_ast_node(AstNodeIndex index) noexcept {
 				_clear_zero_ref_ast_node_registry_list();
-				++_node_registries.at(index).ref_count;
+				++_ast_node_registries.at(index).ref_count;
 			}
 			SLKC_API void unref_ast_node(AstNodeIndex index) noexcept;
 			SLKC_API peff::Result<AstNode *, PinFailReason> pin_ast_node(AstNodeIndex index) noexcept;
@@ -168,6 +168,8 @@ namespace slkc {
 			///
 			SLKC_API void remap_green_node(GreenNodeIndex node_index, GreenNode *node) noexcept;
 			SLKC_API void unmap_green_node(GreenNodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> shallow_dump_green_node(peff::Alloc *allocator, GreenNodeIndex node_index) noexcept;
+			SLKC_API peff::Result<wandjson::Value *, DumpResult> deep_dump_green_node(peff::Alloc *allocator, GreenNodeIndex node_index) noexcept;
 
 			SLKC_API GlobalSharedString *register_shared_string(std::string_view sv) noexcept;
 			SLKC_API void unregister_shared_string(std::string_view s) noexcept;

@@ -35,10 +35,10 @@ namespace slkc {
 			PinningFailed
 		};
 
-		struct DumpContext;
+		struct AstNodeDumpContext;
 
-		SLKC_API DumpResult dump_token_range(wandjson::ObjectValue *target_object, DumpContext &dump_context, const TokenRange &token_range);
-		SLKC_API wandjson::StringValue *dump_string(DumpContext &dump_context, std::string_view sv) noexcept;
+		SLKC_API DumpResult dump_token_range(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const TokenRange &token_range);
+		SLKC_API wandjson::StringValue *dump_string(AstNodeDumpContext &dump_context, std::string_view sv) noexcept;
 	}
 }
 

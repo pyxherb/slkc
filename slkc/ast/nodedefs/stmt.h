@@ -23,7 +23,7 @@ namespace slkc {
 
 		class StmtNode : public AstNode {
 		protected:
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		private:
 			const StmtKind _stmt_kind;
@@ -31,7 +31,7 @@ namespace slkc {
 
 		public:
 			SLKC_API StmtNode(StmtKind stmt_kind, Global *global);
-			SLKC_API StmtNode(const StmtNode &other, DuplicationContext &context, AstNodeIndex node_index);
+			SLKC_API StmtNode(const StmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~StmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -52,13 +52,13 @@ namespace slkc {
 		class ExprStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			peff::DynArray<AstNodePtr<ExprNode>> inner_exprs;
 
 			SLKC_API ExprStmtNode(Global *global);
-			SLKC_API ExprStmtNode(const ExprStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ExprStmtNode(const ExprStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ExprStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -76,9 +76,9 @@ namespace slkc {
 			TokenIndex sti_colon = INVALID_TOKEN_INDEX;
 			TokenIndex sti_assignment = INVALID_TOKEN_INDEX;
 
-			SLKC_API DumpResult dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+			SLKC_API DumpResult dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
-			SLKC_API peff::Result<BindingEntry, DuplicationError> duplicate(DuplicationContext &context) const noexcept;
+			SLKC_API peff::Result<BindingEntry, DuplicationError> duplicate(AstNodeDuplicationContext &context) const noexcept;
 		};
 
 		enum class VarDefBindingType : uint8_t {
@@ -89,7 +89,7 @@ namespace slkc {
 		class VarDefStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Binding entries in the let statement.
@@ -101,7 +101,7 @@ namespace slkc {
 			peff::DynArray<TokenIndex> sti_binding_separators;
 
 			SLKC_API VarDefStmtNode(Global *global);
-			SLKC_API VarDefStmtNode(const VarDefStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API VarDefStmtNode(const VarDefStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~VarDefStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -110,7 +110,7 @@ namespace slkc {
 		class BreakStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Token index to the break keyword.
@@ -118,7 +118,7 @@ namespace slkc {
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
 			SLKC_API BreakStmtNode(Global *global);
-			SLKC_API BreakStmtNode(const BreakStmtNode &other, DuplicationContext &context, AstNodeIndex node_index);
+			SLKC_API BreakStmtNode(const BreakStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~BreakStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -127,7 +127,7 @@ namespace slkc {
 		class ContinueStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Values for the next loop cycle, for the for loop.
@@ -141,7 +141,7 @@ namespace slkc {
 			peff::DynArray<TokenIndex> sti_continue_values_separators;
 
 			SLKC_API ContinueStmtNode(Global *global);
-			SLKC_API ContinueStmtNode(const ContinueStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ContinueStmtNode(const ContinueStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ContinueStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -150,7 +150,7 @@ namespace slkc {
 		class ForStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Loop variables for the loop statement.
@@ -176,7 +176,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API ForStmtNode(Global *global);
-			SLKC_API ForStmtNode(const ForStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ForStmtNode(const ForStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ForStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -185,7 +185,7 @@ namespace slkc {
 		class ForEachStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Name of the loop variable.
@@ -205,7 +205,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API ForEachStmtNode(Global *global);
-			SLKC_API ForEachStmtNode(const ForEachStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ForEachStmtNode(const ForEachStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ForEachStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -214,7 +214,7 @@ namespace slkc {
 		class WhileStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Condition expression that is evaluated at the beginning of each loop cycle and determines if the loop should continue.
@@ -230,7 +230,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API WhileStmtNode(Global *global);
-			SLKC_API WhileStmtNode(const WhileStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API WhileStmtNode(const WhileStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~WhileStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -239,7 +239,7 @@ namespace slkc {
 		class DoWhileStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			/// @brief Condition expression that is evaluated at the end of each loop cycle and determines if the loop should continue.
@@ -257,7 +257,7 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API DoWhileStmtNode(Global *global);
-			SLKC_API DoWhileStmtNode(const DoWhileStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API DoWhileStmtNode(const DoWhileStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~DoWhileStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -266,7 +266,7 @@ namespace slkc {
 		class ReturnStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			AstNodePtr<ExprNode> return_value;
@@ -275,7 +275,7 @@ namespace slkc {
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
 			SLKC_API ReturnStmtNode(Global *global);
-			SLKC_API ReturnStmtNode(const ReturnStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API ReturnStmtNode(const ReturnStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ReturnStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -284,7 +284,7 @@ namespace slkc {
 		class YieldStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			AstNodePtr<ExprNode> return_value;
@@ -293,7 +293,7 @@ namespace slkc {
 					   sti_semicolon = INVALID_TOKEN_INDEX;
 
 			SLKC_API YieldStmtNode(Global *global);
-			SLKC_API YieldStmtNode(const YieldStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API YieldStmtNode(const YieldStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~YieldStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -302,7 +302,7 @@ namespace slkc {
 		class IfStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			AstNodePtr<ExprNode> condition;
@@ -314,7 +314,7 @@ namespace slkc {
 					   sti_right_parenthesis = INVALID_TOKEN_INDEX;
 
 			SLKC_API IfStmtNode(Global *global);
-			SLKC_API IfStmtNode(const IfStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API IfStmtNode(const IfStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~IfStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -330,15 +330,15 @@ namespace slkc {
 				return !pattern;
 			}
 
-			[[nodiscard]] SLKC_API DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
+			[[nodiscard]] SLKC_API DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
-			SLKC_API peff::Result<SwitchStmtBranch, DuplicationError> duplicate(DuplicationContext &context) const noexcept;
+			SLKC_API peff::Result<SwitchStmtBranch, DuplicationError> duplicate(AstNodeDuplicationContext &context) const noexcept;
 		};
 
 		class SwitchStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			AstNodePtr<ExprNode> condition;
@@ -351,7 +351,7 @@ namespace slkc {
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API SwitchStmtNode(Global *global);
-			SLKC_API SwitchStmtNode(const SwitchStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API SwitchStmtNode(const SwitchStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~SwitchStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -360,7 +360,7 @@ namespace slkc {
 		class BlockStmtNode final : public StmtNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			peff::DynArray<AstNodePtr<StmtNode>> inner_stmts;
@@ -369,7 +369,7 @@ namespace slkc {
 			TokenIndex sti_right_brace = INVALID_TOKEN_INDEX;
 
 			SLKC_API BlockStmtNode(Global *global);
-			SLKC_API BlockStmtNode(const BlockStmtNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API BlockStmtNode(const BlockStmtNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~BlockStmtNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

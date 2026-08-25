@@ -50,7 +50,7 @@ namespace slkc {
 			Scope &operator=(const Scope &) = delete;
 			Scope &operator=(Scope &&) = default;
 
-			SLKC_API peff::Result<Scope *, DuplicationError> deep_duplicate(AstNodeIndex new_owner_node, DuplicationContext &duplication_context);
+			SLKC_API peff::Result<Scope *, DuplicationError> deep_duplicate(AstNodeIndex new_owner_node, AstNodeDuplicationContext &duplication_context);
 
 			SLAKE_FORCEINLINE static Scope *alloc(AstNodeIndex owner_node, Global *global) noexcept {
 				return peff::alloc_and_construct<Scope>(global->get_allocator(), alignof(Scope), owner_node, global);
@@ -157,7 +157,7 @@ namespace slkc {
 			}
 		};
 
-		SLKC_API DumpResult dump_scope(wandjson::ObjectValue *target_object, DumpContext &dump_context, const Scope *scope, bool deep_dump);
+		SLKC_API DumpResult dump_scope(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const Scope *scope, bool deep_dump);
 	}
 }
 

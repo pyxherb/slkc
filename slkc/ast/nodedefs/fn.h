@@ -26,7 +26,7 @@ namespace slkc {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			peff::DynArray<BindingEntry> params;
@@ -53,7 +53,7 @@ namespace slkc {
 				idx_generic_param_comma_tokens;
 
 			SLKC_API FnOverloadingNode(Global *global);
-			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API FnOverloadingNode(const FnOverloadingNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnOverloadingNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
@@ -63,13 +63,13 @@ namespace slkc {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 
-			[[nodiscard]] SLKC_API virtual DumpResult do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
 			peff::DynArray<AstNodePtr<FnOverloadingNode>> overloadings;
 
 			SLKC_API FnNode(Global *global);
-			SLKC_API FnNode(const FnNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API FnNode(const FnNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~FnNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

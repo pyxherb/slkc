@@ -5,7 +5,7 @@ using namespace slkc::ast;
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(FnOverloadingNode);
 
-SLKC_API DumpResult FnOverloadingNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult FnOverloadingNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -29,7 +29,7 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(Global *global)
 
 SLKC_API FnOverloadingNode::FnOverloadingNode(
 	const FnOverloadingNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -100,7 +100,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(FnOverloadingNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(FnNode);
 
-SLKC_API DumpResult FnNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult FnNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -131,7 +131,7 @@ SLKC_API FnNode::FnNode(Global *global)
 
 SLKC_API FnNode::FnNode(
 	const FnNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),

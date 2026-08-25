@@ -33,7 +33,7 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 	return { std::move(new_id_ref) };
 }
 
-SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_object, DumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump) {
+SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), id_ref_entry.name))))
@@ -52,7 +52,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 	return DumpResult::Ok;
 }
 
-SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, DumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump) {
+SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, AstNodeDumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	for (const auto &i : id_ref) {

@@ -4,7 +4,7 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API DumpResult ExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -28,7 +28,7 @@ SLKC_API ExprNode::ExprNode(ExprKind expr_kind, Global *global)
 	  _is_bad(false) {
 }
 
-SLKC_API ExprNode::ExprNode(const ExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API ExprNode::ExprNode(const ExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: AstNode(other, context, node_index),
 	  _expr_kind(other._expr_kind),
 	  _is_bad(other._is_bad) {
@@ -41,7 +41,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(UnaryExprNode);
 
-SLKC_API DumpResult UnaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult UnaryExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -69,7 +69,7 @@ SLKC_API UnaryExprNode::UnaryExprNode(Global *global)
 	: ExprNode(ExprKind::Unary, global) {
 }
 
-SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  unary_op(other.unary_op),
 	  sti_operator(other.sti_operator) {
@@ -93,7 +93,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnaryExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(BinaryExprNode)
 
-SLKC_API DumpResult BinaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult BinaryExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -137,7 +137,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(Global *global)
 	: ExprNode(ExprKind::Binary, global) {
 }
 
-SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  binary_op(other.binary_op),
 	  sti_operator_prefix(other.sti_operator_prefix),
@@ -171,7 +171,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(BinaryExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(TernaryExprNode);
 
-SLKC_API DumpResult TernaryExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult TernaryExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -211,7 +211,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(Global *global)
 	: ExprNode(ExprKind::Ternary, global) {
 }
 
-SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  sti_operator_question(other.sti_operator_question),
 	  sti_operator_colon(other.sti_operator_colon) {
@@ -250,7 +250,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(TernaryExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(IdRefExprNode);
 
-SLKC_API DumpResult IdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult IdRefExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -269,7 +269,7 @@ SLKC_API IdRefExprNode::IdRefExprNode(Global *global)
 	  id_ref(global->get_allocator()) {
 }
 
-SLKC_API IdRefExprNode::IdRefExprNode(const IdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API IdRefExprNode::IdRefExprNode(const IdRefExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  id_ref(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
@@ -289,7 +289,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(IdRefExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(HeadedIdRefExprNode);
 
-SLKC_API DumpResult HeadedIdRefExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult HeadedIdRefExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -319,7 +319,7 @@ SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(Global *global)
 	  id_ref(global->get_allocator()) {
 }
 
-SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  id_ref(context.get_global()->get_allocator()) {
 	if (error_out.has_value())
@@ -349,7 +349,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(HeadedIdRefExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(I8LiteralExprNode);
 
-SLKC_API DumpResult I8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I8LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -372,7 +372,7 @@ SLKC_API I8LiteralExprNode::I8LiteralExprNode(Global *global, int8_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I8LiteralExprNode::I8LiteralExprNode(const I8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API I8LiteralExprNode::I8LiteralExprNode(const I8LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -383,7 +383,7 @@ SLKC_API I8LiteralExprNode::~I8LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I8LiteralExprNode);
 
-SLKC_API DumpResult I16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I16LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -408,7 +408,7 @@ SLKC_API I16LiteralExprNode::I16LiteralExprNode(Global *global, int16_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I16LiteralExprNode::I16LiteralExprNode(const I16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API I16LiteralExprNode::I16LiteralExprNode(const I16LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -421,7 +421,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I16LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(I32LiteralExprNode);
 
-SLKC_API DumpResult I32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I32LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -444,7 +444,7 @@ SLKC_API I32LiteralExprNode::I32LiteralExprNode(Global *global, int32_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I32LiteralExprNode::I32LiteralExprNode(const I32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API I32LiteralExprNode::I32LiteralExprNode(const I32LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -455,7 +455,7 @@ SLKC_API I32LiteralExprNode::~I32LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I32LiteralExprNode);
 
-SLKC_API DumpResult I64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult I64LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -480,7 +480,7 @@ SLKC_API I64LiteralExprNode::I64LiteralExprNode(Global *global, int64_t literal)
 	  literal(literal) {
 }
 
-SLKC_API I64LiteralExprNode::I64LiteralExprNode(const I64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API I64LiteralExprNode::I64LiteralExprNode(const I64LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -493,7 +493,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(I64LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(U8LiteralExprNode);
 
-SLKC_API DumpResult U8LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U8LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -516,7 +516,7 @@ SLKC_API U8LiteralExprNode::U8LiteralExprNode(Global *global, uint8_t literal)
 	  literal(literal) {
 }
 
-SLKC_API U8LiteralExprNode::U8LiteralExprNode(const U8LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API U8LiteralExprNode::U8LiteralExprNode(const U8LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -527,7 +527,7 @@ SLKC_API U8LiteralExprNode::~U8LiteralExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U8LiteralExprNode);
 
-SLKC_API DumpResult U16LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U16LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -552,7 +552,7 @@ SLKC_API U16LiteralExprNode::U16LiteralExprNode(Global *global, uint16_t literal
 	  literal(literal) {
 }
 
-SLKC_API U16LiteralExprNode::U16LiteralExprNode(const U16LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API U16LiteralExprNode::U16LiteralExprNode(const U16LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -565,7 +565,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U16LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(U32LiteralExprNode);
 
-SLKC_API DumpResult U32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U32LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -588,7 +588,7 @@ SLKC_API U32LiteralExprNode::U32LiteralExprNode(Global *global, uint32_t literal
 	  literal(literal) {
 }
 
-SLKC_API U32LiteralExprNode::U32LiteralExprNode(const U32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API U32LiteralExprNode::U32LiteralExprNode(const U32LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -601,7 +601,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U32LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(U64LiteralExprNode);
 
-SLKC_API DumpResult U64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult U64LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -624,7 +624,7 @@ SLKC_API U64LiteralExprNode::U64LiteralExprNode(Global *global, uint64_t literal
 	  literal(literal) {
 }
 
-SLKC_API U64LiteralExprNode::U64LiteralExprNode(const U64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API U64LiteralExprNode::U64LiteralExprNode(const U64LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -637,7 +637,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(U64LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(F32LiteralExprNode);
 
-SLKC_API DumpResult F32LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult F32LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -660,7 +660,7 @@ SLKC_API F32LiteralExprNode::F32LiteralExprNode(Global *global, float literal)
 	  literal(literal) {
 }
 
-SLKC_API F32LiteralExprNode::F32LiteralExprNode(const F32LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API F32LiteralExprNode::F32LiteralExprNode(const F32LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -673,7 +673,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(F32LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(F64LiteralExprNode);
 
-SLKC_API DumpResult F64LiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult F64LiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -696,7 +696,7 @@ SLKC_API F64LiteralExprNode::F64LiteralExprNode(Global *global, double literal)
 	  literal(literal) {
 }
 
-SLKC_API F64LiteralExprNode::F64LiteralExprNode(const F64LiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API F64LiteralExprNode::F64LiteralExprNode(const F64LiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -709,7 +709,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(F64LiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(StringLiteralExprNode);
 
-SLKC_API DumpResult StringLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult StringLiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -732,7 +732,7 @@ SLKC_API StringLiteralExprNode::StringLiteralExprNode(Global *global, GlobalShar
 	  literal(literal) {
 }
 
-SLKC_API StringLiteralExprNode::StringLiteralExprNode(const StringLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API StringLiteralExprNode::StringLiteralExprNode(const StringLiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -745,7 +745,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(StringLiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(BoolLiteralExprNode);
 
-SLKC_API DumpResult BoolLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult BoolLiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -768,7 +768,7 @@ SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(Global *global, bool literal)
 	  literal(literal) {
 }
 
-SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(const BoolLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API BoolLiteralExprNode::BoolLiteralExprNode(const BoolLiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  literal(other.literal),
 	  sti_literal(other.sti_literal) {
@@ -781,7 +781,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(BoolLiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(NullLiteralExprNode);
 
-SLKC_API DumpResult NullLiteralExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult NullLiteralExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -798,7 +798,7 @@ SLKC_API NullLiteralExprNode::NullLiteralExprNode(Global *global)
 	: ExprNode(ExprKind::Null, global) {
 }
 
-SLKC_API NullLiteralExprNode::NullLiteralExprNode(const NullLiteralExprNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API NullLiteralExprNode::NullLiteralExprNode(const NullLiteralExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: ExprNode(other, context, node_index),
 	  sti_literal(other.sti_literal) {
 }
@@ -810,7 +810,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NullLiteralExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(InitializerListExprNode);
 
-SLKC_API DumpResult InitializerListExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult InitializerListExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -865,7 +865,7 @@ SLKC_API InitializerListExprNode::InitializerListExprNode(Global *global)
 	  sti_element_separators(global->get_allocator()) {
 }
 
-SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  elements(context.get_global()->get_allocator()),
 	  sti_left_brace(other.sti_left_brace),
@@ -900,7 +900,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(InitializerListExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CallExprNode);
 
-SLKC_API DumpResult CallExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult CallExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -961,7 +961,7 @@ SLKC_API CallExprNode::CallExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
@@ -1003,7 +1003,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CallExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(SubscriptExprNode);
 
-SLKC_API DumpResult SubscriptExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult SubscriptExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1064,7 +1064,7 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
@@ -1106,7 +1106,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(SubscriptExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(NewExprNode);
 
-SLKC_API DumpResult NewExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult NewExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1172,7 +1172,7 @@ SLKC_API NewExprNode::NewExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_new_keyword(other.sti_new_keyword),
@@ -1217,7 +1217,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NewExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(AllocaExprNode);
 
-SLKC_API DumpResult AllocaExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult AllocaExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1283,7 +1283,7 @@ SLKC_API AllocaExprNode::AllocaExprNode(Global *global)
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_alloca_keyword(other.sti_alloca_keyword),
@@ -1328,7 +1328,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AllocaExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CastExprNode);
 
-SLKC_API DumpResult CastExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult CastExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1362,7 +1362,7 @@ SLKC_API CastExprNode::CastExprNode(Global *global)
 	: ExprNode(ExprKind::Null, global) {
 }
 
-SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  is_nullable(other.is_nullable),
 	  sti_as_keyword(other.sti_as_keyword),
@@ -1393,7 +1393,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CastExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(MatchExprNode);
 
-SLKC_API peff::Result<MatchExprBranch, DuplicationError> MatchExprBranch::do_duplicate(DuplicationContext &context) const noexcept {
+SLKC_API peff::Result<MatchExprBranch, DuplicationError> MatchExprBranch::do_duplicate(AstNodeDuplicationContext &context) const noexcept {
 	MatchExprBranch branch;
 
 	{
@@ -1417,7 +1417,7 @@ SLKC_API peff::Result<MatchExprBranch, DuplicationError> MatchExprBranch::do_dup
 	return std::move(branch);
 }
 
-SLKC_API DumpResult MatchExprBranch::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult MatchExprBranch::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
@@ -1450,7 +1450,7 @@ SLKC_API DumpResult MatchExprBranch::do_dump(DumpContext &dump_context, wandjson
 	return DumpResult::Ok;
 }
 
-SLKC_API DumpResult MatchExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult MatchExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1527,7 +1527,7 @@ SLKC_API MatchExprNode::MatchExprNode(Global *global)
 	  sti_case_separators(global->get_allocator()) {
 }
 
-SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  branches(context.get_global()->get_allocator()),
 	  sti_match_keyword(other.sti_match_keyword),
@@ -1581,7 +1581,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(MatchExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(GroupExprNode)
 
-SLKC_API DumpResult GroupExprNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult GroupExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1609,7 +1609,7 @@ SLKC_API GroupExprNode::GroupExprNode(Global *global)
 	: ExprNode(ExprKind::Group, global) {
 }
 
-SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, DuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  sti_left_parenthesis(other.sti_left_parenthesis),
 	  sti_right_parenthesis(other.sti_right_parenthesis) {

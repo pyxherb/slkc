@@ -5,7 +5,7 @@ using namespace slkc::ast;
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CustomTypeDefNode);
 
-SLKC_API DumpResult CustomTypeDefNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult CustomTypeDefNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -25,7 +25,7 @@ SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	const CustomTypeDefNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: AstNode(other, context, node_index),
@@ -49,7 +49,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(CustomTypeDefNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ArrayTypeDefNode);
 
-SLKC_API DumpResult ArrayTypeDefNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ArrayTypeDefNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -69,7 +69,7 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	const ArrayTypeDefNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: AstNode(other, context, node_index) {
@@ -83,8 +83,8 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	}
 }
 
-SLKC_API bool DuplicationContext::push_post_run_hook(DuplicationContextHook *hook) noexcept {
-	if(!post_run_hooks.push_back(std::unique_ptr<DuplicationContextHook, peff::DeallocableDeleter<DuplicationContextHook>>(hook)))
+SLKC_API bool AstNodeDuplicationContext::push_post_run_hook(AstNodeDuplicationContextHook *hook) noexcept {
+	if(!post_run_hooks.push_back(std::unique_ptr<AstNodeDuplicationContextHook, peff::DeallocableDeleter<AstNodeDuplicationContextHook>>(hook)))
 		return false;
 	return true;
 }

@@ -11,7 +11,7 @@ SLKC_API GenericConstraint::GenericConstraint(Global *global)
 SLKC_API GenericConstraint::~GenericConstraint() {
 }
 
-SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::deep_duplicate(DuplicationContext &duplication_context) const noexcept {
+SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::deep_duplicate(AstNodeDuplicationContext &duplication_context) const noexcept {
 	GenericConstraint new_constraint(duplication_context.get_global());
 
 	if (inherited_type.has_value()) {
@@ -51,7 +51,7 @@ SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::de
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(GenericParamNode);
 
-SLKC_API DumpResult GenericParamNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult GenericParamNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -73,7 +73,7 @@ SLKC_API GenericParamNode::GenericParamNode(Global *global)
 
 SLKC_API GenericParamNode::GenericParamNode(
 	const GenericParamNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -99,7 +99,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(GenericParamNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ClassNode);
 
-SLKC_API DumpResult ClassNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ClassNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -182,7 +182,7 @@ SLKC_API ClassNode::ClassNode(Global *global)
 
 SLKC_API ClassNode::ClassNode(
 	const ClassNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -216,7 +216,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ClassNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(InterfaceNode);
 
-SLKC_API DumpResult InterfaceNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult InterfaceNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -289,7 +289,7 @@ SLKC_API InterfaceNode::InterfaceNode(Global *global)
 
 SLKC_API InterfaceNode::InterfaceNode(
 	const InterfaceNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -319,7 +319,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(InterfaceNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ExceptNode);
 
-SLKC_API DumpResult ExceptNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ExceptNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -353,7 +353,7 @@ SLKC_API ExceptNode::ExceptNode(Global *global)
 
 SLKC_API ExceptNode::ExceptNode(
 	const ExceptNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -372,7 +372,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ExceptNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(TraitNode);
 
-SLKC_API DumpResult TraitNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult TraitNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -406,7 +406,7 @@ SLKC_API TraitNode::TraitNode(Global *global)
 
 SLKC_API TraitNode::TraitNode(
 	const TraitNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -425,7 +425,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(TraitNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(StructNode);
 
-SLKC_API DumpResult StructNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult StructNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -508,7 +508,7 @@ SLKC_API StructNode::StructNode(Global *global)
 
 SLKC_API StructNode::StructNode(
 	const StructNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -540,7 +540,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(StructNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ConstEnumNode);
 
-SLKC_API DumpResult ConstEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ConstEnumNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -579,7 +579,7 @@ SLKC_API ConstEnumNode::ConstEnumNode(Global *global)
 
 SLKC_API ConstEnumNode::ConstEnumNode(
 	const ConstEnumNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -599,7 +599,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ConstEnumNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ScopedEnumNode);
 
-SLKC_API DumpResult ScopedEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ScopedEnumNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -633,7 +633,7 @@ SLKC_API ScopedEnumNode::ScopedEnumNode(Global *global)
 
 SLKC_API ScopedEnumNode::ScopedEnumNode(
 	const ScopedEnumNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -652,7 +652,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ScopedEnumNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(UnionEnumNode);
 
-SLKC_API DumpResult UnionEnumNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult UnionEnumNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -696,7 +696,7 @@ SLKC_API UnionEnumNode::UnionEnumNode(Global *global)
 
 SLKC_API UnionEnumNode::UnionEnumNode(
 	const UnionEnumNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -716,7 +716,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnionEnumNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(AttributeNode);
 
-SLKC_API DumpResult AttributeNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult AttributeNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -750,7 +750,7 @@ SLKC_API AttributeNode::AttributeNode(Global *global)
 
 SLKC_API AttributeNode::AttributeNode(
 	const AttributeNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),
@@ -769,7 +769,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AttributeNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ImportNode);
 
-SLKC_API DumpResult ImportNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult ImportNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -794,7 +794,7 @@ SLKC_API ImportNode::ImportNode(Global *global)
 
 SLKC_API ImportNode::ImportNode(
 	const ImportNode &other,
-	DuplicationContext &context,
+	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
 	: MemberNode(other, context, node_index, error_out),

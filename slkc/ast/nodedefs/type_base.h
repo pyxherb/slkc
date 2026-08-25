@@ -45,7 +45,7 @@ namespace slkc {
 		class TypeNameDefNode : public AstNode {
 		public:
 			SLKC_API TypeNameDefNode(peff::Alloc *self_allocator, Global *global);
-			SLKC_API TypeNameDefNode(const TypeNameDefNode &other, peff::Alloc *new_allocator, DuplicationContext &context);
+			SLKC_API TypeNameDefNode(const TypeNameDefNode &other, peff::Alloc *new_allocator, AstNodeDuplicationContext &context);
 			SLKC_API virtual ~TypeNameDefNode();
 		};
 
@@ -244,7 +244,7 @@ namespace slkc {
 			}
 		};
 
-		SLKC_API DumpResult dump_typename(wandjson::ObjectValue *target_object, DumpContext &dump_context, const TypeName &tn, bool deep_dump);
+		SLKC_API DumpResult dump_typename(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const TypeName &tn, bool deep_dump);
 	}
 }
 

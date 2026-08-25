@@ -678,6 +678,37 @@ namespace slkc {
 			return GreenNodePin(global, node->get_node_index(), node);
 		}
 
+		struct GreenNodeDumpContext final {
+		private:
+			struct DumpTask {
+				GreenNodeIndex src;
+				wandjson::ObjectValue *dest;
+				bool deep;
+			};
+
+			Global *global;
+			peff::RcObjectPtr<peff::Alloc> allocator;
+			peff::List<DumpTask> task_list;
+
+			wandjson::ObjectValue *root_value;
+
+			friend class Global;
+
+		public:
+			SLKC_API GreenNodeDumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);
+			SLKC_API DumpResult push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept;
+
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
+				return global;
+			}
+
+			SLAKE_FORCEINLINE peff::Alloc *get_allocator() const noexcept {
+				return allocator.get();
+			}
+		};
+
+		SLKC_API DumpResult dump_green_node(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const GreenNodePin &node, bool deep) noexcept;
+
 		struct RedNode;
 
 		using RedNodePtr = peff::SharedPtr<RedNode>;

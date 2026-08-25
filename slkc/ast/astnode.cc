@@ -8,7 +8,7 @@ SLKC_API AstNode::AstNode(NodeType ast_node_type, Global *global)
 	  _global(global) {
 }
 
-SLKC_API AstNode::AstNode(const AstNode &other, DuplicationContext &context, AstNodeIndex node_index)
+SLKC_API AstNode::AstNode(const AstNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
 	: _ast_node_type(other._ast_node_type),
 	  _global(other._global),
 	  _node_index(node_index) {
@@ -17,7 +17,7 @@ SLKC_API AstNode::AstNode(const AstNode &other, DuplicationContext &context, Ast
 SLKC_API AstNode::~AstNode() {
 }
 
-SLKC_API DumpResult AstNode::do_dump(DumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult AstNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_ast_node_type())))))
@@ -28,10 +28,10 @@ SLKC_API DumpResult AstNode::do_dump(DumpContext &dump_context, wandjson::Object
 	return DumpResult::Ok;
 }
 
-SLKC_API DuplicationContext::DuplicationContext(Global *global) : global(global), task_list(global->get_allocator()), post_run_hooks(global->get_allocator()) {
+SLKC_API AstNodeDuplicationContext::AstNodeDuplicationContext(Global *global) : global(global), task_list(global->get_allocator()), post_run_hooks(global->get_allocator()) {
 }
 
-SLKC_API peff::Result<AstNodeIndex, DuplicationError> DuplicationContext::push_task(AstNodeIndex node_index) noexcept {
+SLKC_API peff::Result<AstNodeIndex, DuplicationError> AstNodeDuplicationContext::push_task(AstNodeIndex node_index) noexcept {
 	if (node_index == INVALID_AST_NODE_INDEX)
 		return +INVALID_AST_NODE_INDEX;
 
@@ -57,7 +57,7 @@ SLKC_API peff::Result<AstNodeIndex, DuplicationError> DuplicationContext::push_t
 	return result.move();
 }
 
-SLKC_API peff::Result<TypeName, DuplicationError> DuplicationContext::push_task(const TypeName &type_name) noexcept {
+SLKC_API peff::Result<TypeName, DuplicationError> AstNodeDuplicationContext::push_task(const TypeName &type_name) noexcept {
 	auto def = type_name.get_def();
 	if (!def)
 		return TypeName(type_name);
@@ -75,7 +75,7 @@ SLKC_API peff::Result<TypeName, DuplicationError> DuplicationContext::push_task(
 	return tn;
 }
 
-SLKC_API DumpContext::DumpContext(
+SLKC_API AstNodeDumpContext::AstNodeDumpContext(
 	Global *global,
 	peff::Alloc *allocator,
 	wandjson::ObjectValue *root_value)
@@ -85,7 +85,7 @@ SLKC_API DumpContext::DumpContext(
 	  allocator(allocator) {
 }
 
-SLKC_API DumpResult DumpContext::push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept {
+SLKC_API DumpResult AstNodeDumpContext::push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept {
 	if (!task_list.push_back({ src, dest, deep }))
 		return DumpResult::OutOfMemory;
 
