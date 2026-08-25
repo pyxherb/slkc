@@ -880,12 +880,12 @@ int main(int argc, char *argv[]) {
 				token_list = std::move(lexer.token_list);
 			}
 
-			std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
+			/* std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
 				slake::Runtime::alloc(peff::default_allocator(), peff::default_allocator()));
 			if (!runtime) {
 				print_error("Error allocating memory for the runtime");
 				return ENOMEM;
-			}
+			}*/
 			{
 				{
 					peff::SharedPtr<slkc::ast::Parser> parser;
@@ -906,6 +906,10 @@ int main(int argc, char *argv[]) {
 					if (auto e = parser->parse(root_module_tree); e) {
 						encountered_errors = true;
 						dump_syntax_error(parser.get(), *e);
+					}
+
+					if(slkc::ast::compute_green_node_text_width_deep(root_module_tree, peff::default_allocator(), true) != slkc::ast::GreenNodeOperationResult::Success) {
+						std::terminate();
 					}
 
 					for (auto &i : parser->syntax_warnings) {

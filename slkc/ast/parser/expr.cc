@@ -5,7 +5,7 @@ using namespace slkc::ast;
 
 SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, int precedence) {
 	Token *token;
-	GreenNodePin lhs, rhs;
+	GreenNodePin lhs;
 
 	if (!(lhs = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
@@ -13,8 +13,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 	lhs->node_kind = GreenNodeKind::Expr;
 
 	peff::ScopeGuard sg([&lhs, &parent, node_pin_out]() noexcept {
-		if (parent)
-			parent->children.back() = lhs;
+		parent->children.back() = lhs;
 		if (node_pin_out)
 			*node_pin_out = lhs;
 	});
@@ -173,7 +172,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				if (!(case_node = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, case_node);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, case_node);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node, TokenId::CaseKeyword));
 
@@ -203,7 +202,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			break;
 		}
 		default:
-			collect_and_next_token(lhs);
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			co_return SyntaxError(
 				TokenRange{ module_node, token->index },
 				SyntaxErrorKind::ExpectingExpr);
@@ -226,8 +225,6 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, old_lhs);
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
-
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LParenthesis));
 
 				GreenNodePin args;
 

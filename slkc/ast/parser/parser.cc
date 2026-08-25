@@ -113,14 +113,12 @@ SLKC_API peff::Option<SyntaxError> Parser::to_next_token(const GreenNodePin &par
 		}
 
 		SLKC_RETURN_IF_PARSE_ERROR(collect_token(parent_node));
-
-		++i;
 	}
 
 	return SyntaxError(TokenRange{ get_global()->get_root_module_node_index(), i - 1 }, SyntaxErrorKind::ExpectingMoreTokens);
 }
 
-SLKC_API void Parser::next_token() {
+/*SLKC_API void Parser::next_token() {
 	TokenIndex &i = parse_context.idx_current_token;
 
 	if (i < token_list.size()) {
@@ -130,7 +128,7 @@ SLKC_API void Parser::next_token() {
 		parse_context.idx_prev_token = i;
 		++i;
 	}
-}
+}*/
 
 SLKC_API peff::Option<SyntaxError> Parser::collect_token(const GreenNodePin &parent_node) {
 	TokenIndex &i = parse_context.idx_current_token;
@@ -144,12 +142,9 @@ SLKC_API peff::Option<SyntaxError> Parser::collect_token(const GreenNodePin &par
 			return gen_oom_syntax_error();
 
 		new_terminal_node->source_token = current_token;
-		new_terminal_node->text_width = current_token->source_text.get().size();
 
-		if (!parent_node->push_child(new_terminal_node))
+		if (!parent_node->children.push_back(new_terminal_node))
 			return gen_oom_syntax_error();
-
-		parent_node->text_width += new_terminal_node->text_width;
 
 		parse_context.idx_prev_token = i;
 		++i;
@@ -544,11 +539,27 @@ SLKC_API ParseCoroutine Parser::parse_id_ref_entry(peff::Alloc *allocator, const
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::Id));
 
 	token = peek_token();
-	if (((requires_generic_distinguisher) && (token->token_id == TokenId::LtOp)) || (token->token_id == TokenId::ScopeOp)) {
+	if (token->token_id == TokenId::ScopeOp) {
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_entry_node_out));
-		if (token->token_id == TokenId::ScopeOp) {
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::LtOp));
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::LtOp));
+
+		while (true) {
+			GreenNodePin tn;
+
+			if (!(tn = make_green_node(get_global())))
+				co_return gen_oom_syntax_error();
+
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(id_ref_entry_node_out, tn);
+
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(allocator, tn, nullptr)(this));
+			if ((token = peek_token())->token_id != TokenId::Comma)
+				break;
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_entry_node_out));
 		}
+		SLKC_CO_RETURN_IF_PARSE_ERROR(split_shr_op_token());
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::GtOp));
+	} else if ((requires_generic_distinguisher) && (token->token_id == TokenId::LtOp)) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_entry_node_out));
 		while (true) {
 			GreenNodePin tn;
 
@@ -565,7 +576,6 @@ SLKC_API ParseCoroutine Parser::parse_id_ref_entry(peff::Alloc *allocator, const
 		SLKC_CO_RETURN_IF_PARSE_ERROR(split_shr_op_token());
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(id_ref_entry_node_out, TokenId::GtOp));
 	}
-
 	co_return peff::NULLOPT;
 }
 
@@ -576,6 +586,9 @@ SLKC_API ParseCoroutine Parser::parse_id_ref(peff::Alloc *allocator, const Green
 
 	switch ((token = peek_token())->token_id) {
 		case TokenId::ThisKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
+			if ((token = peek_token())->token_id != TokenId::Dot)
+				co_return peff::NULLOPT;
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
 			break;
 		case TokenId::ScopeOp:
@@ -590,6 +603,8 @@ SLKC_API ParseCoroutine Parser::parse_id_ref(peff::Alloc *allocator, const Green
 
 		if (!(node_pin = make_green_node(get_global())))
 			co_return gen_oom_syntax_error();
+
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(id_ref_node_out, node_pin);
 
 		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref_entry(allocator, node_pin, requires_generic_distinguisher)(this));
 
@@ -721,6 +736,8 @@ SLKC_API ParseCoroutine Parser::parse_operator_name(peff::Alloc *allocator, cons
 		case TokenId::ShrAssignOp:
 		case TokenId::NotOp:
 		case TokenId::LNotOp:
+		case TokenId::NewKeyword:
+		case TokenId::DeleteKeyword:
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(name_node_out));
 			break;
 		case TokenId::LParenthesis:
@@ -763,7 +780,8 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::LParenthesis));
 
-	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding(allocator, fn_node, nullptr)(this));
+	if ((token = peek_token())->token_id != TokenId::RParenthesis)
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, fn_node, nullptr)(this));
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RParenthesis));
 
@@ -798,15 +816,16 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
 
 			while (true) {
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, fn_node, nullptr)(this));
-
 				if ((token = peek_token())->token_id == TokenId::RBrace)
 					break;
+
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, fn_node, nullptr)(this));
 			}
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RBrace));
 			break;
 		case TokenId::Semicolon:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(fn_node));
 			fn_node->node_kind = GreenNodeKind::FnDecl;
 			break;
 		default:
@@ -938,10 +957,10 @@ SLKC_API ParseCoroutine Parser::parse_struct(peff::Alloc *allocator, const Green
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(struct_node, TokenId::LBrace));
 
 	while (true) {
-		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_program_stmt(allocator, struct_node)(this));
-
 		if ((token = peek_token())->token_id == TokenId::RBrace)
 			break;
+
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_program_stmt(allocator, struct_node)(this));
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(struct_node, TokenId::RBrace));
@@ -970,6 +989,8 @@ SLKC_API ParseCoroutine Parser::parse_const_enum(peff::Alloc *allocator, const G
 
 		if ((token = peek_token())->token_id != TokenId::Comma)
 			break;
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(enum_node));
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(enum_node, TokenId::RBrace));
@@ -996,6 +1017,8 @@ SLKC_API ParseCoroutine Parser::parse_scoped_enum(peff::Alloc *allocator, const 
 
 		if ((token = peek_token())->token_id != TokenId::Comma)
 			break;
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(enum_node));
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(enum_node, TokenId::RBrace));
@@ -1008,6 +1031,8 @@ SLKC_API ParseCoroutine Parser::parse_const_and_scoped_enum_item(peff::Alloc *al
 	if (!(item_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
 	item_node_out->node_kind = GreenNodeKind::ConstAndScopedEnumItem;
+
+	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, item_node_out);
 
 	peff::Deferred put_node_pin_out_guard([node_pin_out, &item_node_out]() noexcept {
 		if (node_pin_out)
@@ -1043,10 +1068,12 @@ SLKC_API ParseCoroutine Parser::parse_union_enum(peff::Alloc *allocator, const G
 		if ((token = peek_token())->token_id == TokenId::RBrace)
 			break;
 
-		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_const_and_scoped_enum_item(allocator, enum_node, nullptr)(this));
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_union_enum_case(allocator, enum_node, nullptr)(this));
 
 		if ((token = peek_token())->token_id != TokenId::Comma)
 			break;
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(enum_node));
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(enum_node, TokenId::RBrace));
@@ -1058,12 +1085,16 @@ SLKC_API ParseCoroutine Parser::parse_union_enum_case(peff::Alloc *allocator, Gr
 	GreenNodePin case_node_out;
 	if (!(case_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
-	case_node_out->node_kind = GreenNodeKind::ConstAndScopedEnumItem;
+	case_node_out->node_kind = GreenNodeKind::UnionEnumCase;
 
 	peff::Deferred put_node_pin_out_guard([node_pin_out, &case_node_out]() noexcept {
 		if (node_pin_out)
 			*node_pin_out = case_node_out;
 	});
+
+	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, case_node_out);
+
+	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node_out, TokenId::CaseKeyword));
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node_out, TokenId::Id));
 
@@ -1077,74 +1108,107 @@ SLKC_API ParseCoroutine Parser::parse_union_enum_case(peff::Alloc *allocator, Gr
 SLKC_API ParseCoroutine Parser::parse_program_stmt(peff::Alloc *allocator, const GreenNodePin &module_node) {
 	Token *token;
 
-	while (true) {
-		if ((token = peek_token())->token_id == TokenId::End)
+	GreenNodePin member;
+	if (!(member = make_green_node(get_global())))
+		co_return gen_oom_syntax_error();
+
+	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, member);
+
+	switch ((token = peek_token())->token_id) {
+		case TokenId::PublicKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
 			break;
+		case TokenId::PrivateKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+			break;
+		case TokenId::ProtectedKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+			break;
+		default:
+			break;
+	}
 
-		GreenNodePin member;
-		if (!(member = make_green_node(get_global())))
-			co_return gen_oom_syntax_error();
+	if ((token = peek_token())->token_id == TokenId::NativeKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+	}
 
-		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, member);
+	if ((token = peek_token())->token_id == TokenId::StaticKeyword) {
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+	}
 
-		switch (token->token_id) {
-			case TokenId::FnKeyword:
-			case TokenId::AsyncKeyword:
-			case TokenId::OperatorKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_fn(allocator, member)(this));
-				break;
-			case TokenId::ClassKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_class(allocator, member)(this));
-				break;
-			case TokenId::InterfaceKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_interface(allocator, member)(this));
-				break;
-			case TokenId::TraitKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_trait(allocator, member)(this));
-				break;
-			case TokenId::ExceptKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_except(allocator, member)(this));
-				break;
-			case TokenId::StructKeyword:
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_struct(allocator, member)(this));
-				break;
-			case TokenId::VarKeyword:
-			case TokenId::LetKeyword: {
-				member->node_kind = GreenNodeKind::GlobalVar;
+	switch ((token = peek_token())->token_id) {
+		case TokenId::FnKeyword:
+		case TokenId::AsyncKeyword:
+		case TokenId::OperatorKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_fn(allocator, member)(this));
+			break;
+		case TokenId::ClassKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_class(allocator, member)(this));
+			break;
+		case TokenId::InterfaceKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_interface(allocator, member)(this));
+			break;
+		case TokenId::TraitKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_trait(allocator, member)(this));
+			break;
+		case TokenId::ExceptKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_except(allocator, member)(this));
+			break;
+		case TokenId::StructKeyword:
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_struct(allocator, member)(this));
+			break;
+		case TokenId::VarKeyword:
+		case TokenId::LetKeyword: {
+			member->node_kind = GreenNodeKind::GlobalVar;
 
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, member, nullptr)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, member, nullptr)(this));
 
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(member, TokenId::Semicolon));
-				break;
-			}
-			case TokenId::EnumKeyword: {
-				member->node_kind = GreenNodeKind::UnknownEnumDecl;
-
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
-
-				switch ((token = peek_token())->token_id) {
-					case TokenId::ConstKeyword: {
-						SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_const_enum(allocator, member)(this));
-						break;
-					}
-					case TokenId::Id: {
-						SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_scoped_enum(allocator, member)(this));
-						break;
-					}
-					case TokenId::UnionKeyword: {
-						SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_union_enum(allocator, member)(this));
-						break;
-					}
-					default:
-						co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
-				}
-				break;
-			}
-			default:
-				co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(member, TokenId::Semicolon));
+			break;
 		}
+		case TokenId::EnumKeyword: {
+			member->node_kind = GreenNodeKind::UnknownEnumDecl;
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+
+			switch ((token = peek_token())->token_id) {
+				case TokenId::ConstKeyword: {
+					SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_const_enum(allocator, member)(this));
+					break;
+				}
+				case TokenId::Id: {
+					SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_scoped_enum(allocator, member)(this));
+					break;
+				}
+				case TokenId::UnionKeyword: {
+					SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_union_enum(allocator, member)(this));
+					break;
+				}
+				default:
+					co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+			}
+			break;
+		}
+		case TokenId::ImportKeyword: {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+
+			{
+				GreenNodePin module_name;
+
+				if (!(module_name = make_green_node(get_global())))
+					co_return gen_oom_syntax_error();
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(member, module_name);
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(allocator, module_name, false)(this));
+			}
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(member, TokenId::Semicolon));
+			break;
+		}
+		default:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
+			co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
 	}
 
 	co_return peff::NULLOPT;
@@ -1161,7 +1225,7 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 		{
 			GreenNodePin module_name;
 
-			if(!(module_name = make_green_node(get_global())))
+			if (!(module_name = make_green_node(get_global())))
 				co_return gen_oom_syntax_error();
 			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(module_node, module_name);
 			if ((syntax_error = (co_await parse_id_ref(allocator, module_name, false)(this)))) {
@@ -1176,12 +1240,11 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 
 	while ((t = peek_token())->token_id != TokenId::End) {
 		if ((syntax_error = (co_await parse_program_stmt(allocator, module_node)(this)))) {
-			co_return syntax_error;
+			//co_return std::move(syntax_error).value();
 			// Parse the rest to make sure that we have gained all of the information,
 			// instead of ignoring them.
-			if (!syntax_errors.push_back(std::move(syntax_error.value())))
+			if (!syntax_errors.push_back(std::move(syntax_error).value()))
 				co_return gen_oom_syntax_error();
-			syntax_error.reset();
 		}
 	}
 

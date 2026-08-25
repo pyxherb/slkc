@@ -106,8 +106,11 @@ namespace slkc {
 				/// @brief A constant and scoped enumeration item.
 				ConstAndScopedEnumItem,
 
-				/// @brief An union enumeartion definition.
+				/// @brief A union enumeartion definition.
 				UnionEnumDef,
+
+				/// @brief A union enumeration case.
+				UnionEnumCase,
 
 				/// @brief An attribute definition.
 				AttributeDef,
@@ -584,6 +587,13 @@ namespace slkc {
 			GreenNodeStmtKind stmt_kind;
 		};
 
+		enum class GreenNodeOperationResult : uint8_t {
+			Success = 0,
+			PinIOError,
+			OutOfMemory,
+			OutOfNodeIndex,
+		};
+
 		struct GreenNode final {
 		private:
 			GreenNode *_next_destructible = nullptr;
@@ -618,7 +628,28 @@ namespace slkc {
 				return children.push_back(std::move(child));
 			}
 
-			SLKC_API peff::Option<PinFailReason> compute_text_width_shallow() noexcept;
+			SLKC_API GreenNodeOperationResult compute_text_width_shallow() noexcept;
+		};
+
+		SLKC_API GreenNodeOperationResult compute_green_node_text_width_deep(GreenNodePin root, peff::Alloc *allocator, bool forced_update = false) noexcept;
+
+		struct GreenNodeChildrenIndex {
+		private:
+			peff::HashMap<TokenKind, size_t> children_index;
+
+		public:
+			SLAKE_FORCEINLINE GreenNodeChildrenIndex(peff::Alloc *allocator) : children_index(allocator) {
+			}
+			GreenNodeChildrenIndex(GreenNodeChildrenIndex &&) = default;
+
+			GreenNodeChildrenIndex &operator=(GreenNodeChildrenIndex &&) = default;
+
+			SLKC_API ~GreenNodeChildrenIndex();
+
+			SLKC_API GreenNodeOperationResult index_node(const GreenNodePin &node) noexcept;
+			SLAKE_FORCEINLINE void reset() noexcept {
+				children_index.clear();
+			}
 		};
 
 		SLAKE_FORCEINLINE GreenNodePin make_green_node(Global *global) {
@@ -644,9 +675,6 @@ namespace slkc {
 
 			sg.release();
 
-			if(node->get_node_index() == 2)
-				puts("");
-
 			return GreenNodePin(global, node->get_node_index(), node);
 		}
 
@@ -658,31 +686,6 @@ namespace slkc {
 			size_t offset;
 			RedNodePtr parent;
 			GreenNodePtr green;
-		};
-
-		enum class GreenNodeIndexingResult : uint8_t {
-			Success = 0,
-			PinIOError,
-			OutOfMemory,
-		};
-
-		struct GreenNodeChildrenIndex {
-		private:
-			peff::HashMap<TokenKind, size_t> children_index;
-
-		public:
-			SLAKE_FORCEINLINE GreenNodeChildrenIndex(peff::Alloc *allocator) : children_index(allocator) {
-			}
-			GreenNodeChildrenIndex(GreenNodeChildrenIndex &&) = default;
-
-			GreenNodeChildrenIndex &operator=(GreenNodeChildrenIndex &&) = default;
-
-			SLKC_API ~GreenNodeChildrenIndex();
-
-			SLKC_API GreenNodeIndexingResult index_node(const GreenNodePin &node) noexcept;
-			SLAKE_FORCEINLINE void reset() noexcept {
-				children_index.clear();
-			}
 		};
 	}
 }

@@ -287,7 +287,7 @@ namespace slkc {
 			};
 
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
-			SLKC_API void next_token();
+			//SLKC_API void next_token();
 			SLKC_API peff::Option<SyntaxError> collect_token(const GreenNodePin &parent_node);
 			SLKC_API Token *peek_token(TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
@@ -391,10 +391,6 @@ namespace slkc {
 
 #define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode, ...) \
 	if (!(dest)->push_child(subnode))                            \
-		co_return gen_oom_syntax_error();                        \
-	peff::ScopeGuard push_green_node_text_width_guard_##__VA_ARGS__( \
-		[&dest, &subnode]() noexcept {                           \
-			dest->text_width += subnode->text_width;             \
-		})
+		co_return gen_oom_syntax_error();
 
 #endif
