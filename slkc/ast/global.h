@@ -29,7 +29,7 @@ namespace slkc {
 			size_t ref_count = 0, pin_count = 0;
 			// Use void* to avoid forward declaration issue.
 			GreenNode *in_memory = nullptr;
-			AstNodeIndex self_index;
+			GreenNodeIndex self_index;
 
 			SLAKE_FORCEINLINE GreenNodeRegistry() {
 			}

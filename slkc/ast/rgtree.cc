@@ -5,7 +5,6 @@ using namespace slkc::ast;
 
 SLKC_API GreenNode::GreenNode(Global *global)
 	: _global(global),
-	  source_token(nullptr),
 	  children(global->get_allocator()),
 	  node_kind(0) {
 	assert(is_token_node_kind(node_kind));
@@ -18,23 +17,28 @@ SLKC_API GreenNodeOperationResult GreenNode::compute_text_width_shallow() noexce
 	text_width = 0;
 
 	for (const auto &i : children) {
-		auto pinned = i.pin();
+		if (auto t = std::get_if<TokenPtr>(&i); t) {
+			text_width += (*t).get()->source_text.get().size();
+		} else {
+			auto p = std::get_if<GreenNodePtr>(&i);
+			auto pinned = p->pin();
 
-		if (pinned.is_fail()) {
-			switch (pinned.get_fail_reason()) {
-				case slkc::ast::PinFailReason::IOError:
-					return GreenNodeOperationResult::PinIOError;
-				case slkc::ast::PinFailReason::OutOfMemory:
-					return GreenNodeOperationResult::OutOfMemory;
-				case slkc::ast::PinFailReason::OutOfNodeIndex:
-					return GreenNodeOperationResult::OutOfNodeIndex;
-				default:
-					SLAKE_UNREACHABLE();
+			if (pinned.is_fail()) {
+				switch (pinned.get_fail_reason()) {
+					case slkc::ast::PinFailReason::IOError:
+						return GreenNodeOperationResult::PinIOError;
+					case slkc::ast::PinFailReason::OutOfMemory:
+						return GreenNodeOperationResult::OutOfMemory;
+					case slkc::ast::PinFailReason::OutOfNodeIndex:
+						return GreenNodeOperationResult::OutOfNodeIndex;
+					default:
+						SLAKE_UNREACHABLE();
+				}
+				std::terminate();
 			}
-			std::terminate();
-		}
 
-		text_width += pinned->text_width;
+			text_width += pinned->text_width;
+		}
 	}
 
 	return GreenNodeOperationResult::Success;
@@ -61,24 +65,22 @@ SLKC_API GreenNodeOperationResult ast::compute_green_node_text_width_deep(GreenN
 			continue;
 		}
 
-		if (cur_frame.parent->source_token) {
-			TextWidth total_width = cur_frame.parent->source_token->source_text.get().size();
+		if (cur_frame.cur_index >= cur_frame.parent->children.size()) {
+			TextWidth total_width = cur_frame.total_width;
 			cur_frame.parent->text_width = total_width;
 			frames.pop_back();
 			if (frames.size())
 				frames.back().total_width += total_width;
 			continue;
-		} else {
-			if (cur_frame.cur_index >= cur_frame.parent->children.size()) {
-				TextWidth total_width = cur_frame.total_width;
-				cur_frame.parent->text_width = total_width;
-				frames.pop_back();
-				if (frames.size())
-					frames.back().total_width += total_width;
-				continue;
-			}
+		}
 
-			auto pinned = cur_frame.parent->children[cur_frame.cur_index].pin();
+		auto &child = cur_frame.parent->children[cur_frame.cur_index];
+
+		if (auto t = std::get_if<TokenPtr>(&child); t) {
+			size_t total_width = (*t)->source_text.get().size();
+			frames.back().total_width += total_width;
+		} else {
+			auto pinned = std::get_if<GreenNodePtr>(&child)->pin();
 
 			if (pinned.is_fail()) {
 				switch (pinned.get_fail_reason()) {
@@ -96,9 +98,8 @@ SLKC_API GreenNodeOperationResult ast::compute_green_node_text_width_deep(GreenN
 
 			if (!frames.push_back({ pinned, 0, 0 }))
 				return GreenNodeOperationResult::OutOfMemory;
-
-			++cur_frame.cur_index;
 		}
+		++cur_frame.cur_index;
 	}
 
 	return GreenNodeOperationResult::Success;
@@ -111,22 +112,29 @@ SLKC_API GreenNodeOperationResult GreenNodeChildrenIndex::index_node(const Green
 	children_index.clear();
 
 	for (size_t i = 0; i < node->children.size(); ++i) {
-		GreenNodePin pinned = node->children[i].pin();
+		auto &child = node->children[i];
 
-		if (pinned.is_fail()) {
-			switch (pinned.get_fail_reason()) {
-				case slkc::ast::PinFailReason::IOError:
-					return GreenNodeOperationResult::PinIOError;
-				case slkc::ast::PinFailReason::OutOfMemory:
-					return GreenNodeOperationResult::OutOfMemory;
-				default:
-					break;
+		if (auto t = std::get_if<TokenPtr>(&child); t) {
+			if (!children_index.insert(+t->get()->token_id, +i))
+				return GreenNodeOperationResult::OutOfMemory;
+		} else {
+			GreenNodePin pinned = std::get_if<GreenNodePtr>(&child)->pin();
+
+			if (pinned.is_fail()) {
+				switch (pinned.get_fail_reason()) {
+					case slkc::ast::PinFailReason::IOError:
+						return GreenNodeOperationResult::PinIOError;
+					case slkc::ast::PinFailReason::OutOfMemory:
+						return GreenNodeOperationResult::OutOfMemory;
+					default:
+						break;
+				}
+				SLAKE_UNREACHABLE();
 			}
-			SLAKE_UNREACHABLE();
-		}
 
-		if (!children_index.insert(+pinned->node_kind, +i))
-			return GreenNodeOperationResult::OutOfMemory;
+			if (!children_index.insert(+pinned->node_kind, +i))
+				return GreenNodeOperationResult::OutOfMemory;
+		}
 	}
 
 	return GreenNodeOperationResult::Success;
@@ -144,6 +152,28 @@ SLKC_API GreenNodeDumpContext::GreenNodeDumpContext(
 
 SLKC_API DumpResult GreenNodeDumpContext::push_task(wandjson::ObjectValue *dest, GreenNodeIndex src, bool deep) noexcept {
 	if (!task_list.push_back({ src, dest, deep }))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API DumpResult ast::dump_source_token(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const TokenPtr &token) noexcept {
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	wandjson::ObjectValue *token_object = static_cast<wandjson::ObjectValue *>(v.get());
+	if (!target_object->insert("source_token", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), token->source_text.get()))))
+		return DumpResult::OutOfMemory;
+	if (!token_object->insert("source_text", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), token->token_id))))
+		return DumpResult::OutOfMemory;
+	if (!token_object->insert("token_id", v.release()))
 		return DumpResult::OutOfMemory;
 
 	return DumpResult::Ok;
@@ -198,23 +228,7 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 		}
 	}
 
-	if (node->source_token) {
-		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-			return DumpResult::OutOfMemory;
-		wandjson::ObjectValue *token_object = static_cast<wandjson::ObjectValue *>(v.get());
-		if (!target_object->insert("source_token", v.release()))
-			return DumpResult::OutOfMemory;
-
-		if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), node->source_token->source_text.get()))))
-			return DumpResult::OutOfMemory;
-		if (!token_object->insert("source_text", v.release()))
-			return DumpResult::OutOfMemory;
-
-		if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), node->source_token->token_id))))
-			return DumpResult::OutOfMemory;
-		if (!token_object->insert("token_id", v.release()))
-			return DumpResult::OutOfMemory;
-	} else {
+	if (node->children.size()) {
 		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		wandjson::ArrayValue *children_array = static_cast<wandjson::ArrayValue *>(v.get());
@@ -223,19 +237,41 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 
 		if (deep) {
 			for (size_t i = 0; i < node->children.size(); ++i) {
-				if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-					return DumpResult::OutOfMemory;
-				wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
-				if (!children_array->push_back(v.release()))
-					return DumpResult::OutOfMemory;
-				SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(node_obj, node->children[i].get_index(), deep));
+				auto &child = node->children[i];
+
+				if (auto t = std::get_if<TokenPtr>(&child); t) {
+					if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+						return DumpResult::OutOfMemory;
+					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
+					if (!children_array->push_back(v.release()))
+						return DumpResult::OutOfMemory;
+					SLKC_RETURN_IF_DUMP_FAILED(dump_source_token(dump_context, node_obj, *t));
+				} else {
+					if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+						return DumpResult::OutOfMemory;
+					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
+					if (!children_array->push_back(v.release()))
+						return DumpResult::OutOfMemory;
+					SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(node_obj, std::get_if<GreenNodePtr>(&child)->get_index(), deep));
+				}
 			}
 		} else {
 			for (size_t i = 0; i < node->children.size(); ++i) {
-				if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), node->children[i].get_index()))))
-					return DumpResult::OutOfMemory;
-				if (!children_array->push_back(v.release()))
-					return DumpResult::OutOfMemory;
+				auto &child = node->children[i];
+
+				if (auto t = std::get_if<TokenPtr>(&child); t) {
+					if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+						return DumpResult::OutOfMemory;
+					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
+					if (!children_array->push_back(v.release()))
+						return DumpResult::OutOfMemory;
+					SLKC_RETURN_IF_DUMP_FAILED(dump_source_token(dump_context, node_obj, *t));
+				} else {
+					if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), std::get_if<GreenNodePtr>(&child)->get_index()))))
+						return DumpResult::OutOfMemory;
+					if (!children_array->push_back(v.release()))
+						return DumpResult::OutOfMemory;
+				}
 			}
 		}
 	}

@@ -925,6 +925,8 @@ int main(int argc, char *argv[]) {
 						std::terminate();
 					}
 
+					assert(root_module_tree->text_width == file_size);
+
 					for (auto &i : parser->syntax_warnings) {
 						dump_syntax_warning(parser.get(), i);
 					}
@@ -947,8 +949,6 @@ int main(int argc, char *argv[]) {
 
 					if(!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
 						std::terminate();
-
-					assert(root_module_tree->text_width == file_size);
 
 					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
 					if (module_name) {

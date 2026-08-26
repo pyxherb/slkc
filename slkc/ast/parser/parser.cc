@@ -137,13 +137,7 @@ SLKC_API peff::Option<SyntaxError> Parser::collect_token(const GreenNodePin &par
 		auto current_token = token_list.at(i);
 		current_token->index = i;
 
-		GreenNodePin new_terminal_node = make_green_node(get_global());
-		if (!new_terminal_node)
-			return gen_oom_syntax_error();
-
-		new_terminal_node->source_token = current_token;
-
-		if (!parent_node->children.push_back(new_terminal_node))
+		if (!parent_node->children.push_back(current_token))
 			return gen_oom_syntax_error();
 
 		parse_context.idx_prev_token = i;

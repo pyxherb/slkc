@@ -565,7 +565,7 @@ namespace slkc {
 			}
 		};
 
-		using GreenNodeChildList = peff::DynArray<GreenNodePtr>;
+		using GreenNodeChildList = peff::DynArray<std::variant<GreenNodePtr, TokenPtr>>;
 
 		struct TypeNameGreenNodeExData {
 			GreenNodeTypeNameKind type_name_kind;
@@ -598,12 +598,11 @@ namespace slkc {
 		private:
 			GreenNode *_next_destructible = nullptr;
 			Global *_global;
-			AstNodeIndex _node_index;
+			GreenNodeIndex _node_index;
 
 			friend class Global;
 
 		public:
-			TokenPtr source_token;
 			GreenNodeChildList children;
 			TextWidth text_width = 0;
 			std::variant<std::monostate, TypeNameGreenNodeExData, ExprGreenNodeExData, StmtGreenNodeExData> exdata;
@@ -707,6 +706,7 @@ namespace slkc {
 			}
 		};
 
+		SLKC_API DumpResult dump_source_token(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const TokenPtr &token) noexcept;
 		SLKC_API DumpResult dump_green_node(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const GreenNodePin &node, bool deep) noexcept;
 
 		struct RedNode;

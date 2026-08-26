@@ -203,16 +203,16 @@ SLKC_API void Global::unpin_green_node(GreenNodeIndex index) noexcept {
 
 SLKC_API GreenNodeIndex Global::_alloc_green_node_index() noexcept {
 	{
-		AstNodeIndex i = _min_free_ast_node_index;
+		GreenNodeIndex i = _min_free_green_node_index;
 		while (i < std::numeric_limits<AstNodeIndex>::max()) {
-			if (!_ast_node_registries.contains(i)) {
-				++_min_free_ast_node_index;
+			if (!_green_node_registries.contains(i)) {
+				++_min_free_green_node_index;
 				return i;
 			}
 			if (i < std::numeric_limits<AstNodeIndex>::max() / 2) {
-				auto it = _ast_node_registries.find_max_lteq(std::numeric_limits<AstNodeIndex>::max() - i);
+				auto it = _green_node_registries.find_max_lteq(std::numeric_limits<AstNodeIndex>::max() - i);
 
-				if (it != _ast_node_registries.end()) {
+				if (it != _green_node_registries.end()) {
 					i = it.value().self_index + 1;
 				} else {
 					// This is impossible.
