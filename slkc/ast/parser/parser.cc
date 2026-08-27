@@ -3,7 +3,7 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLAKE_FORCEINLINE peff::Option<SyntaxError> ParseCoroutine::resume(Parser *parser) {
+SLAKE_API peff::Option<SyntaxError> ParseCoroutine::resume(Parser *parser) {
 	if (!coro_handle)
 		return parser->gen_oom_syntax_error();
 
