@@ -105,39 +105,30 @@ SLKC_API GreenNodeOperationResult ast::compute_green_node_text_width_deep(GreenN
 	return GreenNodeOperationResult::Success;
 }
 
-SLKC_API GreenNodeChildrenIndex::~GreenNodeChildrenIndex() {
+SLKC_API RedNodeChildIndices::~RedNodeChildIndices() {
 }
 
-SLKC_API GreenNodeOperationResult GreenNodeChildrenIndex::index_node(const GreenNodePin &node) noexcept {
-	children_index.clear();
+SLKC_API bool RedNodeChildIndices::index_children(const RedNodePtr &node) noexcept {
+	_children_index.clear();
 
 	for (size_t i = 0; i < node->children.size(); ++i) {
 		auto &child = node->children[i];
 
-		if (auto t = std::get_if<TokenPtr>(&child); t) {
-			if (!children_index.insert(+t->get()->token_id, +i))
-				return GreenNodeOperationResult::OutOfMemory;
-		} else {
-			GreenNodePin pinned = std::get_if<GreenNodePtr>(&child)->pin();
+		TokenKind id;
+		if (child->is_token_facade())
+			id = child->as_token()->token_id;
+		else
+			id = child->as_green_node()->node_kind;
 
-			if (pinned.is_fail()) {
-				switch (pinned.get_fail_reason()) {
-					case slkc::ast::PinFailReason::IOError:
-						return GreenNodeOperationResult::PinIOError;
-					case slkc::ast::PinFailReason::OutOfMemory:
-						return GreenNodeOperationResult::OutOfMemory;
-					default:
-						break;
-				}
-				SLAKE_UNREACHABLE();
-			}
-
-			if (!children_index.insert(+pinned->node_kind, +i))
-				return GreenNodeOperationResult::OutOfMemory;
+		if (_children_index.contains(id)) {
+			if (!_children_index.insert(+child->as_token()->token_id, peff::DynArray<size_t>(_self_allocator.get())))
+				return false;
 		}
+		if (!_children_index.at(id).push_back(+i))
+			return false;
 	}
 
-	return GreenNodeOperationResult::Success;
+	return true;
 }
 
 SLKC_API RedNode::RedNode(peff::Alloc *allocator) : children(allocator) {
@@ -197,6 +188,16 @@ SLAKE_API GreenNodeOperationResult RedNode::build_child(peff::Alloc *allocator, 
 	red_child->parent_index = index;
 
 	this->children[index] = red_child;
+
+	return GreenNodeOperationResult::Success;
+}
+
+SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocator) {
+	for (size_t j = 0; j <= children.size(); ++j) {
+		GreenNodeOperationResult result = build_child(allocator, j);
+		if (result != GreenNodeOperationResult::Success)
+			return result;
+	}
 
 	return GreenNodeOperationResult::Success;
 }

@@ -632,25 +632,6 @@ namespace slkc {
 
 		SLKC_API GreenNodeOperationResult compute_green_node_text_width_deep(GreenNodePin root, peff::Alloc *allocator, bool forced_update = false) noexcept;
 
-		struct GreenNodeChildrenIndex {
-		private:
-			peff::HashMap<TokenKind, size_t> children_index;
-
-		public:
-			SLAKE_FORCEINLINE GreenNodeChildrenIndex(peff::Alloc *allocator) : children_index(allocator) {
-			}
-			GreenNodeChildrenIndex(GreenNodeChildrenIndex &&) = default;
-
-			GreenNodeChildrenIndex &operator=(GreenNodeChildrenIndex &&) = default;
-
-			SLKC_API ~GreenNodeChildrenIndex();
-
-			SLKC_API GreenNodeOperationResult index_node(const GreenNodePin &node) noexcept;
-			SLAKE_FORCEINLINE void reset() noexcept {
-				children_index.clear();
-			}
-		};
-
 		SLAKE_FORCEINLINE GreenNodePin make_green_node(Global *global) {
 			GreenNode *node = peff::alloc_and_construct<GreenNode>(global->get_allocator(), alignof(GreenNode), global);
 			if (!node)
@@ -712,7 +693,7 @@ namespace slkc {
 
 		struct RedNode : public peff::SharedFromThis<RedNode> {
 			size_t offset = 0;
-			RedNodePtr parent;
+			peff::WeakPtr<RedNode> parent;
 			size_t parent_index = 0;
 			std::variant<TokenPtr, GreenNodePin> green_node_or_token;
 			peff::DynArray<RedNodePtr> children;
@@ -726,6 +707,7 @@ namespace slkc {
 				return green_node_or_token.index() == 0;
 			}
 			SLAKE_API GreenNodeOperationResult build_child(peff::Alloc *allocator, size_t index);
+			SLAKE_API GreenNodeOperationResult build_children(peff::Alloc *allocator);
 			SLAKE_API peff::Result<RedNodePtr, GreenNodeOperationResult> get_child_node(peff::Alloc *allocator, size_t index) noexcept;
 			SLAKE_FORCEINLINE GreenNodePin as_green_node() const noexcept {
 				return *std::get_if<GreenNodePin>(&green_node_or_token);
@@ -736,6 +718,28 @@ namespace slkc {
 		};
 
 		SLKC_API RedNodePtr build_red_root_node(peff::Alloc *allocator, const GreenNodePin &green_node);
+
+		struct RedNodeChildIndices {
+		private:
+			peff::HashMap<TokenKind, peff::DynArray<size_t>> _children_index;
+			peff::RcObjectPtr<peff::Alloc> _self_allocator;
+
+		public:
+			SLAKE_FORCEINLINE RedNodeChildIndices(peff::Alloc *allocator) : _children_index(allocator), _self_allocator(_self_allocator) {
+			}
+			RedNodeChildIndices(RedNodeChildIndices &&) = default;
+
+			RedNodeChildIndices &operator=(RedNodeChildIndices &&) = default;
+
+			SLKC_API ~RedNodeChildIndices();
+
+			SLKC_API bool index_children(const RedNodePtr &node) noexcept;
+			SLKC_API std::span<size_t> get_classified_indices(TokenKind kind);
+
+			SLAKE_FORCEINLINE void reset() noexcept {
+				_children_index.clear();
+			}
+		};
 
 		SLKC_API DumpResult dump_source_token(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const TokenPtr &token) noexcept;
 		SLKC_API DumpResult dump_green_node(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const GreenNodePin &node, bool deep) noexcept;

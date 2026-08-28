@@ -14,15 +14,14 @@ namespace slkc {
 			using Handle = std::coroutine_handle<promise_type>;
 
 			struct promise_type {
-				RGLoweringCoroutineScheduler *scheduler;
 				peff::Option<CompilationError> result;
 
 				SLAKE_FORCEINLINE static RGLoweringCoroutine get_return_object_on_allocation_failure() noexcept {
-					return RGLoweringCoroutine(nullptr, {});
+					return RGLoweringCoroutine({});
 				}
 
 				SLAKE_FORCEINLINE RGLoweringCoroutine get_return_object() noexcept {
-					return RGLoweringCoroutine(scheduler, Handle::from_promise(*this));
+					return RGLoweringCoroutine(Handle::from_promise(*this));
 				}
 
 				SLAKE_FORCEINLINE std::suspend_always initial_suspend() noexcept {
@@ -98,7 +97,7 @@ namespace slkc {
 
 			static inline bool recursed = false;
 
-			RGLoweringCoroutine(RGLoweringCoroutineScheduler *scheduler, Handle coro_handle) : coro_handle(coro_handle) {}
+			RGLoweringCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
 			~RGLoweringCoroutine() {
 				// assert(!recursed);
 				// recursed = true;
@@ -111,7 +110,7 @@ namespace slkc {
 				return coro_handle.done();
 			}
 
-			SLAKE_API peff::Option<CompilationError> resume();
+			SLAKE_API peff::Option<CompilationError> resume(RGLoweringCoroutineScheduler *scheduler);
 
 			struct Awaitable {
 				RGLoweringCoroutine &co;
@@ -134,7 +133,9 @@ namespace slkc {
 			SLKC_API RGLoweringCoroutineScheduler(peff::Alloc *allocator);
 		};
 
-		SLKC_API RGLoweringCoroutine lower_rg_node_to_ast_node(const ast::GreenNodePin green_node);
+		SLKC_API peff::Option<CompilationError> _green_node_op_result_to_comp_error(ast::GreenNodeOperationResult result);
+		SLKC_API RGLoweringCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr green_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out);
+		SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr red_node);
 	}
 }
 
