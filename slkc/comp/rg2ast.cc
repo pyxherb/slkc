@@ -91,7 +91,27 @@ SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *st
 		co_return gen_oom_error_option();
 
 	// TODO: Implement it.
-	switch(red_node->as_green_node()->node_kind) {}
+	auto g = red_node->as_green_node();
+	switch(g->node_kind) {
+		case ast::GreenNodeKind::Expr: {
+			auto exdata = std::get<ast::ExprGreenNodeExData>(g->exdata);
+
+			switch(exdata.expr_kind) {
+				case slkc::ast::GreenNodeExprKind::I8Literal: {
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::Unary: {
+					auto op = exdata.unary_expr_op;
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::Binary: {
+					auto op = exdata.binary_expr_op;
+					break;
+				}
+			}
+			break;
+		}
+	}
 
 	co_return peff::NULLOPT;
 }

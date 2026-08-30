@@ -690,6 +690,7 @@ namespace slkc {
 		struct RedNode;
 
 		using RedNodePtr = peff::SharedPtr<RedNode>;
+		using RedNodeWeakPtr = peff::WeakPtr<RedNode>;
 
 		struct RedNode : public peff::SharedFromThis<RedNode> {
 			size_t offset = 0;

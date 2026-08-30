@@ -25,6 +25,16 @@ namespace slkc {
 			TokenIndex sti_native_keyword = INVALID_TOKEN_INDEX;
 		};
 
+		enum class AstMemberRelativeAnchorType : uint8_t {
+			Parent = 0,
+			Sibling,
+		};
+
+		struct AstMemberRelativeLocation {
+			size_t green_offset;
+			AstMemberRelativeAnchorType anchor_type;
+		};
+
 		class MemberNode : public AstNode {
 		private:
 			AstNodeIndex _parent_node_index = INVALID_AST_NODE_INDEX;
