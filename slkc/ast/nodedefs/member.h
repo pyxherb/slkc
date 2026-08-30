@@ -32,6 +32,7 @@ namespace slkc {
 
 		struct AstMemberRelativeLocation {
 			size_t green_offset;
+			size_t green_length;
 			AstMemberRelativeAnchorType anchor_type;
 		};
 
@@ -44,6 +45,8 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
+			peff::Option<AstMemberRelativeLocation> member_relative_location;
+
 			GlobalSharedStringRef self_name;
 
 			AccessModifier access_modifier;

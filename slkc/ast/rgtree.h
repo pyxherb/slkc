@@ -5,6 +5,7 @@
 #include "parser/lexer.h"
 #include <peff/advutils/shared_ptr.h>
 #include <peff/containers/btree_map.h>
+#include <coroutine>
 
 namespace slkc {
 	namespace ast {
@@ -594,6 +595,8 @@ namespace slkc {
 			OutOfNodeIndex,
 		};
 
+		SLKC_API GreenNodeOperationResult pin_fail_reason_to_green_node_operation_result(PinFailReason reason);
+
 		struct GreenNode final {
 		private:
 			GreenNode *_next_destructible = nullptr;
@@ -744,6 +747,188 @@ namespace slkc {
 
 		SLKC_API DumpResult dump_source_token(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const TokenPtr &token) noexcept;
 		SLKC_API DumpResult dump_green_node(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const GreenNodePin &node, bool deep) noexcept;
+
+		enum class GreenNodeDiffKind : uint8_t {
+			None = 0,
+			ReplacedLhsNode,
+			RemovedFromLhs,
+			InsertedIntoRhs,
+			Moved,
+		};
+
+		struct GreenNodeDiffCoroutineScheduler;
+
+		struct GreenNodeDiffCoroutine {
+			struct promise_type;
+
+			using Handle = std::coroutine_handle<promise_type>;
+
+			struct promise_type {
+				GreenNodeOperationResult result;
+
+				SLAKE_FORCEINLINE static GreenNodeDiffCoroutine get_return_object_on_allocation_failure() noexcept {
+					return GreenNodeDiffCoroutine({});
+				}
+
+				SLAKE_FORCEINLINE GreenNodeDiffCoroutine get_return_object() noexcept {
+					return GreenNodeDiffCoroutine(Handle::from_promise(*this));
+				}
+
+				SLAKE_FORCEINLINE std::suspend_always initial_suspend() noexcept {
+					return {};
+				}
+
+				SLAKE_FORCEINLINE std::suspend_always final_suspend() noexcept {
+					return {};
+				}
+
+				SLAKE_FORCEINLINE std::suspend_always yield_value(GreenNodeOperationResult value) noexcept {
+					result = value;
+					return {};
+				}
+
+				SLAKE_FORCEINLINE void return_value(GreenNodeOperationResult value) noexcept {
+					result = value;
+				}
+
+				SLAKE_FORCEINLINE void unhandled_exception() { std::terminate(); }
+
+				struct AllocatorInfo {
+					peff::Alloc *allocator;
+#if PEFF_ENABLE_RCOBJ_DEBUGGING
+					size_t c;
+#endif
+				};
+
+				template <typename First, typename... Args>
+				SLAKE_FORCEINLINE static void *operator new(size_t size, First &&first, peff::Alloc *allocator, Args &&...args) noexcept {
+					char *p = (char *)allocator->alloc(size + sizeof(AllocatorInfo), alignof(std::max_align_t));
+
+					if (!p)
+						return nullptr;
+
+					memset(p, 0, size);
+
+#if PEFF_ENABLE_RCOBJ_DEBUGGING
+					auto ref_count = peff::acquire_global_rcobj_ptr_counter();
+#endif
+
+					AllocatorInfo allocator_info = {
+						allocator
+#if PEFF_ENABLE_RCOBJ_DEBUGGING
+						,
+						ref_count
+#endif
+					};
+
+					memcpy(p + size, &allocator_info, sizeof(allocator_info));
+#if PEFF_ENABLE_RCOBJ_DEBUGGING
+					allocator->inc_ref(ref_count);
+#endif
+
+					return p;
+				}
+
+				SLAKE_FORCEINLINE static void operator delete(void *p, size_t size) noexcept {
+					AllocatorInfo allocator_info;
+
+					memcpy(&allocator_info, (char *)p + size, sizeof(allocator_info));
+
+					peff::RcObjectPtr<peff::Alloc> allocator_holder = allocator_info.allocator;
+
+					allocator_holder->release(p, size + sizeof(AllocatorInfo), alignof(std::max_align_t));
+#if PEFF_ENABLE_RCOBJ_DEBUGGING
+					allocator_holder->dec_ref(allocator_info.c);
+#endif
+				}
+			};
+
+			Handle coro_handle;
+
+			static inline bool recursed = false;
+
+			GreenNodeDiffCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
+			~GreenNodeDiffCoroutine() {
+				// assert(!recursed);
+				// recursed = true;
+				if (coro_handle)
+					coro_handle.destroy();
+				// recursed = false;
+			}
+
+			SLAKE_FORCEINLINE bool done() {
+				return coro_handle.done();
+			}
+
+			SLAKE_API GreenNodeOperationResult resume(GreenNodeDiffCoroutineScheduler *scheduler);
+
+			struct Awaitable {
+				GreenNodeDiffCoroutine &co;
+				GreenNodeDiffCoroutineScheduler *scheduler;
+				Handle handle;
+
+				SLKC_API Awaitable(GreenNodeDiffCoroutine &co, GreenNodeDiffCoroutineScheduler *scheduler, Handle handle);
+				SLKC_API bool await_ready();
+				SLKC_API void await_suspend(Handle h);
+				[[nodiscard]] SLKC_API GreenNodeOperationResult await_resume();
+			};
+
+			SLKC_API Awaitable operator()(GreenNodeDiffCoroutineScheduler *scheduler);
+		};
+
+		class GreenNodeDiffCoroutineScheduler {
+		public:
+			peff::DynArray<std::coroutine_handle<GreenNodeDiffCoroutine::promise_type>> task_list;
+
+			SLKC_API GreenNodeDiffCoroutineScheduler(peff::Alloc *allocator);
+		};
+
+		struct MovedGreenNodeDiffExData {
+			size_t moved_to_index;
+		};
+
+		struct GreenNodeDiff {
+			peff::DynArray<size_t> path;
+			bool is_dest_path = false;
+			GreenNodeDiffKind kind;
+			union {
+				MovedGreenNodeDiffExData moved;
+			} exdata;
+
+			SLAKE_FORCEINLINE GreenNodeDiff(peff::Alloc *allocator) : path(allocator) {}
+
+			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiff &rhs) const noexcept;
+
+			bool operator<(const GreenNodeDiff &rhs) const = default;
+			bool operator>(const GreenNodeDiff &rhs) const = default;
+		};
+
+		using GreenNodeDiffSet = peff::Set<GreenNodeDiff>;
+
+		struct GreenNodeDiffCachePair {
+			GreenNodePin lhs_node, rhs_node;
+
+			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiffCachePair &rhs) const noexcept;
+
+			bool operator<(const GreenNodeDiffCachePair &rhs) const = default;
+			bool operator>(const GreenNodeDiffCachePair &rhs) const = default;
+		};
+		using GreenNodeDiffCache = peff::Map<GreenNodeDiffCachePair, bool>;
+		SLKC_API GreenNodeDiffCoroutine _do_simple_green_tree_diff(
+			peff::Alloc *allocator,
+			GreenNodeDiffCoroutineScheduler &scheduler,
+			const GreenNodePin &lhs,
+			const GreenNodePin &rhs,
+			std::span<size_t> lhs_path_base,
+			GreenNodeDiffSet *diff_set_out,
+			GreenNodeDiffCache &diff_caches,
+			bool &is_same_out);
+		SLKC_API GreenNodeOperationResult green_tree_diff(
+			peff::Alloc *allocator,
+			const GreenNodePin &lhs,
+			const GreenNodePin &rhs,
+			GreenNodeDiffSet &diff_set_out
+		);
 	}
 }
 

@@ -2,7 +2,6 @@
 #define _SLKC_AST_NODE_H_
 
 #include "basedefs.h"
-#include <slkc/ast/rgtree.h>
 #include <peff/utils/result.h>
 #include <peff/containers/map.h>
 #include <peff/containers/hashmap.h>
@@ -53,6 +52,8 @@ namespace slkc {
 
 			Scope
 		};
+
+		SLKC_API bool is_member_node_type(NodeType node_type);
 
 		class Global;
 
@@ -121,12 +122,6 @@ namespace slkc {
 			SLAKE_FORCEINLINE peff::Alloc *get_allocator() const noexcept {
 				return allocator.get();
 			}
-		};
-
-		struct AstGreenTokenRef {
-			TokenKind kind;
-			size_t begin_off;
-			size_t width;
 		};
 
 		class AstNode {

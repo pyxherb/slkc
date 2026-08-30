@@ -744,17 +744,16 @@ public:
 };*/
 
 class JsonANSIDumpWriter : public wandjson::Writer {
-	public:
-		virtual ~JsonANSIDumpWriter() {
+public:
+	virtual ~JsonANSIDumpWriter() {
+	}
 
-		}
-
-		[[nodiscard]] virtual bool write(const char *src, size_t size) override {
-			if (!size)
-				return true;
-			return fwrite(src, size, 1, stdout) == 1;
-		}
-	};
+	[[nodiscard]] virtual bool write(const char *src, size_t size) override {
+		if (!size)
+			return true;
+		return fwrite(src, size, 1, stdout) == 1;
+	}
+};
 
 int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
@@ -907,8 +906,6 @@ int main(int argc, char *argv[]) {
 						return ENOMEM;
 					}
 
-					slkc::ast::OwnedIdRef module_name(global.get_allocator());
-
 					slkc::ast::GreenNodePin root_module_tree = slkc::ast::make_green_node(&global);
 					if (!root_module_tree) {
 						print_error("Error allocating memory for the root module's tree");
@@ -936,7 +933,57 @@ int main(int argc, char *argv[]) {
 						dump_syntax_error(parser.get(), i);
 					}
 
-					printf("Text width: %zu\n", root_module_tree->text_width);
+					{
+						slkc::ast::GreenNodePin root_module_tree2 = slkc::ast::make_green_node(&global);
+						if (!root_module_tree2) {
+							print_error("Error allocating memory for the root module's tree");
+							return ENOMEM;
+						}
+
+						getchar();
+
+						bool encountered_errors = false;
+						if (auto e = parser->parse(root_module_tree2); e) {
+							encountered_errors = true;
+							dump_syntax_error(parser.get(), *e);
+						}
+
+						if (slkc::ast::compute_green_node_text_width_deep(root_module_tree2, peff::default_allocator(), true) != slkc::ast::GreenNodeOperationResult::Success) {
+							std::terminate();
+						}
+
+						assert(root_module_tree2->text_width == file_size);
+
+						for (auto &i : parser->syntax_warnings) {
+							dump_syntax_warning(parser.get(), i);
+						}
+
+						for (auto &i : parser->syntax_errors) {
+							encountered_errors = true;
+							dump_syntax_error(parser.get(), i);
+						}
+
+						slkc::ast::GreenNodeDiffSet diff_set(peff::default_allocator());
+						if(slkc::ast::green_tree_diff(peff::default_allocator(), root_module_tree, root_module_tree2, diff_set) != slkc::ast::GreenNodeOperationResult::Success)
+							std::terminate();
+
+						for(const auto &i : diff_set) {
+							printf("Diff kind: %d\n", (int)i.kind);
+
+							printf("Is destination path: %s\n", i.is_dest_path ? "true" : "false");
+							printf("Diff path: ");
+							for(auto j : i.path) {
+								printf("%zu ", j);
+							}
+							puts("");
+
+							if(i.kind == slkc::ast::GreenNodeDiffKind::Moved) {
+								printf("Moved to: %zu\n", i.exdata.moved.moved_to_index);
+							}
+						}
+					}
+
+					/*printf("Text width: %zu\n", root_module_tree->text_width);
 
 					auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree->get_node_index());
 
@@ -948,7 +995,7 @@ int main(int argc, char *argv[]) {
 					JsonANSIDumpWriter writer;
 
 					if(!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
-						std::terminate();
+						std::terminate();*/
 
 					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
 					if (module_name) {

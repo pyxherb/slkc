@@ -3,6 +3,31 @@
 using namespace slkc;
 using namespace slkc::ast;
 
+SLKC_API bool ast::is_member_node_type(NodeType node_type) {
+	switch(node_type) {
+		case NodeType::Class:
+		case NodeType::Struct:
+		case NodeType::Except:
+		case NodeType::Interface:
+		case NodeType::Trait:
+		case NodeType::ConstEnum:
+		case NodeType::ScopedEnum:
+		case NodeType::UnionEnum:
+		case NodeType::EnumItem:
+		case NodeType::UnionEnumItem:
+		case NodeType::Attribute:
+		case NodeType::Fn:
+		case NodeType::FnOverloading:
+		case NodeType::Var:
+		case NodeType::GenericParam:
+		case NodeType::Module:
+		case NodeType::Import:
+			return true;
+		default:
+			return false;
+	}
+}
+
 SLKC_API AstNode::AstNode(NodeType ast_node_type, Global *global)
 	: _ast_node_type(ast_node_type),
 	  _global(global) {

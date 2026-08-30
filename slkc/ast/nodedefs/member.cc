@@ -41,6 +41,8 @@ SLKC_API MemberNode::MemberNode(
 	: AstNode(other, context, node_index),
 	  self_name(other.self_name),
 	  access_modifier(other.access_modifier) {
+	if(other.member_relative_location.has_value())
+		member_relative_location = other.member_relative_location.value();
 }
 
 SLKC_API MemberNode::~MemberNode() {
