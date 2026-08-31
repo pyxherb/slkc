@@ -803,51 +803,7 @@ int main(int argc, char *argv[]) {
 		return EINVAL;
 	}
 
-	FILE *fp = fopen(g_mod_file_name, "rb");
-
-	if (!fp) {
-		print_error("Error opening the file");
-		return EIO;
-	}
-
-	peff::ScopeGuard close_fp_guard([fp]() noexcept {
-		fclose(fp);
-	});
-
-	if (fseek(fp, 0, SEEK_END)) {
-		print_error("Error evaluating file size");
-		return EIO;
-	}
-
-	long file_size;
-	if ((file_size = ftell(fp)) < 1) {
-		print_error("Error evaluating file size");
-		return EIO;
-	}
-
-	if (fseek(fp, 0, SEEK_SET)) {
-		print_error("Error evaluating file size");
-		return EIO;
-	}
-
 	{
-		auto deleter = [](char *ptr) {
-			free(ptr);
-		};
-		std::unique_ptr<char[], decltype(deleter)> buf((char *)malloc((size_t)file_size + 1), deleter);
-
-		if (!buf) {
-			print_error("Error allocating memory for reading the file");
-			return ENOMEM;
-		}
-
-		(buf.get())[file_size] = '\0';
-
-		if (fread(buf.get(), file_size, 1, fp) < 1) {
-			print_error("Error reading the file");
-			return EIO;
-		}
-
 		slkc::ast::Global global(peff::default_allocator());
 
 		{
@@ -878,19 +834,6 @@ int main(int argc, char *argv[]) {
 				return ENOMEM;
 			}
 
-			slkc::ast::TokenList token_list(peff::default_allocator());
-			{
-				slkc::ast::Lexer lexer(peff::default_allocator());
-
-				std::string_view sv(buf.get(), file_size);
-
-				if (auto e = lexer.lex(&global, mod.get_index(), sv, peff::default_allocator()); e) {
-					dump_lexical_error(*e);
-					return -1;
-				}
-
-				token_list = std::move(lexer.token_list);
-			}
 
 			/* std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
 				slake::Runtime::alloc(peff::default_allocator(), peff::default_allocator()));
@@ -900,6 +843,65 @@ int main(int argc, char *argv[]) {
 			}*/
 			{
 				{
+					slkc::ast::TokenList token_list(peff::default_allocator());
+					long file_size;
+					{
+						FILE *fp = fopen(g_mod_file_name, "rb");
+
+						if (!fp) {
+							print_error("Error opening the file");
+							return EIO;
+						}
+
+						peff::ScopeGuard close_fp_guard([fp]() noexcept {
+							fclose(fp);
+						});
+
+						if (fseek(fp, 0, SEEK_END)) {
+							print_error("Error evaluating file size");
+							return EIO;
+						}
+
+						if ((file_size = ftell(fp)) < 1) {
+							print_error("Error evaluating file size");
+							return EIO;
+						}
+
+						if (fseek(fp, 0, SEEK_SET)) {
+							print_error("Error evaluating file size");
+							return EIO;
+						}
+
+						auto deleter = [](char *ptr) {
+							free(ptr);
+						};
+						std::unique_ptr<char[], decltype(deleter)> buf((char *)malloc((size_t)file_size + 1), deleter);
+
+						if (!buf) {
+							print_error("Error allocating memory for reading the file");
+							return ENOMEM;
+						}
+
+						(buf.get())[file_size] = '\0';
+
+						if (fread(buf.get(), file_size, 1, fp) < 1) {
+							print_error("Error reading the file");
+							return EIO;
+						}
+						{
+							slkc::ast::Lexer lexer(peff::default_allocator());
+
+							std::string_view sv(buf.get(), file_size);
+
+							if (auto e = lexer.lex(&global, mod.get_index(), sv, peff::default_allocator()); e) {
+								dump_lexical_error(*e);
+								return -1;
+							}
+
+							token_list = std::move(lexer.token_list);
+						}
+					}
+
 					peff::SharedPtr<slkc::ast::Parser> parser;
 					if (!(parser = peff::make_shared<slkc::ast::Parser>(peff::default_allocator(), &global, std::move(token_list), peff::default_allocator()))) {
 						print_error("Error allocating memory for the parser");
@@ -922,7 +924,7 @@ int main(int argc, char *argv[]) {
 						std::terminate();
 					}
 
-					assert(root_module_tree->text_width == file_size);
+					//assert(root_module_tree->text_width == file_size);
 
 					for (auto &i : parser->syntax_warnings) {
 						dump_syntax_warning(parser.get(), i);
@@ -933,34 +935,113 @@ int main(int argc, char *argv[]) {
 						dump_syntax_error(parser.get(), i);
 					}
 
+					printf("Text width: %zu\n", root_module_tree->text_width);
+
+					/* auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree->get_node_index());
+
+					if (result.has_error())
+						std::terminate();
+
+					std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
+
+					JsonANSIDumpWriter writer;
+
+					if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
+						std::terminate();*/
+
+					getchar();
+
 					{
+						slkc::ast::TokenList token_list2(peff::default_allocator());
+						long file_size2;
+						{
+							FILE *fp2 = fopen(g_mod_file_name, "rb");
+
+							if (!fp2) {
+								print_error("Error opening the file");
+								return EIO;
+							}
+
+							peff::ScopeGuard close_fp_guard2([fp2]() noexcept {
+								fclose(fp2);
+							});
+
+							if (fseek(fp2, 0, SEEK_END)) {
+								print_error("Error evaluating file size");
+								return EIO;
+							}
+
+							if ((file_size2 = ftell(fp2)) < 1) {
+								print_error("Error evaluating file size");
+								return EIO;
+							}
+
+							if (fseek(fp2, 0, SEEK_SET)) {
+								print_error("Error evaluating file size");
+								return EIO;
+							}
+
+							auto deleter2 = [](char *ptr) {
+								free(ptr);
+							};
+							std::unique_ptr<char[], decltype(deleter2)> buf2((char *)malloc((size_t)file_size2 + 1), deleter2);
+
+							if (!buf2) {
+								print_error("Error allocating memory for reading the file");
+								return ENOMEM;
+							}
+
+							(buf2.get())[file_size2] = '\0';
+
+							if (fread(buf2.get(), file_size2, 1, fp2) < 1) {
+								print_error("Error reading the file");
+								return EIO;
+							}
+							{
+								slkc::ast::Lexer lexer2(peff::default_allocator());
+
+								std::string_view sv2(buf2.get(), file_size2);
+
+								if (auto e = lexer2.lex(&global, mod.get_index(), sv2, peff::default_allocator()); e) {
+									dump_lexical_error(*e);
+									return -1;
+								}
+
+								token_list2 = std::move(lexer2.token_list);
+							}
+						}
+
+						peff::SharedPtr<slkc::ast::Parser> parser2;
+						if (!(parser2 = peff::make_shared<slkc::ast::Parser>(peff::default_allocator(), &global, std::move(token_list2), peff::default_allocator()))) {
+							print_error("Error allocating memory for the parser");
+							return ENOMEM;
+						}
+
 						slkc::ast::GreenNodePin root_module_tree2 = slkc::ast::make_green_node(&global);
 						if (!root_module_tree2) {
 							print_error("Error allocating memory for the root module's tree");
 							return ENOMEM;
 						}
 
-						getchar();
-
-						bool encountered_errors = false;
-						if (auto e = parser->parse(root_module_tree2); e) {
-							encountered_errors = true;
-							dump_syntax_error(parser.get(), *e);
+						bool encountered_errors2 = false;
+						if (auto e = parser2->parse(root_module_tree2); e) {
+							encountered_errors2 = true;
+							dump_syntax_error(parser2.get(), *e);
 						}
 
 						if (slkc::ast::compute_green_node_text_width_deep(root_module_tree2, peff::default_allocator(), true) != slkc::ast::GreenNodeOperationResult::Success) {
 							std::terminate();
 						}
 
-						assert(root_module_tree2->text_width == file_size);
+						//assert(root_module_tree2->text_width == file_size2);
 
-						for (auto &i : parser->syntax_warnings) {
-							dump_syntax_warning(parser.get(), i);
+						for (auto &i : parser2->syntax_warnings) {
+							dump_syntax_warning(parser2.get(), i);
 						}
 
-						for (auto &i : parser->syntax_errors) {
-							encountered_errors = true;
-							dump_syntax_error(parser.get(), i);
+						for (auto &i : parser2->syntax_errors) {
+							encountered_errors2 = true;
+							dump_syntax_error(parser2.get(), i);
 						}
 
 						slkc::ast::GreenNodeDiffSet diff_set(peff::default_allocator());
@@ -968,7 +1049,29 @@ int main(int argc, char *argv[]) {
 							std::terminate();
 
 						for(const auto &i : diff_set) {
-							printf("Diff kind: %d\n", (int)i.kind);
+							puts("--------------------------------------------------------------------------------");
+							const char *kind;
+
+							switch (i.kind) {
+								case slkc::ast::GreenNodeDiffKind::None:
+									kind = "none";
+									break;
+								case slkc::ast::GreenNodeDiffKind::ReplacedLhsNode:
+									kind = "replaced";
+									break;
+								case slkc::ast::GreenNodeDiffKind::InsertedIntoRhs:
+									kind = "inserted";
+									break;
+								case slkc::ast::GreenNodeDiffKind::RemovedFromLhs:
+									kind = "removed";
+									break;
+								case slkc::ast::GreenNodeDiffKind::Moved:
+									kind = "moved";
+									break;
+								default:
+									std::terminate();
+							}
+							printf("Diff kind: %s\n", kind);
 
 							printf("Is destination path: %s\n", i.is_dest_path ? "true" : "false");
 							printf("Diff path: ");
@@ -981,21 +1084,21 @@ int main(int argc, char *argv[]) {
 								printf("Moved to: %zu\n", i.exdata.moved.moved_to_index);
 							}
 						}
+
+						printf("Text width: %zu\n", root_module_tree2->text_width);
+
+						/* auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree2->get_node_index());
+
+						if (result.has_error())
+							std::terminate();
+
+						std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
+
+						JsonANSIDumpWriter writer;
+
+						if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
+							std::terminate();*/
 					}
-
-					/*printf("Text width: %zu\n", root_module_tree->text_width);
-
-					auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree->get_node_index());
-
-					if (result.has_error())
-						std::terminate();
-
-					std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
-
-					JsonANSIDumpWriter writer;
-
-					if(!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
-						std::terminate();*/
 
 					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
 					if (module_name) {

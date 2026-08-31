@@ -50,8 +50,8 @@ namespace slkc {
 #endif
 				};
 
-				template <typename First, typename... Args>
-				SLAKE_FORCEINLINE static void *operator new(size_t size, First &&first, peff::Alloc *allocator, Args &&...args) noexcept {
+				template <typename... Args>
+				SLAKE_FORCEINLINE static void *operator new(size_t size, peff::Alloc *allocator, Args &&...args) noexcept {
 					char *p = (char *)allocator->alloc(size + sizeof(AllocatorInfo), alignof(std::max_align_t));
 
 					if (!p)

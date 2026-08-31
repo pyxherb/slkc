@@ -349,9 +349,10 @@ namespace slkc {
 				PinFailReason _fail_reason;
 			};
 
-			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index, GreenNode *ptr) {
 				_global = global;
 				_green_node_index = node_index;
+				_ptr = ptr;
 				global->pin_green_node(node_index);
 			}
 
@@ -380,7 +381,7 @@ namespace slkc {
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
 				reset();
-				_set_and_inc_ref(rhs._global, rhs._green_node_index);
+				_set_and_inc_ref(rhs._global, rhs._green_node_index, rhs._ptr);
 
 				return *this;
 			}
@@ -541,6 +542,15 @@ namespace slkc {
 				return 0;
 			}
 
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				int result = compares_to(rhs);
+				if (result < 0)
+					return std::strong_ordering::less;
+				if (result > 0)
+					return std::strong_ordering::greater;
+				return std::strong_ordering::equivalent;
+			}
 			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 				return _node_index < rhs._node_index;
@@ -800,8 +810,8 @@ namespace slkc {
 #endif
 				};
 
-				template <typename First, typename... Args>
-				SLAKE_FORCEINLINE static void *operator new(size_t size, First &&first, peff::Alloc *allocator, Args &&...args) noexcept {
+				template <typename... Args>
+				SLAKE_FORCEINLINE static void *operator new(size_t size, peff::Alloc *allocator, Args &&...args) noexcept {
 					char *p = (char *)allocator->alloc(size + sizeof(AllocatorInfo), alignof(std::max_align_t));
 
 					if (!p)
@@ -907,6 +917,21 @@ namespace slkc {
 
 		struct GreenNodeDiffCachePair {
 			GreenNodePin lhs_node, rhs_node;
+
+			SLAKE_FORCEINLINE GreenNodeDiffCachePair(GreenNodePin lhs, GreenNodePin rhs) : lhs_node(lhs), rhs_node(rhs) {
+				assert(lhs_node);
+				assert(rhs_node);
+			}
+
+			SLAKE_FORCEINLINE GreenNodeDiffCachePair(const GreenNodeDiffCachePair &rhs) : lhs_node(rhs.lhs_node), rhs_node(rhs.rhs_node) {
+				assert(lhs_node);
+				assert(rhs_node);
+			}
+
+			SLAKE_FORCEINLINE GreenNodeDiffCachePair(GreenNodeDiffCachePair &&rhs) : lhs_node(std::move(rhs.lhs_node)), rhs_node(std::move(rhs.rhs_node)) {
+				assert(lhs_node);
+				assert(rhs_node);
+			}
 
 			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiffCachePair &rhs) const noexcept;
 

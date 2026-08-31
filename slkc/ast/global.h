@@ -245,10 +245,6 @@ namespace slkc {
 				return std::string_view(_string->_ptr, _string->_length) <=> rhs;
 			}
 
-			SLAKE_FORCEINLINE bool operator==(const std::string_view &rhs) const noexcept {
-				return std::string_view(_string->_ptr, _string->_length) == rhs;
-			}
-
 			bool operator<(const GlobalSharedStringRef &) const noexcept = default;
 			bool operator>(const GlobalSharedStringRef &) const noexcept = default;
 			bool operator==(const GlobalSharedStringRef &) const noexcept = default;
