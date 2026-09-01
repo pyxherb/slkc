@@ -96,7 +96,7 @@ SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ExprStmtNode);
 SLKC_API DumpResult BindingEntry::dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), name.get()))))
+	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), name.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("name", v.release()))
 		return DumpResult::OutOfMemory;
@@ -505,7 +505,7 @@ SLKC_API DumpResult ForEachStmtNode::do_dump(AstNodeDumpContext &dump_context, w
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), loop_var_name.get()))))
+	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), loop_var_name.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("loop_var_name", v.release()))
 		return DumpResult::OutOfMemory;

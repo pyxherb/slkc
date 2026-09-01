@@ -32,7 +32,7 @@ SLKC_API GreenNodeOperationResult GreenNode::compute_text_width_shallow() noexce
 
 	for (const auto &i : children) {
 		if (auto t = std::get_if<TokenPtr>(&i); t) {
-			text_width += (*t).get()->source_text.get().size();
+			text_width += (*t).get()->source_text.get_view().size();
 		} else {
 			auto p = std::get_if<GreenNodePtr>(&i);
 			auto pinned = p->pin();
@@ -81,7 +81,7 @@ SLKC_API GreenNodeOperationResult ast::compute_green_node_text_width_deep(GreenN
 		auto &child = cur_frame.parent->children[cur_frame.cur_index];
 
 		if (auto t = std::get_if<TokenPtr>(&child); t) {
-			size_t total_width = (*t)->source_text.get().size();
+			size_t total_width = (*t)->source_text.get_view().size();
 			frames.back().total_width += total_width;
 		} else {
 			auto pinned = std::get_if<GreenNodePtr>(&child)->pin();
@@ -165,7 +165,7 @@ SLAKE_API GreenNodeOperationResult RedNode::build_child(peff::Alloc *allocator, 
 		if (auto g = std::get_if<GreenNodePin>(&children[index - 1]->green_node_or_token); g)
 			red_child->offset = children[index - 1]->offset + (*g)->text_width;
 		else
-			red_child->offset = children[index - 1]->offset + (*std::get_if<TokenPtr>(&children[index - 1]->green_node_or_token))->source_text.get().size();
+			red_child->offset = children[index - 1]->offset + (*std::get_if<TokenPtr>(&children[index - 1]->green_node_or_token))->source_text.get_view().size();
 	} else
 		red_child->offset = this->offset;
 	red_child->parent = shared_from_this();
@@ -229,7 +229,7 @@ SLKC_API DumpResult ast::dump_source_token(GreenNodeDumpContext &dump_context, w
 	if (!target_object->insert("source_token", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), token->source_text.get()))))
+	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), token->source_text.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!token_object->insert("source_text", v.release()))
 		return DumpResult::OutOfMemory;
@@ -441,28 +441,13 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 	assert(lhs);
 	assert(rhs);
 	if (!diff_set_out) {
+		// Disable caches for debugging, the cache mechanism is buggy right now.
 		/* if (auto it = diff_caches.find({ GreenNodePin(lhs), GreenNodePin(rhs) }); it != diff_caches.end()) {
 			is_same_out = it.value();
 			co_return GreenNodeOperationResult::Success;
 		}*/
-	} else {
-		if (lhs->node_kind != rhs->node_kind) {
-			GreenNodeDiff diff(allocator);
-
-			diff.kind = GreenNodeDiffKind::ReplacedLhsNode;
-			if (!diff.path.build(lhs_path_base))
-				co_return GreenNodeOperationResult::OutOfMemory;
-			if (!diff_caches.insert({ GreenNodePin(lhs), GreenNodePin(rhs) }, false))
-				co_return GreenNodeOperationResult::OutOfMemory;
-			if (diff_set_out) {
-				if (!diff_set_out->insert(std::move(diff)))
-					co_return GreenNodeOperationResult::OutOfMemory;
-			}
-			is_same_out = false;
-			co_return GreenNodeOperationResult::Success;
-		}
 	}
-	// TODO: Check if the expression subkind or any other subkind is the same.
+	assert(lhs->node_kind == rhs->node_kind);
 
 	peff::BitArray lhs_occupation_set(allocator);
 	peff::BitArray rhs_occupation_set(allocator);
@@ -473,11 +458,10 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 	if (!rhs_occupation_set.resize(rhs->children.size()))
 		co_return GreenNodeOperationResult::OutOfMemory;
 
+	// Build extended path view array for difference tracing.
 	peff::DynArray<size_t> extended_path(allocator);
-
 	if (!extended_path.build(lhs_path_base))
 		co_return GreenNodeOperationResult::OutOfMemory;
-
 	if (!extended_path.push_back(SIZE_MAX))
 		co_return GreenNodeOperationResult::OutOfMemory;
 
@@ -491,8 +475,6 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 			if (pinned_lhs.is_fail())
 				co_return pin_fail_reason_to_green_node_operation_result(pinned_lhs.get_fail_reason());
 
-			GreenNodePin pinned_corresponding_rhs;
-			size_t corresponding_rhs_index = SIZE_MAX;
 			for (size_t j = 0; j < rhs->children.size(); ++j) {
 				if (rhs_occupation_set.get_bit(j))
 					continue;
@@ -502,32 +484,48 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 					if (pinned_rhs.is_fail())
 						co_return pin_fail_reason_to_green_node_operation_result(pinned_rhs.get_fail_reason());
 
-					bool same;
+					if (pinned_lhs->node_kind == pinned_rhs->node_kind) {
+						bool same = true;
 
-					if ((!pinned_corresponding_rhs) && (pinned_lhs->node_kind == pinned_rhs->node_kind)) {
-						pinned_corresponding_rhs = pinned_rhs;
-						corresponding_rhs_index = j;
-					}
+						// Check if the subtrees are the same.
+						// This does not write to the difference set.
+						if (auto result = co_await _do_simple_green_tree_diff(allocator, scheduler, pinned_lhs, pinned_rhs, extended_path, nullptr, diff_caches, same)(&scheduler); result != GreenNodeOperationResult::Success)
+							co_return result;
 
-					if (auto result = co_await _do_simple_green_tree_diff(allocator, scheduler, pinned_lhs, pinned_rhs, extended_path, nullptr, diff_caches, same)(&scheduler); result != GreenNodeOperationResult::Success)
-						co_return result;
+						if (same) {
+							assert(!lhs_to_rhs_move_map.contains(i));
+							if (!lhs_to_rhs_move_map.insert(+i, +j))
+								co_return GreenNodeOperationResult::OutOfMemory;
+							lhs_occupation_set.set_bit(i);
+							rhs_occupation_set.set_bit(j);
 
-					if (same) {
-						if (!lhs_to_rhs_move_map.insert(+i, +j))
-							co_return GreenNodeOperationResult::OutOfMemory;
-						lhs_occupation_set.set_bit(i);
-						rhs_occupation_set.set_bit(j);
+							if (i != j)
+								is_all_same = false;
 
-						if (i != j)
-							is_all_same = false;
+							// We cannot determine if the first element is moved, if first element is moved backward,
+							// the latter elements will be marked as moved, so there is no need to mark it.
+							if (i) {
+								bool found_in_order_member = false, found_sibling = false;
+								// If the node is relatively kept from original order, DO NOT generate a difference.
+								for (size_t k = i; k; --k) {
+									if (auto it = lhs_to_rhs_move_map.find(k - 1); it != lhs_to_rhs_move_map.end()) {
+										assert(k - 1 != i);
+										found_sibling = true;
+										if (j > it.value()) {
+											// Once we found a member in order, it shows us that it is in original order.
+											found_in_order_member = true;
+										}
+										break;
+									}
+								}
 
-						for (size_t k = i; k; --k) {
-							if (auto it = lhs_to_rhs_move_map.find(k - 1); it != lhs_to_rhs_move_map.end()) {
-								if (j < it.value()) {
-									if (diff_set_out) {
+								// The node is moved, generate a difference.
+								if (diff_set_out) {
+									if (found_in_order_member) {
+										// Found members in order means the relative position is not changed.
+									} else {
 										GreenNodeDiff diff(allocator);
 
-										// Insert a moved difference and wait for further trimming.
 										diff.kind = GreenNodeDiffKind::Moved;
 										diff.exdata.moved.moved_to_index = j;
 										if (!diff.path.build(extended_path))
@@ -536,12 +534,13 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 											co_return GreenNodeOperationResult::OutOfMemory;
 									}
 								}
-
-								goto node_success;
 							}
-						}
 
-						goto node_success;
+							goto node_success;
+						} else {
+							if (i == j)
+								is_all_same = false;
+						}
 					} else {
 						if (i == j)
 							is_all_same = false;
@@ -554,8 +553,6 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 
 			is_all_same = false;
 
-			continue;
-
 		node_success:;
 		} else {
 			TokenPtr token = *std::get_if<TokenPtr>(&lhs->children[i]);
@@ -564,7 +561,8 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 				if (rhs_occupation_set.get_bit(j))
 					continue;
 				if (auto r = std::get_if<TokenPtr>(&rhs->children[j]); r) {
-					if ((token->token_id == r->get()->token_id) && (token->source_text.get() == r->get()->source_text.get())) {
+					if ((token->token_id == r->get()->token_id) && (token->source_text.get_view() == r->get()->source_text.get_view())) {
+						assert(!lhs_to_rhs_move_map.contains(i));
 						if (!lhs_to_rhs_move_map.insert(+i, +j))
 							co_return GreenNodeOperationResult::OutOfMemory;
 						lhs_occupation_set.set_bit(i);
@@ -573,23 +571,35 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 						if (i != j)
 							is_all_same = false;
 
-						for (size_t k = i; k; --k) {
-							if (auto it = lhs_to_rhs_move_map.find(k - 1); it != lhs_to_rhs_move_map.end()) {
-								auto prev = it.value();
-								if (j < prev) {
-									if (diff_set_out) {
-										GreenNodeDiff diff(allocator);
-
-										// Insert a moved difference and wait for further trimming.
-										diff.kind = GreenNodeDiffKind::Moved;
-										diff.exdata.moved.moved_to_index = j;
-										if (!diff.path.build(extended_path))
-											co_return GreenNodeOperationResult::OutOfMemory;
-										if (!diff_set_out->insert(std::move(diff)))
-											co_return GreenNodeOperationResult::OutOfMemory;
+						// Just like above.
+						if (i) {
+							bool found_in_order_member = false, found_sibling = false;
+							for (size_t k = i; k; --k) {
+								if (auto it = lhs_to_rhs_move_map.find(k - 1); it != lhs_to_rhs_move_map.end()) {
+									assert(k - 1 != i);
+									found_sibling = true;
+									auto prev = it.value();
+									if (j > prev) {
+										// Once we found a member in order, it shows us that it is in original order.
+										found_in_order_member = true;
 									}
+									break;
 								}
-								goto token_success;
+							}
+
+							if (diff_set_out) {
+								if (found_in_order_member) {
+									// Just like above, relative position was not changed.
+								} else {
+									GreenNodeDiff diff(allocator);
+
+									diff.kind = GreenNodeDiffKind::Moved;
+									diff.exdata.moved.moved_to_index = j;
+									if (!diff.path.build(extended_path))
+										co_return GreenNodeOperationResult::OutOfMemory;
+									if (!diff_set_out->insert(std::move(diff)))
+										co_return GreenNodeOperationResult::OutOfMemory;
+								}
 							}
 						}
 
@@ -609,128 +619,157 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 		}
 	}
 
-	if (diff_set_out) {
-		for (size_t i = 0; i < lhs_occupation_set.bit_size(); ++i) {
-			if (!lhs_occupation_set.get_bit(i)) {
-				extended_path.back() = i;
-				if (auto it = std::get_if<GreenNodePtr>(&lhs->children[i]); it) {
-					auto pinned_lhs = it->pin();
+	// Scan again to match subnodes with the same kind and generate differences.
+	for (size_t i = 0; i < lhs_occupation_set.bit_size(); ++i) {
+		if (lhs_occupation_set.get_bit(i))
+			continue;
+		is_all_same = false;
+		extended_path.back() = i;
+		if (auto it = std::get_if<GreenNodePtr>(&lhs->children[i]); it) {
+			auto pinned_lhs = it->pin();
 
-					if (pinned_lhs.is_fail())
-						co_return pin_fail_reason_to_green_node_operation_result(pinned_lhs.get_fail_reason());
+			if (pinned_lhs.is_fail())
+				co_return pin_fail_reason_to_green_node_operation_result(pinned_lhs.get_fail_reason());
 
-					for (size_t j = 0; j < rhs->children.size(); ++j) {
-						if (rhs_occupation_set.get_bit(j))
-							continue;
-						if (auto r = std::get_if<GreenNodePtr>(&rhs->children[j]); r) {
-							auto pinned_rhs = r->pin();
+			// Find a proper same kind node to compare.
+			// If not found, the node should be marked as removed.
+			for (size_t j = 0; j < rhs->children.size(); ++j) {
+				if (rhs_occupation_set.get_bit(j))
+					continue;
+				if (auto r = std::get_if<GreenNodePtr>(&rhs->children[j]); r) {
+					auto pinned_rhs = r->pin();
 
-							if (pinned_rhs.is_fail())
-								co_return pin_fail_reason_to_green_node_operation_result(pinned_lhs.get_fail_reason());
+					if (pinned_rhs.is_fail())
+						co_return pin_fail_reason_to_green_node_operation_result(pinned_rhs.get_fail_reason());
 
-							if (pinned_rhs->node_kind == pinned_lhs->node_kind) {
-								for (size_t k = i + 1; k < lhs->children.size(); ++k) {
-									if (auto it = lhs_to_rhs_move_map.find(k); it != lhs_to_rhs_move_map.end()) {
-										lhs_occupation_set.set_bit(i);
-										if (i < it.value()) {
-											if (!lhs_to_rhs_move_map.insert(+i, +j))
-												co_return GreenNodeOperationResult::OutOfMemory;
-											extended_path.back() = i;
-
-											bool same;
-											if (auto result = co_await _do_simple_green_tree_diff(allocator, scheduler, pinned_lhs, pinned_rhs, extended_path, diff_set_out, diff_caches, same)(&scheduler); result != GreenNodeOperationResult::Success)
-												co_return result;
-
-											rhs_occupation_set.set_bit(j);
-										} else {
-											GreenNodeDiff diff(allocator);
-
-											diff.kind = GreenNodeDiffKind::RemovedFromLhs;
-											if (!diff.path.build(extended_path))
-												co_return GreenNodeOperationResult::OutOfMemory;
-											if (!diff_set_out->insert(std::move(diff)))
-												co_return GreenNodeOperationResult::OutOfMemory;
-										}
-										goto node_matched;
-									}
+					if (pinned_rhs->node_kind == pinned_lhs->node_kind) {
+						bool found_sibling_in_order = false, found_sibling = false;
+						for (size_t k = i + 1; k < lhs->children.size(); ++k) {
+							if (auto it = lhs_to_rhs_move_map.find(k); it != lhs_to_rhs_move_map.end()) {
+								found_sibling = true;
+								if (j < it.value()) {
+									found_sibling_in_order = true;
 								}
-								if (!lhs_to_rhs_move_map.insert(+i, +j))
-									co_return GreenNodeOperationResult::OutOfMemory;
-								extended_path.back() = i;
-
-								bool same;
-								if (auto result = co_await _do_simple_green_tree_diff(allocator, scheduler, pinned_lhs, pinned_rhs, extended_path, diff_set_out, diff_caches, same)(&scheduler); result != GreenNodeOperationResult::Success)
-									co_return result;
-
-								rhs_occupation_set.set_bit(j);
+								break;
 							}
 						}
-					}
 
-				node_matched:;
-				} else {
-					TokenPtr token = *std::get_if<TokenPtr>(&lhs->children[i]);
+						assert(!lhs_to_rhs_move_map.contains(i));
+						lhs_occupation_set.set_bit(i);
+						if (!lhs_to_rhs_move_map.insert(+i, +j))
+							co_return GreenNodeOperationResult::OutOfMemory;
+						rhs_occupation_set.set_bit(j);
 
-					for (size_t j = 0; j < rhs->children.size(); ++j) {
-						if (rhs_occupation_set.get_bit(j))
-							continue;
-						if (auto r = std::get_if<TokenPtr>(&rhs->children[j]); r) {
-							if (token->token_id == r->get()->token_id) {
-								for (size_t k = i + 1; k < lhs->children.size(); ++k) {
-									if (auto it = lhs_to_rhs_move_map.find(k); it != lhs_to_rhs_move_map.end()) {
-										lhs_occupation_set.set_bit(i);
-										if (i < it.value()) {
-											if (!lhs_to_rhs_move_map.insert(+i, +j))
-												co_return GreenNodeOperationResult::OutOfMemory;
-											if (diff_set_out) {
-												GreenNodeDiff diff(allocator);
+						if (found_sibling_in_order) {
+							bool same;
+							if (auto result = co_await _do_simple_green_tree_diff(allocator, scheduler, pinned_lhs, pinned_rhs, extended_path, diff_set_out, diff_caches, same)(&scheduler); result != GreenNodeOperationResult::Success)
+								co_return result;
+						} else if (found_sibling) {
+							if (diff_set_out) {
+								GreenNodeDiff diff(allocator);
 
-												diff.kind = GreenNodeDiffKind::ReplacedLhsNode;
-												if (!diff.path.build(extended_path))
-													co_return GreenNodeOperationResult::OutOfMemory;
-												if (!diff_set_out->insert(std::move(diff)))
-													co_return GreenNodeOperationResult::OutOfMemory;
-											}
-											rhs_occupation_set.set_bit(j);
-										} else {
-											if (diff_set_out) {
-												GreenNodeDiff diff(allocator);
-
-												diff.kind = GreenNodeDiffKind::RemovedFromLhs;
-												if (!diff.path.build(extended_path))
-													co_return GreenNodeOperationResult::OutOfMemory;
-												if (!diff_set_out->insert(std::move(diff)))
-													co_return GreenNodeOperationResult::OutOfMemory;
-											}
-										}
-										goto token_matched;
-									}
-								}
-								if (!lhs_to_rhs_move_map.insert(+i, +j))
+								diff.kind = GreenNodeDiffKind::Moved;
+								diff.exdata.moved.moved_to_index = j;
+								if (!diff.path.build(extended_path))
 									co_return GreenNodeOperationResult::OutOfMemory;
+								if (!diff_set_out->insert(std::move(diff)))
+									co_return GreenNodeOperationResult::OutOfMemory;
+							}
+						} else {
+							// The relative order did not change.
+						}
+						goto node_matched;
+					}
+				}
+			}
 
+			if (diff_set_out) {
+				GreenNodeDiff diff(allocator);
+				diff.kind = GreenNodeDiffKind::RemovedFromLhs;
+				if (!diff.path.build(extended_path))
+					co_return GreenNodeOperationResult::OutOfMemory;
+				if (!diff_set_out->insert(std::move(diff)))
+					co_return GreenNodeOperationResult::OutOfMemory;
+			}
+
+		node_matched:;
+		} else {
+			TokenPtr token = *std::get_if<TokenPtr>(&lhs->children[i]);
+
+			// Just like above, but applies to the token children.
+			for (size_t j = 0; j < rhs->children.size(); ++j) {
+				if (rhs_occupation_set.get_bit(j))
+					continue;
+				if (auto r = std::get_if<TokenPtr>(&rhs->children[j]); r) {
+					// Choose the token with the same kind to mark out that the token has been updated.
+					if (token->token_id == r->get()->token_id) {
+						bool found_sibling_in_order = false, found_sibling = false;
+						for (size_t k = i + 1; k < lhs->children.size(); ++k) {
+							if (auto it = lhs_to_rhs_move_map.find(k); it != lhs_to_rhs_move_map.end()) {
+								found_sibling = true;
+								if (j < it.value()) {
+									found_sibling_in_order = true;
+								}
+								break;
+							}
+						}
+
+						assert(!lhs_to_rhs_move_map.contains(i));
+						lhs_occupation_set.set_bit(i);
+						if (!lhs_to_rhs_move_map.insert(+i, +j))
+							co_return GreenNodeOperationResult::OutOfMemory;
+						rhs_occupation_set.set_bit(j);
+
+						if (token->source_text.get_view() == r->get()->source_text.get_view()) {
+							if (found_sibling_in_order) {
+							} else if (found_sibling) {
 								if (diff_set_out) {
 									GreenNodeDiff diff(allocator);
 
-									diff.kind = GreenNodeDiffKind::ReplacedLhsNode;
+									diff.kind = GreenNodeDiffKind::Moved;
+									diff.exdata.moved.moved_to_index = j;
 									if (!diff.path.build(extended_path))
 										co_return GreenNodeOperationResult::OutOfMemory;
 									if (!diff_set_out->insert(std::move(diff)))
 										co_return GreenNodeOperationResult::OutOfMemory;
 								}
+							} else {
+								// The relative order did not change.
+							}
+						} else {
+							if (diff_set_out) {
+								GreenNodeDiff diff(allocator);
 
-								rhs_occupation_set.set_bit(j);
+								diff.kind = GreenNodeDiffKind::ReplacedLhsNode;
+								if (!diff.path.build(extended_path))
+									co_return GreenNodeOperationResult::OutOfMemory;
+								if (!diff_set_out->insert(std::move(diff)))
+									co_return GreenNodeOperationResult::OutOfMemory;
 							}
 						}
-					}
 
-				token_matched:;
+						goto token_matched;
+					}
 				}
 			}
-		}
 
+			if (diff_set_out) {
+				GreenNodeDiff diff(allocator);
+				diff.kind = GreenNodeDiffKind::RemovedFromLhs;
+				if (!diff.path.build(extended_path))
+					co_return GreenNodeOperationResult::OutOfMemory;
+				if (!diff_set_out->insert(std::move(diff)))
+					co_return GreenNodeOperationResult::OutOfMemory;
+			}
+
+		token_matched:;
+		}
+	}
+
+	if (diff_set_out) {
 		for (size_t i = 0; i < rhs_occupation_set.bit_size(); ++i) {
 			if (!rhs_occupation_set.get_bit(i)) {
+				is_all_same = false;
 				extended_path.back() = i;
 
 				GreenNodeDiff diff(allocator);
@@ -746,6 +785,12 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 		}
 	} else {
 		if (is_all_same) {
+			for (size_t i = 0; i < lhs_occupation_set.bit_size(); ++i) {
+				if (!lhs_occupation_set.get_bit(i)) {
+					is_all_same = false;
+					break;
+				}
+			}
 			for (size_t i = 0; i < rhs_occupation_set.bit_size(); ++i) {
 				if (!rhs_occupation_set.get_bit(i)) {
 					is_all_same = false;

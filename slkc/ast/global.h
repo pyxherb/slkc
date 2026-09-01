@@ -229,12 +229,12 @@ namespace slkc {
 				return *this;
 			}
 
-			SLAKE_FORCEINLINE std::string_view get() const noexcept {
-				return *_string;
+			SLAKE_FORCEINLINE std::string_view get_view() const noexcept {
+				return std::string_view(_string->_ptr, _string->_length);
 			}
 
 			SLAKE_FORCEINLINE operator std::string_view() const noexcept {
-				return *_string;
+				return std::string_view(_string->_ptr, _string->_length);
 			}
 
 			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const GlobalSharedStringRef &rhs) const noexcept {
@@ -275,7 +275,7 @@ namespace peff {
 		peff::Hasher<std::string_view> _impl;
 
 		SLAKE_FORCEINLINE size_t operator()(const slkc::ast::GlobalSharedStringRef &rhs) const {
-			return _impl(rhs.get());
+			return _impl(rhs.get_view());
 		}
 
 		SLAKE_FORCEINLINE size_t operator()(const std::string_view &rhs) const {

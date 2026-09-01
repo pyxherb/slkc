@@ -417,7 +417,7 @@ SLKC_API GlobalSharedString *Global::register_shared_string(std::string_view sv)
 	std::lock_guard g(_shared_strings_mutex);
 	if (auto it = _shared_strings.find_alt(sv); it != _shared_strings.end())
 		return &*it;
-	char *s = static_cast<char *>(resource_allocator->alloc(sv.size(), alignof(char)));
+	char *s = static_cast<char *>(resource_allocator->alloc(sv.size() + 1, alignof(char)));
 
 	if (!s)
 		return nullptr;
@@ -427,6 +427,7 @@ SLKC_API GlobalSharedString *Global::register_shared_string(std::string_view sv)
 	});
 
 	memcpy(s, sv.data(), sv.size());
+	s[sv.size()] = '\0';
 
 	GlobalSharedString ss;
 

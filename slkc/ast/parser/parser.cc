@@ -204,7 +204,7 @@ SLKC_API peff::Option<SyntaxError> Parser::split_shr_op_token() {
 		case TokenId::ShrOp: {
 			token->token_id = TokenId::GtOp;
 
-			auto first_angle = global->register_shared_string(token->source_text.get().substr(0, 1));
+			auto first_angle = global->register_shared_string(token->source_text.get_view().substr(0, 1));
 			if (!first_angle)
 				return gen_oom_syntax_error();
 			token->source_text = first_angle;
@@ -222,7 +222,7 @@ SLKC_API peff::Option<SyntaxError> Parser::split_shr_op_token() {
 					SourcePosition{ token->source_location.begin_position.line, token->source_location.begin_position.column + 1 },
 					token->source_location.end_position
 				};
-			auto second_angle = global->register_shared_string(token->source_text.get().substr(1));
+			auto second_angle = global->register_shared_string(token->source_text.get_view().substr(1));
 			if (!second_angle)
 				return gen_oom_syntax_error();
 			extra_closing_token->source_text = second_angle;
@@ -244,7 +244,7 @@ SLKC_API peff::Option<SyntaxError> Parser::split_rdbrackets_token() {
 		case TokenId::RDBracket: {
 			token->token_id = TokenId::RBracket;
 
-			auto first_bracket = global->register_shared_string(token->source_text.get().substr(0, 1));
+			auto first_bracket = global->register_shared_string(token->source_text.get_view().substr(0, 1));
 			if (!first_bracket)
 				return gen_oom_syntax_error();
 			token->source_text = first_bracket;
@@ -263,7 +263,7 @@ SLKC_API peff::Option<SyntaxError> Parser::split_rdbrackets_token() {
 					token->source_location.end_position
 				};
 
-			auto second_bracket = global->register_shared_string(token->source_text.get().substr(1));
+			auto second_bracket = global->register_shared_string(token->source_text.get_view().substr(1));
 			if (!second_bracket)
 				return gen_oom_syntax_error();
 			extra_closing_token->source_text = second_bracket;
@@ -813,7 +813,10 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 				if ((token = peek_token())->token_id == TokenId::RBrace)
 					break;
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, fn_node, nullptr)(this));
+				if (auto e = co_await parse_stmt(allocator, fn_node, nullptr)(this); e.has_value()) {
+					if (!syntax_errors.push_back(std::move(e).value()))
+						co_return gen_oom_syntax_error();
+				}
 			}
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RBrace));
@@ -1242,9 +1245,8 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 					co_return gen_oom_syntax_error();
 				syntax_error.reset();
 			}
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(module_name, TokenId::Semicolon));
 		}
-
-		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(module_node, TokenId::Semicolon));
 	}
 
 	while ((t = peek_token())->token_id != TokenId::End) {
