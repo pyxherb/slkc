@@ -100,6 +100,7 @@ SLAKE_FORCEINLINE static peff::Option<CompilationError> _parse_int(
 			env->push_error(
 				CompilationError(
 					ast::TokenRange{ env->get_target_module().get_index(), token->index }, CompilationErrorKind::LiteralOverflowed)));
+		return peff::NULLOPT;
 	};
 
 	switch (((ast::IntTokenExtension *)token->ex_data.get())->token_type) {
@@ -280,6 +281,118 @@ SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *st
 					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
 
 					ast::AstNodePin<ast::I8LiteralExprNode> e = ast::make_ast_node<ast::I8LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::I16Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::I16Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					int16_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::I16LiteralExprNode> e = ast::make_ast_node<ast::I16LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::I32Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::I32Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					int32_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::I32LiteralExprNode> e = ast::make_ast_node<ast::I32LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::I64Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::I64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					int64_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::I64LiteralExprNode> e = ast::make_ast_node<ast::I64LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::U8Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U8Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					uint8_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::U8LiteralExprNode> e = ast::make_ast_node<ast::U8LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::U16Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U16Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					uint16_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::U16LiteralExprNode> e = ast::make_ast_node<ast::U16LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::U32Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U32Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					uint32_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::U32LiteralExprNode> e = ast::make_ast_node<ast::U32LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::U64Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					uint64_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::U64LiteralExprNode> e = ast::make_ast_node<ast::U64LiteralExprNode>(env->get_global(), literal);
 
 					if (!e)
 						co_return gen_oom_error_option();

@@ -916,29 +916,14 @@ namespace slkc {
 		using GreenNodeDiffSet = peff::Set<GreenNodeDiff>;
 
 		struct GreenNodeDiffCachePair {
-			GreenNodePin lhs_node, rhs_node;
-
-			SLAKE_FORCEINLINE GreenNodeDiffCachePair(GreenNodePin lhs, GreenNodePin rhs) : lhs_node(lhs), rhs_node(rhs) {
-				assert(lhs_node);
-				assert(rhs_node);
-			}
-
-			SLAKE_FORCEINLINE GreenNodeDiffCachePair(const GreenNodeDiffCachePair &rhs) : lhs_node(rhs.lhs_node), rhs_node(rhs.rhs_node) {
-				assert(lhs_node);
-				assert(rhs_node);
-			}
-
-			SLAKE_FORCEINLINE GreenNodeDiffCachePair(GreenNodeDiffCachePair &&rhs) : lhs_node(std::move(rhs.lhs_node)), rhs_node(std::move(rhs.rhs_node)) {
-				assert(lhs_node);
-				assert(rhs_node);
-			}
+			ast::GreenNodeIndex lhs_node, rhs_node;
 
 			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiffCachePair &rhs) const noexcept;
 
 			bool operator<(const GreenNodeDiffCachePair &rhs) const = default;
 			bool operator>(const GreenNodeDiffCachePair &rhs) const = default;
 		};
-		using GreenNodeDiffCache = peff::Map<GreenNodeDiffCachePair, bool>;
+		using GreenNodeDiffCache = peff::BTreeMap<GreenNodeDiffCachePair, bool>;
 		SLKC_API GreenNodeDiffCoroutine _do_simple_green_tree_diff(
 			peff::Alloc *allocator,
 			GreenNodeDiffCoroutineScheduler &scheduler,
@@ -946,7 +931,6 @@ namespace slkc {
 			const GreenNodePin &rhs,
 			std::span<size_t> lhs_path_base,
 			GreenNodeDiffSet *diff_set_out,
-			GreenNodeDiffCache &diff_caches,
 			bool &is_same_out);
 		SLKC_API GreenNodeOperationResult green_tree_diff(
 			peff::Alloc *allocator,
