@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "rg2ast.h"
 
 using namespace slkc;
@@ -80,24 +81,210 @@ SLKC_API peff::Option<CompilationError> comp::_green_node_op_result_to_comp_erro
 	std::terminate();
 }
 
-SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr red_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out) {
+template <typename T>
+SLAKE_FORCEINLINE static peff::Option<CompilationError> _parse_int(
+	CompilationEnv *env,
+	const ast::TokenPtr &token,
+	bool is_negative,
+	const std::string_view &body_view,
+	T &data_out) {
+	peff::Option<CompilationError> syntax_error;
+
+	bool overflow_warned = false;
+	char c;
+	T data = 0;
+	size_t i = (size_t)is_negative;
+
+	auto push_overflowed_error = [env, &token]() noexcept -> peff::Option<CompilationError> {
+		SLKC_RETURN_IF_COMP_ERROR(
+			env->push_error(
+				CompilationError(
+					ast::TokenRange{ env->get_target_module().get_index(), token->index }, CompilationErrorKind::LiteralOverflowed)));
+	};
+
+	switch (((ast::IntTokenExtension *)token->ex_data.get())->token_type) {
+		case ast::IntTokenType::Decimal:
+			while (i < body_view.size()) {
+				c = body_view.at(i);
+				if (is_negative) {
+					if ((!overflow_warned) && (std::numeric_limits<T>::min() / 10 > data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 10;
+					data -= c - '0';
+				} else {
+					if ((!overflow_warned) && (std::numeric_limits<T>::max() / 10 < data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 10;
+					data += c - '0';
+				}
+				++i;
+			}
+			break;
+		case ast::IntTokenType::Hexadecimal:
+			while (i < body_view.size()) {
+				char c = body_view.at(i);
+				if (is_negative) {
+					if ((!overflow_warned) && (std::numeric_limits<T>::min() / 16 > data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 16;
+					switch (c) {
+						case '0':
+						case '1':
+						case '2':
+						case '3':
+						case '4':
+						case '5':
+						case '6':
+						case '7':
+						case '8':
+						case '9':
+							data -= c - '0';
+							break;
+						case 'a':
+						case 'b':
+						case 'c':
+						case 'd':
+						case 'e':
+						case 'f':
+							data -= c - 'a' + 10;
+							break;
+						case 'A':
+						case 'B':
+						case 'C':
+						case 'D':
+						case 'E':
+						case 'F':
+							data -= c - 'A' + 10;
+							break;
+					}
+				} else {
+					if ((!overflow_warned) && (std::numeric_limits<T>::max() / 10 < data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 16;
+					switch (c) {
+						case '0':
+						case '1':
+						case '2':
+						case '3':
+						case '4':
+						case '5':
+						case '6':
+						case '7':
+						case '8':
+						case '9':
+							data += c - '0';
+							break;
+						case 'a':
+						case 'b':
+						case 'c':
+						case 'd':
+						case 'e':
+						case 'f':
+							data += c - 'a' + 10;
+							break;
+						case 'A':
+						case 'B':
+						case 'C':
+						case 'D':
+						case 'E':
+						case 'F':
+							data += c - 'A' + 10;
+							break;
+					}
+				}
+				++i;
+			}
+			break;
+		case ast::IntTokenType::Octal:
+			while (i < body_view.size()) {
+				c = body_view.at(i);
+				if (is_negative) {
+					if ((!overflow_warned) && (std::numeric_limits<T>::min() / 8 > data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 8;
+					data -= c - '0';
+				} else {
+					if ((!overflow_warned) && (std::numeric_limits<T>::max() / 8 < data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data *= 8;
+					data += c - '0';
+				}
+				++i;
+			}
+			break;
+		case ast::IntTokenType::Binary:
+			while (i < body_view.size()) {
+				c = body_view.at(i);
+				if (is_negative) {
+					if ((!overflow_warned) && ((std::numeric_limits<T>::min() >> 1) > data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data <<= 1;
+					data -= c - '0';
+				} else {
+					if ((!overflow_warned) && ((std::numeric_limits<T>::max() >> 1) < data)) {
+						SLKC_RETURN_IF_COMP_ERROR(push_overflowed_error());
+						overflow_warned = true;
+					}
+					data <<= 1;
+					data += c - '0';
+				}
+				++i;
+			}
+			break;
+		default:
+			std::terminate();
+	}
+
+	data_out = data;
+
+	return peff::NULLOPT;
+}
+
+SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out) {
 	SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->build_children(state_allocator)));
 
 	assert(red_node->is_green_node_facade());
 
 	ast::RedNodeChildIndices indices(state_allocator);
 
-	if(!indices.index_children(red_node))
+	if (!indices.index_children(red_node))
 		co_return gen_oom_error_option();
 
 	// TODO: Implement it.
 	auto g = red_node->as_green_node();
-	switch(g->node_kind) {
+	switch (g->node_kind) {
 		case ast::GreenNodeKind::Expr: {
 			auto exdata = std::get<ast::ExprGreenNodeExData>(g->exdata);
 
-			switch(exdata.expr_kind) {
+			switch (exdata.expr_kind) {
 				case slkc::ast::GreenNodeExprKind::I8Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::I8Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					int8_t literal = 0;
+					bool is_negative = t->source_text.get_view()[0] == '-';
+					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
+
+					ast::AstNodePin<ast::I8LiteralExprNode> e = ast::make_ast_node<ast::I8LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
 					break;
 				}
 				case slkc::ast::GreenNodeExprKind::Unary: {
@@ -116,9 +303,9 @@ SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *st
 	co_return peff::NULLOPT;
 }
 
-SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> comp::lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr green_node) {
+SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> comp::lower_rg_node_to_ast_node(peff::Alloc *state_allocator, comp::CompilationEnv *env, const PEFF_IN_REF ast::RedNodePtr &green_node) {
 	ast::AstNodePtr<ast::AstNode> node;
-	auto co = _do_lower_rg_node_to_ast_node(state_allocator, green_node, node);
+	auto co = _do_lower_rg_node_to_ast_node(state_allocator, env, green_node, node);
 
 	RGLoweringCoroutineScheduler sched(state_allocator);
 

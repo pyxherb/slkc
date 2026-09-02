@@ -3,10 +3,11 @@
 
 #include <slkc/ast/rgtree.h>
 #include <slkc/ast/utils.h>
+#include <slkc/ast/nodedefs.h>
 
 namespace slkc {
 	namespace comp {
-		enum class CompilationErrorKind : int {
+		enum class CompilationErrorKind : uint32_t {
 			OutOfMemory = 0,
 			StackOverflow,
 			OutOfRuntimeMemory,
@@ -83,6 +84,7 @@ namespace slkc {
 			FnNotOverridable,
 			FnShouldBeMarkedAsOverride,
 			FnDoesNotOverride,
+			LiteralOverflowed,
 
 			ImportLimitExceeded,
 			MalformedModuleName,
@@ -96,11 +98,11 @@ namespace slkc {
 		};
 
 		struct CompilationError {
-			ast::GreenNodePtr node;
+			ast::TokenRange source_location;
 			CompilationErrorKind error_kind;
 
 			CompilationError(CompilationErrorKind error_kind) : error_kind(error_kind) {}
-			CompilationError(const ast::GreenNodePtr &node, CompilationErrorKind error_kind) : node(node), error_kind(error_kind) {}
+			CompilationError(ast::TokenRange source_location, CompilationErrorKind error_kind) : source_location(source_location), error_kind(error_kind) {}
 		};
 
 		SLAKE_FORCEINLINE peff::Option<CompilationError> gen_pinning_io_error_option() {
@@ -114,6 +116,37 @@ namespace slkc {
 		SLAKE_FORCEINLINE peff::Option<CompilationError> gen_oom_error_option() {
 			return peff::Option<CompilationError>(CompilationError(CompilationErrorKind::OutOfMemory));
 		}
+
+		struct CompilationEnv {
+		private:
+			/// @brief Associated global state.
+			ast::Global *_global;
+			/// @brief Module to be compiled.
+			ast::AstNodePin<ast::ModuleNode> _target_module;
+			/// @brief Generated compilation errors.
+			peff::DynArray<CompilationError> _compilation_errors;
+
+		public:
+			SLKC_API CompilationEnv(ast::Global *global, const ast::AstNodePin<ast::ModuleNode> &target_module) noexcept;
+
+			PEFF_FORCEINLINE peff::Option<CompilationError> push_error(CompilationError &&error) noexcept {
+				if (!_compilation_errors.push_back(std::move(error)))
+					return gen_oom_error_option();
+				return peff::NULLOPT;
+			}
+
+			PEFF_FORCEINLINE ast::Global *get_global() const noexcept {
+				return _global;
+			}
+
+			PEFF_FORCEINLINE std::span<CompilationError> get_errors() const noexcept {
+				return _compilation_errors;
+			}
+
+			PEFF_FORCEINLINE ast::AstNodePin<ast::ModuleNode> get_target_module() const noexcept {
+				return _target_module;
+			}
+		};
 	}
 }
 

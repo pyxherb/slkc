@@ -125,6 +125,10 @@ SLKC_API bool RedNodeChildIndices::index_children(const RedNodePtr &node) noexce
 	return true;
 }
 
+SLKC_API std::span<size_t> RedNodeChildIndices::get_classified_indices(TokenKind kind) {
+	return _children_index.at(kind);
+}
+
 SLKC_API RedNode::RedNode(peff::Alloc *allocator) : children(allocator) {
 }
 
@@ -523,7 +527,7 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 								if (diff_set_out) {
 									if (found_in_order_member) {
 										// Found members in order means the relative position is not changed.
-									} else {
+									} else if (found_sibling) {
 										GreenNodeDiff diff(allocator);
 
 										diff.kind = GreenNodeDiffKind::Moved;
@@ -532,6 +536,7 @@ SLKC_API GreenNodeDiffCoroutine ast::_do_simple_green_tree_diff(
 											co_return GreenNodeOperationResult::OutOfMemory;
 										if (!diff_set_out->insert(std::move(diff)))
 											co_return GreenNodeOperationResult::OutOfMemory;
+									} else {
 									}
 								}
 							}

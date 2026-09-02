@@ -854,13 +854,13 @@ SLKC_API ParseCoroutine Parser::parse_class(peff::Alloc *allocator, const GreenN
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::LBrace));
 
 	while (true) {
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+
 		if (auto syntax_error = co_await parse_program_stmt(allocator, cls_node)(this); syntax_error.has_value()) {
 			if (!syntax_errors.push_back(std::move(syntax_error).value()))
 				co_return gen_oom_syntax_error();
 		}
-
-		if ((token = peek_token())->token_id == TokenId::RBrace)
-			break;
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(cls_node, TokenId::RBrace));
@@ -882,13 +882,13 @@ SLKC_API ParseCoroutine Parser::parse_interface(peff::Alloc *allocator, const Gr
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::LBrace));
 
 	while (true) {
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+
 		if (auto syntax_error = co_await parse_program_stmt(allocator, interface_node)(this); syntax_error.has_value()) {
 			if (!syntax_errors.push_back(std::move(syntax_error).value()))
 				co_return gen_oom_syntax_error();
 		}
-
-		if ((token = peek_token())->token_id == TokenId::RBrace)
-			break;
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(interface_node, TokenId::RBrace));
@@ -910,13 +910,13 @@ SLKC_API ParseCoroutine Parser::parse_trait(peff::Alloc *allocator, const GreenN
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::LBrace));
 
 	while (true) {
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+
 		if (auto syntax_error = co_await parse_program_stmt(allocator, trait_node)(this); syntax_error.has_value()) {
 			if (!syntax_errors.push_back(std::move(syntax_error).value()))
 				co_return gen_oom_syntax_error();
 		}
-
-		if ((token = peek_token())->token_id == TokenId::RBrace)
-			break;
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(trait_node, TokenId::RBrace));
@@ -938,13 +938,13 @@ SLKC_API ParseCoroutine Parser::parse_except(peff::Alloc *allocator, const Green
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(except_node, TokenId::LBrace));
 
 	while (true) {
+		if ((token = peek_token())->token_id == TokenId::RBrace)
+			break;
+
 		if (auto syntax_error = co_await parse_program_stmt(allocator, except_node)(this); syntax_error.has_value()) {
 			if (!syntax_errors.push_back(std::move(syntax_error).value()))
 				co_return gen_oom_syntax_error();
 		}
-
-		if ((token = peek_token())->token_id == TokenId::RBrace)
-			break;
 	}
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(except_node, TokenId::RBrace));

@@ -134,8 +134,8 @@ namespace slkc {
 		};
 
 		SLKC_API peff::Option<CompilationError> _green_node_op_result_to_comp_error(ast::GreenNodeOperationResult result);
-		SLKC_API RGLoweringCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr green_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out);
-		SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, const ast::RedNodePtr red_node);
+		SLKC_API RGLoweringCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &green_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out);
+		SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node);
 	}
 }
 
