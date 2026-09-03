@@ -766,9 +766,9 @@ namespace slkc {
 			Moved,
 		};
 
-		struct GreenNodeDiffCoroutineScheduler;
+		struct GreenNodeDerecursedFnCoroutineScheduler;
 
-		struct GreenNodeDiffCoroutine {
+		struct GreenNodeDerecursedFnCoroutine {
 			struct promise_type;
 
 			using Handle = std::coroutine_handle<promise_type>;
@@ -776,12 +776,12 @@ namespace slkc {
 			struct promise_type {
 				GreenNodeOperationResult result;
 
-				SLAKE_FORCEINLINE static GreenNodeDiffCoroutine get_return_object_on_allocation_failure() noexcept {
-					return GreenNodeDiffCoroutine({});
+				SLAKE_FORCEINLINE static GreenNodeDerecursedFnCoroutine get_return_object_on_allocation_failure() noexcept {
+					return GreenNodeDerecursedFnCoroutine({});
 				}
 
-				SLAKE_FORCEINLINE GreenNodeDiffCoroutine get_return_object() noexcept {
-					return GreenNodeDiffCoroutine(Handle::from_promise(*this));
+				SLAKE_FORCEINLINE GreenNodeDerecursedFnCoroutine get_return_object() noexcept {
+					return GreenNodeDerecursedFnCoroutine(Handle::from_promise(*this));
 				}
 
 				SLAKE_FORCEINLINE std::suspend_always initial_suspend() noexcept {
@@ -857,8 +857,8 @@ namespace slkc {
 
 			static inline bool recursed = false;
 
-			GreenNodeDiffCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
-			~GreenNodeDiffCoroutine() {
+			GreenNodeDerecursedFnCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
+			~GreenNodeDerecursedFnCoroutine() {
 				// assert(!recursed);
 				// recursed = true;
 				if (coro_handle)
@@ -870,28 +870,41 @@ namespace slkc {
 				return coro_handle.done();
 			}
 
-			SLAKE_API GreenNodeOperationResult resume(GreenNodeDiffCoroutineScheduler *scheduler);
+			SLAKE_API GreenNodeOperationResult resume(GreenNodeDerecursedFnCoroutineScheduler *scheduler);
 
 			struct Awaitable {
-				GreenNodeDiffCoroutine &co;
-				GreenNodeDiffCoroutineScheduler *scheduler;
+				GreenNodeDerecursedFnCoroutine &co;
+				GreenNodeDerecursedFnCoroutineScheduler *scheduler;
 				Handle handle;
 
-				SLKC_API Awaitable(GreenNodeDiffCoroutine &co, GreenNodeDiffCoroutineScheduler *scheduler, Handle handle);
+				SLKC_API Awaitable(GreenNodeDerecursedFnCoroutine &co, GreenNodeDerecursedFnCoroutineScheduler *scheduler, Handle handle);
 				SLKC_API bool await_ready();
 				SLKC_API void await_suspend(Handle h);
 				[[nodiscard]] SLKC_API GreenNodeOperationResult await_resume();
 			};
 
-			SLKC_API Awaitable operator()(GreenNodeDiffCoroutineScheduler *scheduler);
+			SLKC_API Awaitable operator()(GreenNodeDerecursedFnCoroutineScheduler *scheduler);
 		};
 
-		class GreenNodeDiffCoroutineScheduler {
+		class GreenNodeDerecursedFnCoroutineScheduler {
 		public:
-			peff::DynArray<std::coroutine_handle<GreenNodeDiffCoroutine::promise_type>> task_list;
+			peff::DynArray<std::coroutine_handle<GreenNodeDerecursedFnCoroutine::promise_type>> task_list;
 
-			SLKC_API GreenNodeDiffCoroutineScheduler(peff::Alloc *allocator);
+			SLKC_API GreenNodeDerecursedFnCoroutineScheduler(peff::Alloc *allocator);
 		};
+
+		using GreenNodeHashCodeSet = peff::BTreeMap<GreenNodeIndex, uint64_t>;
+		SLKC_API GreenNodeDerecursedFnCoroutine _do_green_tree_hash(
+			peff::Alloc *allocator,
+			GreenNodeDerecursedFnCoroutineScheduler &scheduler,
+			const GreenNodePin &lhs,
+			GreenNodeHashCodeSet &hash_code_set,
+			uint64_t &hash_out);
+		SLKC_API GreenNodeOperationResult green_node_hash(
+			peff::Alloc *allocator,
+			const GreenNodePin &lhs,
+			GreenNodeHashCodeSet &hash_code_set_out,
+			uint64_t &hash_out);
 
 		struct MovedGreenNodeDiffExData {
 			size_t moved_to_index;
@@ -924,18 +937,20 @@ namespace slkc {
 			bool operator>(const GreenNodeDiffCachePair &rhs) const = default;
 		};
 		using GreenNodeDiffCache = peff::BTreeMap<GreenNodeDiffCachePair, bool>;
-		SLKC_API GreenNodeDiffCoroutine _do_simple_green_tree_diff(
+		SLKC_API GreenNodeDerecursedFnCoroutine _do_simple_green_tree_diff(
 			peff::Alloc *allocator,
-			GreenNodeDiffCoroutineScheduler &scheduler,
+			GreenNodeDerecursedFnCoroutineScheduler &scheduler,
 			const GreenNodePin &lhs,
 			const GreenNodePin &rhs,
 			std::span<size_t> lhs_path_base,
+			const GreenNodeHashCodeSet &hash_code_set,
 			GreenNodeDiffSet *diff_set_out,
 			bool &is_same_out);
 		SLKC_API GreenNodeOperationResult green_tree_diff(
 			peff::Alloc *allocator,
 			const GreenNodePin &lhs,
 			const GreenNodePin &rhs,
+			const GreenNodeHashCodeSet &hash_code_set,
 			GreenNodeDiffSet &diff_set_out
 		);
 	}
