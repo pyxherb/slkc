@@ -405,18 +405,6 @@ SLKC_API void GreenNodeDerecursedFnCoroutine::Awaitable::await_suspend(Handle h)
 	}
 }
 
-SLKC_API std::strong_ordering GreenNodeDiffCachePair::operator<=>(const GreenNodeDiffCachePair &rhs) const noexcept {
-	if (lhs_node < rhs.lhs_node)
-		return std::strong_ordering::less;
-	if (lhs_node > rhs.lhs_node)
-		return std::strong_ordering::greater;
-	if (rhs_node < rhs.rhs_node)
-		return std::strong_ordering::less;
-	if (rhs_node > rhs.rhs_node)
-		return std::strong_ordering::greater;
-	return std::strong_ordering::equivalent;
-}
-
 SLKC_API GreenNodeOperationResult GreenNodeDerecursedFnCoroutine::Awaitable::await_resume() {
 	if (handle) {
 		if (handle.promise().result != GreenNodeOperationResult::Success)
@@ -647,7 +635,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 		peff::DynArray<size_t> tails(allocator);
 		peff::DynArray<size_t> tail_indices(allocator);
 		peff::DynArray<size_t> prev(allocator);
-		if (!tails.resize(n) || !tail_indices.resize(n) || !prev.resize(n))
+		if (!tails.resize_uninit(n) || !tail_indices.resize_uninit(n) || !prev.resize_uninit(n))
 			return false;
 
 		size_t len = 0;
@@ -668,7 +656,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 			prev[i] = (lo > 0) ? tail_indices[lo - 1] : SIZE_MAX;
 		}
 
-		if (!out_indices.resize(len))
+		if (!out_indices.resize_uninit(len))
 			return false;
 		size_t idx = tail_indices[len - 1];
 		for (size_t k = len; k > 0; --k) {
@@ -687,12 +675,12 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 		peff::DynArray<size_t> dp_curr(allocator);
 		peff::DynArray<peff::DynArray<uint8_t>> choice(allocator);
 
-		if (!dp_prev.resize(m + 1) || !dp_curr.resize(m + 1))
+		if (!dp_prev.resize_uninit(m + 1) || !dp_curr.resize_uninit(m + 1))
 			co_return GreenNodeOperationResult::OutOfMemory;
 		if (!choice.resize_construct(n + 1, allocator))
 			co_return GreenNodeOperationResult::OutOfMemory;
 		for (size_t i = 0; i <= n; ++i) {
-			if (!choice[i].resize(m + 1))
+			if (!choice[i].resize_uninit(m + 1))
 				co_return GreenNodeOperationResult::OutOfMemory;
 		}
 
@@ -741,7 +729,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 						}
 					}
 				} else {
-					GreenNodePtr rhs_green = *std::get_if<GreenNodePtr>(&rhs_child);
+					const GreenNodePtr &rhs_green = *std::get_if<GreenNodePtr>(&rhs_child);
 
 					if (lhs_green.get_index() == rhs_green.get_index()) {
 						if (dp_prev[j - 1] + 1 > dp_curr[j]) {
@@ -800,12 +788,12 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 		peff::DynArray<size_t> dp_curr(allocator);
 		peff::DynArray<peff::DynArray<uint8_t>> choice(allocator);
 
-		if (!dp_prev.resize(m + 1) || !dp_curr.resize(m + 1))
+		if (!dp_prev.resize_uninit(m + 1) || !dp_curr.resize_uninit(m + 1))
 			co_return GreenNodeOperationResult::OutOfMemory;
 		if (!choice.resize_construct(n + 1, allocator))
 			co_return GreenNodeOperationResult::OutOfMemory;
 		for (size_t i = 0; i <= n; ++i) {
-			if (!choice[i].resize(m + 1))
+			if (!choice[i].resize_uninit(m + 1))
 				co_return GreenNodeOperationResult::OutOfMemory;
 		}
 
@@ -846,7 +834,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 					if (lhs_token->token_id != rhs_token->token_id)
 						continue;
 				} else {
-					GreenNodePtr rhs_green = *std::get_if<GreenNodePtr>(&rhs_child);
+					const GreenNodePtr &rhs_green = *std::get_if<GreenNodePtr>(&rhs_child);
 
 					if (lhs_green.get_index() == rhs_green.get_index()) {
 						if (dp_prev[j - 1] + 1 > dp_curr[j]) {
@@ -963,7 +951,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 		co_return GreenNodeOperationResult::OutOfMemory;
 
 	peff::BitArray kept_in_order(allocator);
-	if (!kept_in_order.resize(matched_rhs.size()))
+	if (!kept_in_order.resize_uninit(matched_rhs.size()))
 		co_return GreenNodeOperationResult::OutOfMemory;
 	for (size_t idx : lis_indices)
 		kept_in_order.set_bit(idx);

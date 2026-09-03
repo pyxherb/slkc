@@ -271,6 +271,7 @@ SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *st
 		case ast::GreenNodeKind::Expr: {
 			auto exdata = std::get<ast::ExprGreenNodeExData>(g->exdata);
 
+			// TODO: Give anchors of tokens to the AST nodes.
 			switch (exdata.expr_kind) {
 				case slkc::ast::GreenNodeExprKind::I8Literal: {
 					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::I8Literal).front()).value();
@@ -393,6 +394,74 @@ SLKC_API RGLoweringCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *st
 					SLKC_CO_RETURN_IF_COMP_ERROR(_parse_int(env, literal_node->as_token(), is_negative, t->source_text.get_view(), literal));
 
 					ast::AstNodePin<ast::U64LiteralExprNode> e = ast::make_ast_node<ast::U64LiteralExprNode>(env->get_global(), literal);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::F32Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U32Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					float literal = 0;
+
+					auto view = t->source_text.get_view();
+					const char *end_ptr = (&view.back()) + 1;
+					ast::AstNodePin<ast::F32LiteralExprNode> e = ast::make_ast_node<ast::F32LiteralExprNode>(env->get_global(), strtof(view.data(), const_cast<char **>(&end_ptr)));
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::F64Literal: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					double literal = 0;
+
+					auto view = t->source_text.get_view();
+					const char *end_ptr = (&view.back()) + 1;
+					ast::AstNodePin<ast::F64LiteralExprNode> e = ast::make_ast_node<ast::F64LiteralExprNode>(env->get_global(), strtod(view.data(), const_cast<char **>(&end_ptr)));
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::StringLiteral: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					ast::AstNodePin<ast::StringLiteralExprNode> e = ast::make_ast_node<ast::StringLiteralExprNode>(env->get_global(), static_cast<ast::StringTokenExtension *>(t->ex_data.get())->data);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::BoolLiteral: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					ast::AstNodePin<ast::BoolLiteralExprNode> e = ast::make_ast_node<ast::BoolLiteralExprNode>(env->get_global(), t->token_id == ast::TokenId::TrueKeyword ? true : false);
+
+					if (!e)
+						co_return gen_oom_error_option();
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+					break;
+				}
+				case slkc::ast::GreenNodeExprKind::NullLiteral: {
+					ast::RedNodePtr literal_node = red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::U64Literal).front()).value();
+					auto t = literal_node->as_token();
+
+					ast::AstNodePin<ast::NullLiteralExprNode> e = ast::make_ast_node<ast::NullLiteralExprNode>(env->get_global());
 
 					if (!e)
 						co_return gen_oom_error_option();

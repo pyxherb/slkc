@@ -893,7 +893,7 @@ namespace slkc {
 			SLKC_API GreenNodeDerecursedFnCoroutineScheduler(peff::Alloc *allocator);
 		};
 
-		using GreenNodeHashCodeSet = peff::BTreeMap<GreenNodeIndex, uint64_t>;
+		using GreenNodeHashCodeSet = peff::BTreeMap<GreenNodeIndex, uint64_t, std::compare_three_way, true>;
 		SLKC_API GreenNodeDerecursedFnCoroutine _do_green_tree_hash(
 			peff::Alloc *allocator,
 			GreenNodeDerecursedFnCoroutineScheduler &scheduler,
@@ -922,21 +922,20 @@ namespace slkc {
 
 			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiff &rhs) const noexcept;
 
-			bool operator<(const GreenNodeDiff &rhs) const = default;
-			bool operator>(const GreenNodeDiff &rhs) const = default;
+			bool operator<(const GreenNodeDiff &rhs) const noexcept = default;
+			bool operator>(const GreenNodeDiff &rhs) const noexcept = default;
+			bool operator<=(const GreenNodeDiff &rhs) const noexcept = default;
+			bool operator>=(const GreenNodeDiff &rhs) const noexcept = default;
+			SLAKE_FORCEINLINE bool operator==(const GreenNodeDiff& rhs) const noexcept {
+				return *this <=> rhs == std::strong_ordering::equivalent;
+			}
+			SLAKE_FORCEINLINE bool operator!=(const GreenNodeDiff &rhs) const noexcept {
+				return *this <=> rhs != std::strong_ordering::equivalent;
+			}
 		};
 
-		using GreenNodeDiffSet = peff::Set<GreenNodeDiff>;
+		using GreenNodeDiffSet = peff::Set<GreenNodeDiff, std::compare_three_way, true>;
 
-		struct GreenNodeDiffCachePair {
-			ast::GreenNodeIndex lhs_node, rhs_node;
-
-			SLKC_API std::strong_ordering operator<=>(const GreenNodeDiffCachePair &rhs) const noexcept;
-
-			bool operator<(const GreenNodeDiffCachePair &rhs) const = default;
-			bool operator>(const GreenNodeDiffCachePair &rhs) const = default;
-		};
-		using GreenNodeDiffCache = peff::BTreeMap<GreenNodeDiffCachePair, bool>;
 		SLKC_API GreenNodeDerecursedFnCoroutine _do_simple_green_tree_diff(
 			peff::Alloc *allocator,
 			GreenNodeDerecursedFnCoroutineScheduler &scheduler,
