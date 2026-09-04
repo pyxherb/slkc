@@ -471,8 +471,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 					}, LexicalErrorKind::PrematuredEndOfFile};
 				}
 
-				<CommentCondition>"*"[/]	{ YYSETCONDITION(InitialCondition); break; }
-				<CommentCondition>[^]		{ continue; }
+				<CommentCondition>"*""/"	{ YYSETCONDITION(InitialCondition); break; }
 				<CommentCondition>$	{
 					size_t begin_index = prev_YYCURSOR - src.data(), endIndex = YYCURSOR - src.data();
 					std::string_view str_to_begin = src.substr(0, begin_index), str_to_end = src.substr(0, endIndex);
@@ -496,6 +495,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 						{ (size_t)std::count(str_to_end.begin(), str_to_end.end(), '\n'), YYCURSOR_pos }
 					}, LexicalErrorKind::InvalidEscape};
 				}
+				<CommentCondition>[^]		{ continue; }
 
 				<LineCommentCondition>"\n"	{ YYSETCONDITION(InitialCondition); break; }
 				<LineCommentCondition>$		{ YYSETCONDITION(InitialCondition); break; }

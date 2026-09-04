@@ -6,9 +6,9 @@
 
 namespace slkc {
 	namespace comp {
-		struct RGLoweringCoroutineScheduler;
+		struct CompilationCoroutineScheduler;
 
-		struct RGLoweringCoroutine {
+		struct CompilationCoroutine {
 			struct promise_type;
 
 			using Handle = std::coroutine_handle<promise_type>;
@@ -16,12 +16,12 @@ namespace slkc {
 			struct promise_type {
 				peff::Option<CompilationError> result;
 
-				SLAKE_FORCEINLINE static RGLoweringCoroutine get_return_object_on_allocation_failure() noexcept {
-					return RGLoweringCoroutine({});
+				SLAKE_FORCEINLINE static CompilationCoroutine get_return_object_on_allocation_failure() noexcept {
+					return CompilationCoroutine({});
 				}
 
-				SLAKE_FORCEINLINE RGLoweringCoroutine get_return_object() noexcept {
-					return RGLoweringCoroutine(Handle::from_promise(*this));
+				SLAKE_FORCEINLINE CompilationCoroutine get_return_object() noexcept {
+					return CompilationCoroutine(Handle::from_promise(*this));
 				}
 
 				SLAKE_FORCEINLINE std::suspend_always initial_suspend() noexcept {
@@ -97,8 +97,8 @@ namespace slkc {
 
 			static inline bool recursed = false;
 
-			RGLoweringCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
-			~RGLoweringCoroutine() {
+			CompilationCoroutine(Handle coro_handle) : coro_handle(coro_handle) {}
+			~CompilationCoroutine() {
 				// assert(!recursed);
 				// recursed = true;
 				if (coro_handle)
@@ -110,32 +110,36 @@ namespace slkc {
 				return coro_handle.done();
 			}
 
-			SLAKE_API peff::Option<CompilationError> resume(RGLoweringCoroutineScheduler *scheduler);
+			SLAKE_API peff::Option<CompilationError> resume(CompilationCoroutineScheduler *scheduler);
 
 			struct Awaitable {
-				RGLoweringCoroutine &co;
-				RGLoweringCoroutineScheduler *scheduler;
+				CompilationCoroutine &co;
+				CompilationCoroutineScheduler *scheduler;
 				Handle handle;
 
-				SLKC_API Awaitable(RGLoweringCoroutine &co, RGLoweringCoroutineScheduler *scheduler, Handle handle);
+				SLKC_API Awaitable(CompilationCoroutine &co, CompilationCoroutineScheduler *scheduler, Handle handle);
 				SLKC_API bool await_ready();
 				SLKC_API void await_suspend(Handle h);
 				[[nodiscard]] SLKC_API peff::Option<CompilationError> await_resume();
 			};
 
-			SLKC_API Awaitable operator()(RGLoweringCoroutineScheduler *scheduler);
+			SLKC_API Awaitable operator()(CompilationCoroutineScheduler *scheduler);
 		};
 
-		class RGLoweringCoroutineScheduler {
+		class CompilationCoroutineScheduler {
 		public:
-			peff::DynArray<std::coroutine_handle<RGLoweringCoroutine::promise_type>> task_list;
+			peff::DynArray<std::coroutine_handle<CompilationCoroutine::promise_type>> task_list;
 
-			SLKC_API RGLoweringCoroutineScheduler(peff::Alloc *allocator);
+			SLKC_API CompilationCoroutineScheduler(peff::Alloc *allocator);
 		};
 
+		SLKC_API peff::Option<CompilationError> _pin_fail_reason_to_comp_error(ast::PinFailReason reason);
 		SLKC_API peff::Option<CompilationError> _green_node_op_result_to_comp_error(ast::GreenNodeOperationResult result);
-		SLKC_API RGLoweringCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &green_node, PEFF_OUT_REF ast::AstNodePtr<ast::AstNode> &ast_node_out);
-		SLKC_API peff::Result<ast::AstNodePtr<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node);
+
+		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_type_name(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::TypeName &type_name_out);
+		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_id_ref(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::OwnedIdRef &id_ref_out);
+		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::AstNodePin<ast::AstNode> &ast_node_out);
+		SLKC_API peff::Result<ast::AstNodePin<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node);
 	}
 }
 

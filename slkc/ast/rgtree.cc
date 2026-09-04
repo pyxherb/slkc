@@ -182,6 +182,8 @@ SLAKE_API GreenNodeOperationResult RedNode::build_child(peff::Alloc *allocator, 
 
 SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocator) {
 	for (size_t j = 0; j <= children.size(); ++j) {
+		if (children[j])
+			continue;
 		GreenNodeOperationResult result = build_child(allocator, j);
 		if (result != GreenNodeOperationResult::Success)
 			return result;
@@ -190,7 +192,7 @@ SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocato
 	return GreenNodeOperationResult::Success;
 }
 
-SLAKE_API peff::Result<RedNodePtr, GreenNodeOperationResult> RedNode::get_child_node(peff::Alloc *allocator, size_t index) noexcept {
+SLAKE_API GreenNodeOperationResult RedNode::get_child_node(peff::Alloc *allocator, size_t index, RedNodePtr &red_node_out) noexcept {
 	size_t i = index + 1;
 	while (i) {
 		if (children[i - 1])
@@ -204,7 +206,8 @@ SLAKE_API peff::Result<RedNodePtr, GreenNodeOperationResult> RedNode::get_child_
 			return result;
 	}
 
-	return RedNodePtr(children[index]);
+	red_node_out = children[index];
+	return GreenNodeOperationResult::Success;
 }
 
 SLKC_API GreenNodeDumpContext::GreenNodeDumpContext(
@@ -485,85 +488,16 @@ SLKC_API GreenNodeOperationResult ast::green_node_hash(
 	return GreenNodeOperationResult::Success;
 }
 
-static GreenNodeDerecursedFnCoroutine _is_green_trees_completely_same(
-	peff::Alloc *allocator,
-	GreenNodeDerecursedFnCoroutineScheduler &scheduler,
-	const GreenNodePin &lhs,
-	const GreenNodePin &rhs,
-	bool &is_same_out) {
-	assert(lhs);
-	assert(rhs);
-	assert(lhs->node_kind == rhs->node_kind);
-
-	if (lhs->children.size() != rhs->children.size()) {
-		is_same_out = false;
-		co_return GreenNodeOperationResult::Success;
-	}
-
-	for (size_t i = 0; i < lhs->children.size(); ++i) {
-		auto &lc = lhs->children[i];
-		auto &rc = rhs->children[i];
-
-		if (lc.index() != rc.index()) {
-			is_same_out = false;
-			co_return GreenNodeOperationResult::Success;
-		}
-
-		if (auto lt = std::get_if<TokenPtr>(&lc)) {
-			auto rt = std::get_if<TokenPtr>(&rc);
-			TokenPtr lhs_token = *lt;
-			TokenPtr rhs_token = *rt;
-
-			if (lhs_token->token_id != rhs_token->token_id ||
-				lhs_token->source_text.get_view() != rhs_token->source_text.get_view()) {
-				is_same_out = false;
-				co_return GreenNodeOperationResult::Success;
-			}
-		} else {
-			auto lhs_ptr = std::get_if<GreenNodePtr>(&lc);
-			auto rhs_ptr = std::get_if<GreenNodePtr>(&rc);
-
-			if (lhs_ptr != rhs_ptr) {
-				is_same_out = false;
-				co_return GreenNodeOperationResult::Success;
-			}
-
-			auto pinned_lhs = lhs_ptr->pin();
-			if (pinned_lhs.is_fail()) {
-				co_return pin_fail_reason_to_green_node_operation_result(pinned_lhs.get_fail_reason());
-			}
-			auto pinned_rhs = rhs_ptr->pin();
-			if (pinned_rhs.is_fail()) {
-				co_return pin_fail_reason_to_green_node_operation_result(pinned_rhs.get_fail_reason());
-			}
-
-			bool child_same = false;
-			if (auto result = co_await _is_green_trees_completely_same(
-					allocator, scheduler, pinned_lhs, pinned_rhs,
-					child_same)(&scheduler);
-				result != GreenNodeOperationResult::Success)
-				co_return result;
-
-			if (!child_same) {
-				is_same_out = false;
-				co_return GreenNodeOperationResult::Success;
-			}
-		}
-	}
-
-	is_same_out = true;
-	co_return GreenNodeOperationResult::Success;
-}
-
 SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 	peff::Alloc *allocator,
 	GreenNodeDerecursedFnCoroutineScheduler &scheduler,
 	const GreenNodePin &lhs,
 	const GreenNodePin &rhs,
 	std::span<size_t> lhs_path_base,
-	const GreenNodeHashCodeSet &hash_code_set,
+	const GreenNodeHashCodeSet &lhs_hash_code_set,
+	const GreenNodeHashCodeSet &rhs_hash_code_set,
 	GreenNodeDiffSet *diff_set_out,
-	bool &is_same_out) {
+	bool &is_same_out) noexcept {
 	// As we tested, caching comparison result of every combination we meet
 	// consumes too many memory and there was no obvious performance
 	// improvements.assert(lhs);
@@ -571,10 +505,10 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 	assert(lhs->node_kind == rhs->node_kind);
 
 	{
-		auto lhc = hash_code_set.find(lhs.get_index());
-		auto rhc = hash_code_set.find(rhs.get_index());
-		assert(lhc != hash_code_set.end());
-		assert(rhc != hash_code_set.end());
+		auto lhc = lhs_hash_code_set.find(lhs.get_index());
+		auto rhc = rhs_hash_code_set.find(rhs.get_index());
+		assert(lhc != lhs_hash_code_set.end());
+		assert(rhc != rhs_hash_code_set.end());
 		if (lhc.value() == rhc.value()) {
 			is_same_out = true;
 			co_return GreenNodeOperationResult::Success;
@@ -594,8 +528,8 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 
 	for (size_t i = 0; i < lhs->children.size(); ++i) {
 		if (auto *node = std::get_if<GreenNodePtr>(&lhs->children[i])) {
-			auto it = hash_code_set.find(node->get_index());
-			lhs_hash_cache[i] = (it != hash_code_set.end()) ? it.value() : 0;
+			auto it = lhs_hash_code_set.find(node->get_index());
+			lhs_hash_cache[i] = (it != lhs_hash_code_set.end()) ? it.value() : 0;
 		} else {
 			// Can't use hash for tokens.
 			lhs_hash_cache[i] = 0;
@@ -603,8 +537,8 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 	}
 	for (size_t j = 0; j < rhs->children.size(); ++j) {
 		if (auto *node = std::get_if<GreenNodePtr>(&rhs->children[j])) {
-			auto it = hash_code_set.find(node->get_index());
-			rhs_hash_cache[j] = (it != hash_code_set.end()) ? it.value() : 0;
+			auto it = rhs_hash_code_set.find(node->get_index());
+			rhs_hash_cache[j] = (it != rhs_hash_code_set.end()) ? it.value() : 0;
 		} else {
 			rhs_hash_cache[j] = 0;
 		}
@@ -778,7 +712,6 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 		}
 	}
 
-
 	// Kind-only match via LCS
 	{
 		size_t n = lhs->children.size();
@@ -910,7 +843,7 @@ SLKC_API GreenNodeDerecursedFnCoroutine ast::_do_simple_green_tree_diff(
 			bool same = true;
 			if (auto result = co_await _do_simple_green_tree_diff(
 					allocator, scheduler, pinned_lhs, pinned_rhs,
-					extended_path, hash_code_set, diff_set_out, same)(&scheduler);
+					extended_path, lhs_hash_code_set, rhs_hash_code_set, diff_set_out, same)(&scheduler);
 				result != GreenNodeOperationResult::Success)
 				co_return result;
 		} else {
@@ -1042,17 +975,17 @@ SLKC_API GreenNodeOperationResult ast::green_tree_diff(
 	peff::Alloc *allocator,
 	const GreenNodePin &lhs,
 	const GreenNodePin &rhs,
-	const GreenNodeHashCodeSet &hash_code_set,
+	const GreenNodeHashCodeSet &lhs_hash_code_set,
+	const GreenNodeHashCodeSet &rhs_hash_code_set,
 	GreenNodeDiffSet &diff_set_out) {
 	GreenNodeDerecursedFnCoroutineScheduler sched(allocator);
 
 	size_t path[1] = { 0 };
 	bool same;
-	auto result = _do_simple_green_tree_diff(allocator, sched, lhs, rhs, path, hash_code_set, &diff_set_out, same).resume(&sched);
+	auto result = _do_simple_green_tree_diff(allocator, sched, lhs, rhs, path, lhs_hash_code_set, rhs_hash_code_set, &diff_set_out, same).resume(&sched);
 
 	if (result != GreenNodeOperationResult::Success)
 		return result;
 
 	return GreenNodeOperationResult::Success;
 }
-

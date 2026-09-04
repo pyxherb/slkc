@@ -8,7 +8,7 @@
 namespace slkc {
 	namespace ast {
 		struct IdRefEntry final {
-			peff::String name;
+			GlobalSharedStringRef name;
 			peff::DynArray<TypeName> generic_args;
 
 			TokenIndex sti_access_op = INVALID_TOKEN_INDEX,

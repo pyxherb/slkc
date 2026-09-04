@@ -21,8 +21,7 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 		ne.sti_left_angle_bracket = oe.sti_left_angle_bracket;
 		ne.sti_right_angle_bracket = oe.sti_right_angle_bracket;
 
-		if (!ne.name.build(oe.name))
-			return peff::NULLOPT;
+		ne.name = oe.name;
 		if (!ne.generic_args.build(oe.generic_args))
 			return peff::NULLOPT;
 
@@ -36,7 +35,7 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), id_ref_entry.name))))
+	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), id_ref_entry.name.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("name", v.release()))
 		return DumpResult::OutOfMemory;

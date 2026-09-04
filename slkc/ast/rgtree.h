@@ -292,8 +292,6 @@ namespace slkc {
 			LtEq,	 // Less than or equal <=
 			GtEq,	 // Greater than or equal >=
 			Cmp,	 // Three-way comparison <=>
-
-			Comma,	// Comma ,
 		};
 
 		enum class GreenNodeStmtKind : uint8_t {
@@ -722,7 +720,7 @@ namespace slkc {
 			}
 			SLAKE_API GreenNodeOperationResult build_child(peff::Alloc *allocator, size_t index);
 			SLAKE_API GreenNodeOperationResult build_children(peff::Alloc *allocator);
-			SLAKE_API peff::Result<RedNodePtr, GreenNodeOperationResult> get_child_node(peff::Alloc *allocator, size_t index) noexcept;
+			SLAKE_API GreenNodeOperationResult get_child_node(peff::Alloc *allocator, size_t index, RedNodePtr &red_node_out) noexcept;
 			SLAKE_FORCEINLINE GreenNodePin as_green_node() const noexcept {
 				return *std::get_if<GreenNodePin>(&green_node_or_token);
 			}
@@ -942,14 +940,16 @@ namespace slkc {
 			const GreenNodePin &lhs,
 			const GreenNodePin &rhs,
 			std::span<size_t> lhs_path_base,
-			const GreenNodeHashCodeSet &hash_code_set,
+			const GreenNodeHashCodeSet &lhs_hash_code_set,
+			const GreenNodeHashCodeSet &rhs_hash_code_set,
 			GreenNodeDiffSet *diff_set_out,
-			bool &is_same_out);
+			bool &is_same_out) noexcept;
 		SLKC_API GreenNodeOperationResult green_tree_diff(
 			peff::Alloc *allocator,
 			const GreenNodePin &lhs,
 			const GreenNodePin &rhs,
-			const GreenNodeHashCodeSet &hash_code_set,
+			const GreenNodeHashCodeSet &lhs_hash_code_set,
+			const GreenNodeHashCodeSet &rhs_hash_code_set,
 			GreenNodeDiffSet &diff_set_out
 		);
 	}

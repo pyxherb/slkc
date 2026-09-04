@@ -924,7 +924,7 @@ int main(int argc, char *argv[]) {
 						std::terminate();
 					}
 
-					//assert(root_module_tree->text_width == file_size);
+					assert(root_module_tree->text_width == file_size);
 
 					for (auto &i : parser->syntax_warnings) {
 						dump_syntax_warning(parser.get(), i);
@@ -1044,15 +1044,15 @@ int main(int argc, char *argv[]) {
 							dump_syntax_error(parser2.get(), i);
 						}
 
-						slkc::ast::GreenNodeHashCodeSet hcs(peff::default_allocator());
+						slkc::ast::GreenNodeHashCodeSet lhcs(peff::default_allocator()), rhcs(peff::default_allocator());
 						uint64_t hash;
-						if (slkc::ast::green_node_hash(peff::default_allocator(), root_module_tree, hcs, hash) != slkc::ast::GreenNodeOperationResult::Success)
+						if (slkc::ast::green_node_hash(peff::default_allocator(), root_module_tree, lhcs, hash) != slkc::ast::GreenNodeOperationResult::Success)
 							std::terminate();
-						if (slkc::ast::green_node_hash(peff::default_allocator(), root_module_tree2, hcs, hash) != slkc::ast::GreenNodeOperationResult::Success)
+						if (slkc::ast::green_node_hash(peff::default_allocator(), root_module_tree2, rhcs, hash) != slkc::ast::GreenNodeOperationResult::Success)
 							std::terminate();
 
 						slkc::ast::GreenNodeDiffSet diff_set(peff::default_allocator());
-						if(slkc::ast::green_tree_diff(peff::default_allocator(), root_module_tree, root_module_tree2, hcs, diff_set) != slkc::ast::GreenNodeOperationResult::Success)
+						if(slkc::ast::green_tree_diff(peff::default_allocator(), root_module_tree, root_module_tree2, lhcs, rhcs, diff_set) != slkc::ast::GreenNodeOperationResult::Success)
 							std::terminate();
 
 						for(const auto &i : diff_set) {
