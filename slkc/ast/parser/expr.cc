@@ -125,15 +125,23 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::NullLiteral);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			break;
-		case TokenId::LBrace:
+		case TokenId::LBrace: {
 			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::InitializerList);
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBrace));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, lhs, TokenId::RBrace, TokenId::Comma)(this));
+			GreenNodePin args;
+
+			if (!(args = make_green_node(get_global())))
+				co_return gen_oom_syntax_error();
+
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBrace));
 			break;
+		}
 		case TokenId::VarArg:
 			lhs->exdata = ExprGreenNodeExData(GreenNodeUnaryExprOp::Unpacking);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
@@ -212,6 +220,21 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			lhs->exdata = ExprGreenNodeExData{ GreenNodeExprKind::Continue };
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+			if (peek_token()->token_id == TokenId::LParenthesis) {
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+				GreenNodePin args;
+
+				if (!(args = make_green_node(get_global())))
+					co_return gen_oom_syntax_error();
+
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
+
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
+			}
 
 			break;
 		}
