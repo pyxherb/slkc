@@ -221,27 +221,6 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_readonly_ref(bool b) noexcept {
 				_is_readonly_ref = b;
 			}
-
-			/// @brief Check if the type name is explicitly marked as `final` in the source.
-			///
-			/// @return Whether the type name is explicitly marked as `final` in the source.
-			SLAKE_FORCEINLINE bool is_explicit_final() const noexcept {
-				return sti_final_token != INVALID_TOKEN_INDEX;
-			}
-
-			/// @brief Check if the type name is explicitly marked as `local` in the source.
-			///
-			/// @return Whether the type name is explicitly marked as `local in the source.
-			SLAKE_FORCEINLINE bool is_explicit_local() const noexcept {
-				return sti_local_token != INVALID_TOKEN_INDEX;
-			}
-
-			/// @brief Check if the type name is explicitly marked as nullable in the source.
-			///
-			/// @return Whether the type name is explicitly marked as nullable in the source.
-			SLAKE_FORCEINLINE bool is_explicit_nullable() const noexcept {
-				return sti_nullable_token != INVALID_TOKEN_INDEX;
-			}
 		};
 
 		SLKC_API DumpResult dump_typename(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const TypeName &tn, bool deep_dump);

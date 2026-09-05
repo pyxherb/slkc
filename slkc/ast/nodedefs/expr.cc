@@ -1579,6 +1579,213 @@ SLKC_API MatchExprNode::~MatchExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(MatchExprNode);
 
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(BreakExprNode);
+
+SLKC_API DumpResult BreakExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_break_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_break_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API BreakExprNode::BreakExprNode(Global *global)
+	: ExprNode(ExprKind::Break, global) {
+}
+
+SLKC_API BreakExprNode::BreakExprNode(const BreakExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index)
+	: ExprNode(other, context, node_index),
+	  sti_break_keyword(other.sti_break_keyword),
+	  sti_semicolon(other.sti_semicolon) {
+}
+
+SLKC_API BreakExprNode::~BreakExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(BreakExprNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ContinueExprNode);
+
+SLKC_API DumpResult ContinueExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+		if (!target_object->insert("args", v.release()))
+			return DumpResult::OutOfMemory;
+
+		for (const auto &i : continue_values) {
+			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+				return DumpResult::OutOfMemory;
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i.get_index(), deep_dump));
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
+		}
+	}
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_continue_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_continue_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
+	for (auto i : sti_continue_values_separators) {
+		if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), i))))
+			return DumpResult::OutOfMemory;
+		if (!av->push_back(v.release()))
+			return DumpResult::OutOfMemory;
+	}
+	if (!target_object->insert("sti_continue_values_separators", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API ContinueExprNode::ContinueExprNode(Global *global)
+	: ExprNode(ExprKind::Continue, global),
+	  continue_values(global->get_allocator()),
+	  sti_continue_values_separators(global->get_allocator()) {
+}
+
+SLKC_API ContinueExprNode::ContinueExprNode(const ContinueExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+	: ExprNode(other, context, node_index),
+	  continue_values(context.get_global()->get_allocator()),
+	  sti_continue_values_separators(context.get_global()->get_allocator()),
+	  sti_continue_keyword(other.sti_continue_keyword),
+	  sti_semicolon(other.sti_semicolon) {
+	if (!continue_values.resize(other.continue_values.size())) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+	for (size_t i = 0; i < continue_values.size(); ++i) {
+		auto result = context.push_task(other.continue_values[i].get_index());
+		if (result.has_error()) {
+			error_out = result.error();
+			return;
+		}
+		continue_values[i] = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+	if (!sti_continue_values_separators.build(other.sti_continue_values_separators)) {
+		error_out = DuplicationError::OutOfMemory;
+		return;
+	}
+}
+
+SLKC_API ContinueExprNode::~ContinueExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ContinueExprNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(ReturnExprNode);
+
+SLKC_API DumpResult ReturnExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), return_value.get_index(), deep_dump));
+	if (!target_object->insert("return_value", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_return_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_return_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_semicolon))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_semicolon", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API ReturnExprNode::ReturnExprNode(Global *global)
+	: ExprNode(ExprKind::Return, global) {
+}
+
+SLKC_API ReturnExprNode::ReturnExprNode(const ReturnExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+	: ExprNode(other, context, node_index),
+	  sti_return_keyword(other.sti_return_keyword),
+	  sti_semicolon(other.sti_semicolon) {
+	{
+		auto result = context.push_task(return_value.get_index());
+		if (!result) {
+			error_out = DuplicationError::OutOfMemory;
+			return;
+		}
+		return_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+}
+
+SLKC_API ReturnExprNode::~ReturnExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ReturnExprNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(YieldExprNode);
+
+SLKC_API DumpResult YieldExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), return_value.get_index(), deep_dump));
+	if (!target_object->insert("return_value", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_yield_keyword))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_yield_keyword", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_semicolon))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("sti_semicolon", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API YieldExprNode::YieldExprNode(Global *global)
+	: ExprNode(ExprKind::Yield, global) {
+}
+
+SLKC_API YieldExprNode::YieldExprNode(const YieldExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+	: ExprNode(other, context, node_index),
+	  sti_yield_keyword(other.sti_yield_keyword),
+	  sti_semicolon(other.sti_semicolon) {
+	{
+		auto result = context.push_task(return_value.get_index());
+		if (!result) {
+			error_out = DuplicationError::OutOfMemory;
+			return;
+		}
+		return_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+}
+
+SLKC_API YieldExprNode::~YieldExprNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(YieldExprNode);
+
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(GroupExprNode)
 
 SLKC_API DumpResult GroupExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {

@@ -166,47 +166,6 @@ SLKC_API ParseCoroutine Parser::parse_stmt(peff::Alloc *allocator, GreenNodePin 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
 			break;
 		}
-		case TokenId::BreakKeyword: {
-			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::BreakStmt };
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
-
-			break;
-		}
-		case TokenId::ContinueKeyword: {
-			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::ContinueStmt };
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
-
-			break;
-		}
-		case TokenId::ReturnKeyword: {
-			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::ReturnStmt };
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
-
-			if ((token = peek_token())->token_id != TokenId::Semicolon)
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
-
-			break;
-		}
-		case TokenId::YieldKeyword: {
-			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::YieldStmt };
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
-
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
-
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
-
-			break;
-		}
 		case TokenId::SwitchKeyword: {
 			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::SwitchStmt };
 

@@ -201,6 +201,39 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBrace));
 			break;
 		}
+		case TokenId::BreakKeyword: {
+			lhs->exdata = ExprGreenNodeExData{ GreenNodeExprKind::Break };
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+			break;
+		}
+		case TokenId::ContinueKeyword: {
+			lhs->exdata = ExprGreenNodeExData{ GreenNodeExprKind::Continue };
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+			break;
+		}
+		case TokenId::ReturnKeyword: {
+			lhs->exdata = ExprGreenNodeExData{ GreenNodeExprKind::Return };
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+			if ((token = peek_token())->token_id != TokenId::Semicolon)
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
+
+			break;
+		}
+		case TokenId::YieldKeyword: {
+			lhs->exdata = ExprGreenNodeExData{ GreenNodeExprKind::Yield };
+
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
+
+			break;
+		}
 		default:
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			co_return SyntaxError(

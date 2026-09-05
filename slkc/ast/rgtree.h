@@ -245,6 +245,18 @@ namespace slkc {
 			/// @brief A match expression.
 			Match,
 
+			/// @brief A break expression.
+			Break,
+
+			/// @brief A continue expression.
+			Continue,
+
+			/// @brief A return expression.
+			Return,
+
+			/// @brief A yield expression.
+			Yield,
+
 			/// @brief A grouping (parenthesized) expression.
 			Group,
 		};
@@ -311,18 +323,6 @@ namespace slkc {
 
 			/// @brief A local variable statement.
 			LocalVarStmt,
-
-			/// @brief A break statement.
-			BreakStmt,
-
-			/// @brief A continue statement.
-			ContinueStmt,
-
-			/// @brief A return statement.
-			ReturnStmt,
-
-			/// @brief A yield statement.
-			YieldStmt,
 
 			/// @brief A block statement.
 			BlockStmt,

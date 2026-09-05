@@ -18,7 +18,7 @@ namespace slkc {
 				   sti_right_angle_bracket = INVALID_TOKEN_INDEX;
 			peff::DynArray<size_t> sti_generic_args_comma_token_indices;
 
-			SLAKE_FORCEINLINE IdRefEntry(peff::Alloc *self_allocator) : name(self_allocator), generic_args(self_allocator), sti_generic_args_comma_token_indices(self_allocator) {}
+			SLAKE_FORCEINLINE IdRefEntry(peff::Alloc *self_allocator) : generic_args(self_allocator), sti_generic_args_comma_token_indices(self_allocator) {}
 			SLAKE_FORCEINLINE IdRefEntry(IdRefEntry &&rhs)
 				: name(std::move(rhs.name)),
 				  generic_args(std::move(rhs.generic_args)),

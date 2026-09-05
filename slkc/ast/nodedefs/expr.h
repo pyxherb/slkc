@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_NODEDEFS_EXPR_H_
 #define _SLKC_AST_NODEDEFS_EXPR_H_
 
-#include "idref.h"
+#include "stmt_base.h"
 
 namespace slkc {
 	namespace ast {
@@ -40,6 +40,11 @@ namespace slkc {
 			Cast,  // Cast
 
 			Match,	// Match expression
+
+			Return,	 // Return
+			Yield,	 // Yield
+			Break,	   // Break
+			Continue,  // Continue
 
 			Group,	// Expression group
 		};
@@ -579,6 +584,82 @@ namespace slkc {
 			SLKC_API MatchExprNode(Global *global);
 			SLKC_API MatchExprNode(const MatchExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~MatchExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class BreakExprNode final : public ExprNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			/// @brief Token index to the break keyword.
+			TokenIndex sti_break_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API BreakExprNode(Global *global);
+			SLKC_API BreakExprNode(const BreakExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index);
+			SLKC_API virtual ~BreakExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class ContinueExprNode final : public ExprNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			/// @brief Values for the next loop cycle, for the for loop.
+			/// @note This array should be left empty if the continue statement is not in a for loop.
+			peff::DynArray<AstNodePtr<ExprNode>> continue_values;
+
+			/// @brief Token index to the continue keyword.
+			TokenIndex sti_continue_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+			/// @brief Token indices of the continue values separators (,).
+			peff::DynArray<TokenIndex> sti_continue_values_separators;
+
+			SLKC_API ContinueExprNode(Global *global);
+			SLKC_API ContinueExprNode(const ContinueExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~ContinueExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class ReturnExprNode final : public ExprNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			AstNodePtr<ExprNode> return_value;
+
+			TokenIndex sti_return_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API ReturnExprNode(Global *global);
+			SLKC_API ReturnExprNode(const ReturnExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~ReturnExprNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class YieldExprNode final : public ExprNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			AstNodePtr<ExprNode> return_value;
+
+			TokenIndex sti_yield_keyword = INVALID_TOKEN_INDEX,
+					   sti_semicolon = INVALID_TOKEN_INDEX;
+
+			SLKC_API YieldExprNode(Global *global);
+			SLKC_API YieldExprNode(const YieldExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~YieldExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
