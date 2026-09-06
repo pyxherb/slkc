@@ -180,6 +180,8 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				if (!(case_node = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
+				case_node->node_kind = GreenNodeKind::MatchCase;
+
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, case_node);
 
 				SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(case_node, TokenId::CaseKeyword));

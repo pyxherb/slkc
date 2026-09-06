@@ -776,7 +776,7 @@ SLKC_API SwitchStmtNode::SwitchStmtNode(const SwitchStmtNode &other, AstNodeDupl
 	}
 
 	for (size_t i = 0; i < branches.size(); i++) {
-		auto result = other.branches[i].do_duplicate(context);
+		auto result = other.branches[i].duplicate(context);
 		if (!result) {
 			error_out = DuplicationError::OutOfMemory;
 			return;

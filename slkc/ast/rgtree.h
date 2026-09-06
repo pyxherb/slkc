@@ -309,6 +309,9 @@ namespace slkc {
 		enum class GreenNodeStmtKind : uint8_t {
 			Invalid = 0,
 
+			/// @brief An expression statement.
+			ExprStmt,
+
 			/// @brief An if statement.
 			IfStmt,
 
@@ -924,7 +927,7 @@ namespace slkc {
 			bool operator>(const GreenNodeDiff &rhs) const noexcept = default;
 			bool operator<=(const GreenNodeDiff &rhs) const noexcept = default;
 			bool operator>=(const GreenNodeDiff &rhs) const noexcept = default;
-			SLAKE_FORCEINLINE bool operator==(const GreenNodeDiff& rhs) const noexcept {
+			SLAKE_FORCEINLINE bool operator==(const GreenNodeDiff &rhs) const noexcept {
 				return *this <=> rhs == std::strong_ordering::equivalent;
 			}
 			SLAKE_FORCEINLINE bool operator!=(const GreenNodeDiff &rhs) const noexcept {
@@ -950,8 +953,7 @@ namespace slkc {
 			const GreenNodePin &rhs,
 			const GreenNodeHashCodeSet &lhs_hash_code_set,
 			const GreenNodeHashCodeSet &rhs_hash_code_set,
-			GreenNodeDiffSet &diff_set_out
-		);
+			GreenNodeDiffSet &diff_set_out);
 	}
 }
 

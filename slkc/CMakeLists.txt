@@ -29,7 +29,3 @@ add_subdirectory("comp")
 if(SLKC_WITH_LANGUAGE_SERVER)
     # add_subdirectory("server")
 endif()
-
-if(MSVC)
-    target_compile_options(slkc PRIVATE "/Zc:__cplusplus" INTERFACE $<TARGET_PROPERTY:peff_base,COMPILE_OPTIONS>)
-endif()

@@ -217,7 +217,7 @@ namespace slkc {
 
 		public:
 			AstNodePtr<ExprNode> condition;
-			peff::DynArray<MatchExprBranch> branches;
+			peff::DynArray<SwitchStmtBranch> branches;
 
 			TokenIndex sti_switch_keyword = INVALID_TOKEN_INDEX;
 			TokenIndex sti_left_parenthesis = INVALID_TOKEN_INDEX;

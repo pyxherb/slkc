@@ -1,15 +1,21 @@
 # About The Compiler
 
 The compiler has 3 main modules:
+
 * The AST framework
 * The compilation framework (including semantic analysis)
-* The language server (depends on the compilation framework)
+* The language server (depends on the compilation framework) (not implemented yet.)
+
+## Project Structure
+
+* `ast/` - The AST framework
+  * `ast/nodedefs/` - AST node definitions
+  * `ast/parser/` - Implementation codes of parser that generates red-green tree nodes from source codes
+  * `ast/rgtree` - Red and green tree definitions
+* `comp/` - The compilation framework
+  * `comp/rg2ast` - Module that lowers red-green trees into ASTs.
 
 ## Issues
-
-### Nested Duplication
-
-Some duplication does not use the duplication context, this causes stack overflows.
 
 ### Path-based Null Checker
 
@@ -78,14 +84,3 @@ using `DCMT` instruction on that time point.
 
 We should restrict the variable's nullity and estimated value validity to local
 variables or synchronized variables.
-
-### Behaviors of `as` Operator and New `as?` Operator
-
-We changed the `as` operator's behavior and introduced a new `as` operator in
-the specification, modify them to follow the specification.
-
-### Cache Manager
-
-We should introduce compilation cache for the language server.
-
-This includes indexer/serializer/deserializer for memory objects.
