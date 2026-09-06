@@ -3,11 +3,11 @@
 using namespace slkc;
 using namespace slkc::ast;
 
-SLKC_API ParseCoroutine Parser::parse_var_binding(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out) {
+SLKC_API ParseCoroutine Parser::parse_var_binding(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, bool allow_mutability) {
 	GreenNodePin binding_node_out;
 	if (!(binding_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
-	binding_node_out->node_kind = GreenNodeKind::Stmt;
+	binding_node_out->node_kind = GreenNodeKind::VarBinding;
 
 	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, binding_node_out);
 
@@ -16,9 +16,16 @@ SLKC_API ParseCoroutine Parser::parse_var_binding(peff::Alloc *allocator, GreenN
 			*node_pin_out = binding_node_out;
 	});
 
+	Token *token;
+
+	if (allow_mutability) {
+		if ((token = peek_token())->token_id == TokenId::VarKeyword) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(binding_node_out));
+		}
+	}
+
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(binding_node_out, TokenId::Id));
 
-	Token *token;
 	if ((token = peek_token())->token_id == TokenId::Colon) {
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(binding_node_out));
 
@@ -34,7 +41,7 @@ SLKC_API ParseCoroutine Parser::parse_var_binding(peff::Alloc *allocator, GreenN
 	co_return peff::NULLOPT;
 }
 
-SLKC_API ParseCoroutine Parser::parse_var_binding_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out) {
+SLKC_API ParseCoroutine Parser::parse_var_binding_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, bool allow_mutability) {
 	GreenNodePin binding_list_node_out;
 	if (!(binding_list_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
@@ -50,7 +57,7 @@ SLKC_API ParseCoroutine Parser::parse_var_binding_list(peff::Alloc *allocator, G
 	Token *token;
 
 	while (true) {
-		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding(allocator, binding_list_node_out, nullptr)(this));
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding(allocator, binding_list_node_out, nullptr, allow_mutability)(this));
 
 		if ((token = peek_token())->token_id != TokenId::Comma)
 			break;
@@ -94,32 +101,32 @@ SLKC_API ParseCoroutine Parser::parse_stmt(peff::Alloc *allocator, GreenNodePin 
 		case TokenId::ForKeyword: {
 			stmt_node_out->exdata = StmtGreenNodeExData{ GreenNodeStmtKind::ForStmt };
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_next_token(stmt_node_out));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::LParenthesis));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(stmt_node_out, TokenId::LParenthesis));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, stmt_node_out, nullptr)(this));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_var_binding_list(allocator, stmt_node_out, nullptr, false)(this));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
 
 			if ((token = peek_token())->token_id != TokenId::RParenthesis) {
 				while (true) {
-					SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
+					SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, stmt_node_out, nullptr, 0)(this));
 
 					if ((token = peek_token())->token_id != TokenId::Comma)
 						break;
 
-					SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
+					SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_next_token(stmt_node_out));
 				}
 			}
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::RParenthesis));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(stmt_node_out, TokenId::RParenthesis));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, stmt_node_out, nullptr)(this));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_stmt(allocator, stmt_node_out, nullptr)(this));
 
 			break;
 		}
@@ -161,7 +168,7 @@ SLKC_API ParseCoroutine Parser::parse_stmt(peff::Alloc *allocator, GreenNodePin 
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, stmt_node_out, nullptr)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, stmt_node_out, nullptr, false)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::Semicolon));
 			break;

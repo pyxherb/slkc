@@ -166,13 +166,13 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			lhs->exdata = ExprGreenNodeExData(GreenNodeExprKind::Match);
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LParenthesis));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::LParenthesis));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, lhs, nullptr, 0)(this));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, lhs, nullptr, 0)(this));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RParenthesis));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::RParenthesis));
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBrace));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::LBrace));
 
 			while (true) {
 				GreenNodePin case_node;
@@ -182,13 +182,13 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 
 				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, case_node);
 
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node, TokenId::CaseKeyword));
+				SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(case_node, TokenId::CaseKeyword));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, case_node, nullptr, 0)(this));
+				SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, case_node, nullptr, 0)(this));
 
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node, TokenId::Colon));
+				SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(case_node, TokenId::Colon));
 
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_expr(allocator, case_node, nullptr, 0)(this));
+				SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, case_node, nullptr, 0)(this));
 
 				if ((token = peek_token())->token_id == TokenId::RBrace)
 					break;
@@ -206,7 +206,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			}
 
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBrace));
+			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::RBrace));
 			break;
 		}
 		case TokenId::BreakKeyword: {

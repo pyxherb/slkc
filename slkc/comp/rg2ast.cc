@@ -268,6 +268,41 @@ SLAKE_FORCEINLINE static peff::Option<CompilationError> _parse_int(
 	return peff::NULLOPT;
 }
 
+SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_var_binding(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::BindingEntry &binding_out) {
+	SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->build_children(state_allocator)));
+
+	assert(red_node->is_green_node_facade());
+
+	ast::RedNodeChildIndices indices(state_allocator);
+
+	if (!indices.index_children(red_node))
+		co_return gen_oom_error_option();
+
+	auto g = red_node->as_green_node();
+	assert(g->node_kind == ast::GreenNodeKind::TypeName);
+
+	auto exdata = std::get<ast::TypeNameGreenNodeExData>(g->exdata);
+
+	if (indices.get_classified_indices(ast::TokenId::VarKeyword).size())
+		binding_out.is_var_binding = true;
+
+	{
+		ast::RedNodePtr name_node;
+		SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::TokenId::Id)[0], name_node)));
+
+		binding_out.name = name_node->as_token()->source_text;
+	}
+
+	if (auto index = indices.get_classified_indices(ast::GreenNodeKind::TypeName); index.size()) {
+		ast::RedNodePtr tn_node;
+		SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->get_child_node(state_allocator, index[0], tn_node)));
+
+		SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_type_name(state_allocator, sched, env, tn_node, binding_out.type)(sched));
+	}
+
+	co_return peff::NULLOPT;
+}
+
 SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_type_name(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::TypeName &type_name_out) {
 	SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->build_children(state_allocator)));
 
@@ -890,8 +925,6 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 
 							if (e->elements.push_back(std::move(entry).cast_to<ast::ExprNode>()))
 								co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
-
-							break;
 						}
 					}
 
@@ -1247,6 +1280,206 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 				}
 				default:
 					std::terminate();
+			}
+			break;
+		}
+		case ast::GreenNodeKind::Stmt: {
+			auto exdata = std::get<ast::StmtGreenNodeExData>(g->exdata);
+
+			switch (exdata.stmt_kind) {
+				case slkc::ast::GreenNodeStmtKind::IfStmt: {
+					ast::AstNodePin<ast::IfStmtNode> e = ast::make_ast_node<ast::IfStmtNode>(env->get_global());
+
+					if (!e)
+						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+
+					{
+						ast::RedNodePtr expr_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Expr)[0], expr_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, expr_node, expr)(sched));
+						e->condition = std::move(expr).cast_to<ast::ExprNode>();
+					}
+
+					auto stmt_index = indices.get_classified_indices(ast::GreenNodeKind::Stmt);
+					{
+						ast::RedNodePtr true_branch_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, stmt_index[0], true_branch_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, true_branch_node, expr)(sched));
+						e->true_branch = std::move(expr).cast_to<ast::StmtNode>();
+					}
+
+					if (stmt_index.size() > 1) {
+						ast::RedNodePtr false_branch_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, stmt_index[1], false_branch_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, false_branch_node, expr)(sched));
+						e->false_branch = std::move(expr).cast_to<ast::StmtNode>();
+					}
+					ast_node_out = e.cast_to<ast::AstNode>();
+
+					break;
+				}
+				case slkc::ast::GreenNodeStmtKind::ForStmt: {
+					ast::AstNodePin<ast::ForStmtNode> e = ast::make_ast_node<ast::ForStmtNode>(env->get_global());
+
+					if (!e)
+						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+
+					{
+						ast::RedNodePtr var_bindings_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::VarBindings)[0], var_bindings_node)));
+
+						ast::RedNodeChildIndices indices(state_allocator);
+
+						assert(var_bindings_node->is_green_node_facade());
+						for (auto i : indices.get_classified_indices(ast::GreenNodeKind::VarBinding)) {
+							ast::RedNodePtr entry_node;
+							SLKC_CO_RETURN_IF_COMP_ERROR(
+								_green_node_op_result_to_comp_error(
+									red_node->get_child_node(state_allocator, i, entry_node)));
+
+							assert(entry_node->is_green_node_facade());
+
+							ast::BindingEntry binding;
+
+							SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_var_binding(state_allocator, sched, env, entry_node, binding)(sched));
+
+							if (e->loop_vars.push_back(std::move(binding)))
+								co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+						}
+					}
+
+					auto expr_index = indices.get_classified_indices(ast::GreenNodeKind::Expr);
+					{
+						ast::RedNodePtr expr_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, expr_index[0], expr_node)));
+
+						{
+							ast::AstNodePin<ast::AstNode> expr;
+							SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, expr_node, expr)(sched));
+							e->condition_expr = std::move(expr).cast_to<ast::ExprNode>();
+						}
+
+						if (expr_index.size() > 1) {
+							for (size_t i = 1; i < expr_index.size(); ++i) {
+								ast::RedNodePtr step_expr_node;
+								SLKC_CO_RETURN_IF_COMP_ERROR(
+									_green_node_op_result_to_comp_error(
+										red_node->get_child_node(state_allocator, expr_index[i], step_expr_node)));
+
+								assert(step_expr_node->is_green_node_facade());
+
+								ast::AstNodePin<ast::AstNode> step_expr;
+								SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, step_expr_node, step_expr)(sched));
+								if (e->step_exprs.push_back(std::move(step_expr).cast_to<ast::ExprNode>()))
+									co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+							}
+						}
+					}
+
+					auto stmt_index = indices.get_classified_indices(ast::GreenNodeKind::Stmt);
+					{
+						ast::RedNodePtr true_branch_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, stmt_index[0], true_branch_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, true_branch_node, expr)(sched));
+						e->body = std::move(expr).cast_to<ast::StmtNode>();
+					}
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+
+					break;
+				}
+				case slkc::ast::GreenNodeStmtKind::WhileStmt: {
+					ast::AstNodePin<ast::WhileStmtNode> e = ast::make_ast_node<ast::WhileStmtNode>(env->get_global());
+
+					if (!e)
+						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+
+					auto expr_index = indices.get_classified_indices(ast::GreenNodeKind::Expr);
+					{
+						ast::RedNodePtr expr_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, expr_index[0], expr_node)));
+
+						{
+							ast::AstNodePin<ast::AstNode> expr;
+							SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, expr_node, expr)(sched));
+							e->condition_expr = std::move(expr).cast_to<ast::ExprNode>();
+						}
+					}
+
+					auto stmt_index = indices.get_classified_indices(ast::GreenNodeKind::Stmt);
+					{
+						ast::RedNodePtr true_branch_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, stmt_index[0], true_branch_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, true_branch_node, expr)(sched));
+						e->body = std::move(expr).cast_to<ast::StmtNode>();
+					}
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+
+					break;
+				}
+				case slkc::ast::GreenNodeStmtKind::DoWhileStmt: {
+					ast::AstNodePin<ast::DoWhileStmtNode> e = ast::make_ast_node<ast::DoWhileStmtNode>(env->get_global());
+
+					if (!e)
+						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
+
+					auto expr_index = indices.get_classified_indices(ast::GreenNodeKind::Expr);
+					{
+						ast::RedNodePtr expr_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, expr_index[0], expr_node)));
+
+						{
+							ast::AstNodePin<ast::AstNode> expr;
+							SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, expr_node, expr)(sched));
+							e->condition_expr = std::move(expr).cast_to<ast::ExprNode>();
+						}
+					}
+
+					auto stmt_index = indices.get_classified_indices(ast::GreenNodeKind::Stmt);
+					{
+						ast::RedNodePtr true_branch_node;
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								red_node->get_child_node(state_allocator, stmt_index[0], true_branch_node)));
+
+						ast::AstNodePin<ast::AstNode> expr;
+						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, true_branch_node, expr)(sched));
+						e->body = std::move(expr).cast_to<ast::StmtNode>();
+					}
+
+					ast_node_out = e.cast_to<ast::AstNode>();
+
+					break;
+				}
 			}
 			break;
 		}

@@ -77,6 +77,11 @@ SLKC_API DumpResult BindingEntry::dump(AstNodeDumpContext &dump_context, wandjso
 	if (!target_object->insert("value", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<int>(is_var_binding)))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_var_binding", v.release()))
+		return DumpResult::OutOfMemory;
+
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_name_token))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_name_token_index", v.release()))
@@ -115,6 +120,7 @@ SLKC_API peff::Result<BindingEntry, DuplicationError> BindingEntry::duplicate(As
 			return std::move(result).error();
 		}
 	}
+	entry.is_var_binding = is_var_binding;
 	entry.sti_name_token = sti_name_token;
 	entry.sti_colon = sti_colon;
 	entry.sti_assignment = sti_assignment;
@@ -165,11 +171,6 @@ SLKC_API DumpResult VarDefStmtNode::do_dump(AstNodeDumpContext &dump_context, wa
 		}
 	}
 
-	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<int>(binding_type)))))
-		return DumpResult::OutOfMemory;
-	if (!target_object->insert("binding_type", v.release()))
-		return DumpResult::OutOfMemory;
-
 	return DumpResult::Ok;
 }
 
@@ -196,8 +197,6 @@ SLKC_API VarDefStmtNode::VarDefStmtNode(const VarDefStmtNode &other, AstNodeDupl
 		}
 		bindings[i] = std::move(result).value();
 	}
-
-	binding_type = other.binding_type;
 }
 
 SLKC_API VarDefStmtNode::~VarDefStmtNode() {

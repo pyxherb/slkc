@@ -28,6 +28,8 @@ namespace slkc {
 			/// @brief Initial value of the binding.
 			AstNodePtr<ExprNode> initial_value;
 
+			bool is_var_binding = false;
+
 			TokenIndex sti_name_token = INVALID_TOKEN_INDEX;
 			TokenIndex sti_colon = INVALID_TOKEN_INDEX;
 			TokenIndex sti_assignment = INVALID_TOKEN_INDEX;
@@ -35,11 +37,6 @@ namespace slkc {
 			SLKC_API DumpResult dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept;
 
 			SLKC_API peff::Result<BindingEntry, DuplicationError> duplicate(AstNodeDuplicationContext &context) const noexcept;
-		};
-
-		enum class VarDefBindingType : uint8_t {
-			Var = 0,
-			Let
 		};
 
 		class VarDefStmtNode final : public StmtNode {
@@ -50,8 +47,6 @@ namespace slkc {
 		public:
 			/// @brief Binding entries in the let statement.
 			peff::DynArray<BindingEntry> bindings;
-
-			VarDefBindingType binding_type;
 
 			TokenIndex sti_let_keyword = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_binding_separators;

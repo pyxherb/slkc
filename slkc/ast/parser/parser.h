@@ -287,7 +287,7 @@ namespace slkc {
 			};
 
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> to_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
-			//SLKC_API void next_token();
+			// SLKC_API void next_token();
 			SLKC_API peff::Option<SyntaxError> collect_token(const GreenNodePin &parent_node);
 			SLKC_API Token *peek_token(TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
 			SLKC_API peff::Option<SyntaxError> collect_and_next_token(const GreenNodePin &parent_node, TokenIgnoringPolicy keep_new_line = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_whitespace = TokenIgnoringPolicy::Ignore, TokenIgnoringPolicy keep_comment = TokenIgnoringPolicy::Ignore);
@@ -324,8 +324,8 @@ namespace slkc {
 			[[nodiscard]] SLKC_API peff::Option<SyntaxError> split_rdbrackets_token();
 
 		private:
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, bool allow_mutability);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_var_binding_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, bool allow_mutability);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, const GreenNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(peff::Alloc *allocator, const GreenNodePin &args_node_out);
@@ -375,6 +375,14 @@ namespace slkc {
 	do {                                             \
 		if (peff::Option<SyntaxError> _ = (expr); _) \
 			co_return std::move(_).value();          \
+	} while (0)
+
+#define SLKC_PUSH_IF_PARSE_ERROR(list, expr)             \
+	do {                                                 \
+		if (peff::Option<SyntaxError> _ = (expr); _) {   \
+			if (!(list).push_back(std::move(_).value())) \
+				co_return gen_oom_syntax_error();        \
+		}                                                \
 	} while (0)
 
 #define SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(expr)                \

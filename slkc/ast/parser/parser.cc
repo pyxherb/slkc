@@ -779,7 +779,7 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::LParenthesis));
 
 	if ((token = peek_token())->token_id != TokenId::RParenthesis)
-		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, fn_node, nullptr)(this));
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, fn_node, nullptr, true)(this));
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RParenthesis));
 
@@ -1117,7 +1117,7 @@ SLKC_API ParseCoroutine Parser::parse_union_enum_case(peff::Alloc *allocator, Gr
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node_out, TokenId::Id));
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node_out, TokenId::LParenthesis));
-	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, case_node_out, nullptr)(this));
+	SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, case_node_out, nullptr, false)(this));
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(case_node_out, TokenId::RParenthesis));
 
 	co_return peff::NULLOPT;
@@ -1181,7 +1181,7 @@ SLKC_API ParseCoroutine Parser::parse_program_stmt(peff::Alloc *allocator, const
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, member, nullptr)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, member, nullptr, false)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(member, TokenId::Semicolon));
 			break;
