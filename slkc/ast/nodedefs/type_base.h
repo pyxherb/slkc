@@ -44,8 +44,8 @@ namespace slkc {
 
 		class TypeNameDefNode : public AstNode {
 		public:
-			SLKC_API TypeNameDefNode(peff::Alloc *self_allocator, Global *global);
-			SLKC_API TypeNameDefNode(const TypeNameDefNode &other, peff::Alloc *new_allocator, AstNodeDuplicationContext &context);
+			SLKC_API TypeNameDefNode(Global *global);
+			SLKC_API TypeNameDefNode(const TypeNameDefNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index);
 			SLKC_API virtual ~TypeNameDefNode();
 		};
 
@@ -156,7 +156,6 @@ namespace slkc {
 			SLAKE_FORCEINLINE void set_final(bool b) noexcept {
 				_is_final = b;
 			}
-
 
 			SLAKE_FORCEINLINE TypeNameShareability get_shareability() const noexcept {
 				return shareability;

@@ -12,7 +12,8 @@ SLKC_API Scope::Scope(AstNodeIndex owner_node, Global *global)
 	  anonymous_imports(global->get_allocator()),
 	  implemented_types(global->get_allocator()),
 	  generic_params(global->get_allocator()),
-	  generic_params_index(global->get_allocator()) {
+	  generic_params_index(global->get_allocator()),
+	  final_flag(false) {
 }
 
 SLKC_API Scope::~Scope() {
@@ -60,8 +61,10 @@ SLKC_API ScopeMemberOpResult Scope::index_member(size_t index_in_member_array) n
 				return ScopeMemberOpResult::OutOfMemory;
 			case PinFailReason::IOError:
 				return ScopeMemberOpResult::PinningIOError;
+			case PinFailReason::OutOfNodeIndex:
+				std::terminate();
 		}
-		SLAKE_UNREACHABLE();
+		std::terminate();
 	}
 
 	if (!members_index.insert(m->get_name(), +index_in_member_array)) {
@@ -120,6 +123,8 @@ SLKC_API ScopeMemberOpResult Scope::index_generic_param(size_t index_in_generic_
 				return ScopeMemberOpResult::OutOfMemory;
 			case PinFailReason::IOError:
 				return ScopeMemberOpResult::PinningIOError;
+			case PinFailReason::OutOfNodeIndex:
+				std::terminate();
 		}
 		SLAKE_UNREACHABLE();
 	}

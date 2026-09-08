@@ -139,6 +139,7 @@ namespace slkc {
 		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_var_binding(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::BindingEntry &binding_out);
 		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_type_name(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::TypeName &type_name_out);
 		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_id_ref(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::OwnedIdRef &id_ref_out);
+		SLKC_API CompilationCoroutine _do_lower_rg_nodes_to_ast_members(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, const ast::AstNodePin<ast::MemberNode> &node_out);
 		SLKC_API CompilationCoroutine _do_lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationCoroutineScheduler *sched, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node, ast::AstNodePin<ast::AstNode> &ast_node_out);
 		SLKC_API peff::Result<ast::AstNodePin<ast::AstNode>, CompilationError> lower_rg_node_to_ast_node(peff::Alloc *state_allocator, CompilationEnv *env, PEFF_IN_REF const ast::RedNodePtr &red_node);
 	}

@@ -3,6 +3,20 @@
 using namespace slkc;
 using namespace slkc::ast;
 
+SLKC_API TypeNameDefNode::TypeNameDefNode(Global *global)
+	: AstNode(NodeType::TypeNameDef, global) {
+}
+
+SLKC_API TypeNameDefNode::TypeNameDefNode(
+	const TypeNameDefNode &other,
+	AstNodeDuplicationContext &context,
+	AstNodeIndex node_index)
+	: AstNode(other, context, node_index) {
+}
+
+SLKC_API TypeNameDefNode::~TypeNameDefNode() {
+}
+
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CustomTypeDefNode);
 
 SLKC_API DumpResult CustomTypeDefNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
@@ -20,7 +34,7 @@ SLKC_API DumpResult CustomTypeDefNode::do_dump(AstNodeDumpContext &dump_context,
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(Global *global)
-	: AstNode(NodeType::TypeNameDef, global), referred_name(global->get_allocator()) {
+	: TypeNameDefNode(global), referred_name(global->get_allocator()) {
 }
 
 SLKC_API CustomTypeDefNode::CustomTypeDefNode(
@@ -28,7 +42,7 @@ SLKC_API CustomTypeDefNode::CustomTypeDefNode(
 	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: AstNode(other, context, node_index),
+	: TypeNameDefNode(other, context, node_index),
 	  referred_name(context.get_global()->get_allocator()) {
 	{
 		auto result = other.referred_name.duplicate(context.get_global()->get_allocator());
@@ -64,7 +78,7 @@ SLKC_API DumpResult ArrayTypeDefNode::do_dump(AstNodeDumpContext &dump_context, 
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(Global *global)
-	: AstNode(NodeType::TypeNameDef, global) {
+	: TypeNameDefNode(global) {
 }
 
 SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
@@ -72,7 +86,7 @@ SLKC_API ArrayTypeDefNode::ArrayTypeDefNode(
 	AstNodeDuplicationContext &context,
 	AstNodeIndex node_index,
 	peff::Option<DuplicationError> &error_out)
-	: AstNode(other, context, node_index) {
+	: TypeNameDefNode(other, context, node_index) {
 	{
 		auto element_type_result = context.push_task(other.element_type);
 		if (!element_type_result.has_error()) {

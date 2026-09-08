@@ -6,7 +6,7 @@
 
 namespace slkc {
 	namespace ast {
-		class CustomTypeDefNode final : public AstNode {
+		class CustomTypeDefNode final : public TypeNameDefNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 
@@ -22,7 +22,7 @@ namespace slkc {
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
 
-		class ArrayTypeDefNode final : public AstNode {
+		class ArrayTypeDefNode final : public TypeNameDefNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 

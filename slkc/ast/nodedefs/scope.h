@@ -42,6 +42,8 @@ namespace slkc {
 			peff::DynArray<AstNodePtr<GenericParamNode>> generic_params;
 			peff::HashMap<GlobalSharedStringRef, size_t, GlobalSharedStringRefEq> generic_params_index;
 
+			bool final_flag : 1;
+
 			SLKC_API Scope(AstNodeIndex owner_node, Global *global);
 			Scope(const Scope &) = delete;
 			Scope(Scope &&) = default;
@@ -154,6 +156,14 @@ namespace slkc {
 			}
 			SLAKE_FORCEINLINE const decltype(generic_params) &get_generic_params_const() const noexcept {
 				return generic_params;
+			}
+
+			SLAKE_FORCEINLINE bool is_final() const noexcept {
+				return final_flag;
+			}
+
+			SLAKE_FORCEINLINE void set_final(bool finality) noexcept {
+				final_flag = finality;
 			}
 		};
 

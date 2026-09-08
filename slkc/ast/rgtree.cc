@@ -181,7 +181,7 @@ SLAKE_API GreenNodeOperationResult RedNode::build_child(peff::Alloc *allocator, 
 }
 
 SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocator) {
-	for (size_t j = 0; j <= children.size(); ++j) {
+	for (size_t j = 0; j < children.size(); ++j) {
 		if (children[j])
 			continue;
 		GreenNodeOperationResult result = build_child(allocator, j);

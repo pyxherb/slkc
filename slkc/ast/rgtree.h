@@ -740,7 +740,7 @@ namespace slkc {
 			peff::RcObjectPtr<peff::Alloc> _self_allocator;
 
 		public:
-			SLAKE_FORCEINLINE RedNodeChildIndices(peff::Alloc *allocator) : _children_index(allocator), _self_allocator(_self_allocator) {
+			SLAKE_FORCEINLINE RedNodeChildIndices(peff::Alloc *allocator) : _children_index(allocator), _self_allocator(allocator) {
 			}
 			RedNodeChildIndices(RedNodeChildIndices &&) = default;
 
