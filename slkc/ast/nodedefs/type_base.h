@@ -25,6 +25,7 @@ namespace slkc {
 			Bool,
 			Object,
 			Any,
+			Never,
 			Custom,
 			Unpacking,
 

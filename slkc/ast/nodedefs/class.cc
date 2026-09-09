@@ -650,6 +650,50 @@ SLKC_API ScopedEnumNode::~ScopedEnumNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ScopedEnumNode);
 
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(EnumItemNode);
+
+SLKC_API DumpResult EnumItemNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), specified_value.get_index(), deep_dump));
+	if (!target_object->insert("specified_value", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API EnumItemNode::EnumItemNode(Global *global)
+	: MemberNode(NodeType::EnumItem, global) {
+}
+
+SLKC_API EnumItemNode::EnumItemNode(
+	const EnumItemNode &other,
+	AstNodeDuplicationContext &context,
+	AstNodeIndex node_index,
+	peff::Option<DuplicationError> &error_out)
+	: MemberNode(other, context, node_index, error_out) {
+	if (error_out.has_value())
+		return;
+
+	{
+		auto result = context.push_task(other.specified_value.get_index());
+		if (result.has_error()) {
+			error_out = std::move(result).error();
+			return;
+		}
+		specified_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+}
+
+SLKC_API EnumItemNode::~EnumItemNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(EnumItemNode);
+
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(UnionEnumNode);
 
 SLKC_API DumpResult UnionEnumNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
@@ -713,6 +757,35 @@ SLKC_API UnionEnumNode::~UnionEnumNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnionEnumNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(UnionEnumItemNode);
+
+SLKC_API DumpResult UnionEnumItemNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API UnionEnumItemNode::UnionEnumItemNode(Global *global)
+	: MemberNode(NodeType::UnionEnumItem, global) {
+}
+
+SLKC_API UnionEnumItemNode::UnionEnumItemNode(
+	const UnionEnumItemNode &other,
+	AstNodeDuplicationContext &context,
+	AstNodeIndex node_index,
+	peff::Option<DuplicationError> &error_out)
+	: MemberNode(other, context, node_index, error_out) {
+	if (error_out.has_value())
+		return;
+}
+
+SLKC_API UnionEnumItemNode::~UnionEnumItemNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(UnionEnumItemNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(AttributeNode);
 
@@ -815,3 +888,53 @@ SLKC_API ImportNode::~ImportNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(ImportNode);
+
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(VarNode);
+
+SLKC_API DumpResult VarNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
+
+	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), init_value.get_index(), deep_dump));
+	if (!target_object->insert("init_value", v.release()))
+		return DumpResult::OutOfMemory;
+
+	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), is_var_binding))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("is_var_binding", v.release()))
+		return DumpResult::OutOfMemory;
+
+	return DumpResult::Ok;
+}
+
+SLKC_API VarNode::VarNode(Global *global)
+	: MemberNode(NodeType::EnumItem, global) {
+}
+
+SLKC_API VarNode::VarNode(
+	const VarNode &other,
+	AstNodeDuplicationContext &context,
+	AstNodeIndex node_index,
+	peff::Option<DuplicationError> &error_out)
+	: MemberNode(other, context, node_index, error_out),
+	  is_var_binding(other.is_var_binding) {
+	if (error_out.has_value())
+		return;
+
+	{
+		auto result = context.push_task(other.init_value.get_index());
+		if (result.has_error()) {
+			error_out = std::move(result).error();
+			return;
+		}
+		init_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
+	}
+}
+
+SLKC_API VarNode::~VarNode() {
+}
+
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(VarNode);

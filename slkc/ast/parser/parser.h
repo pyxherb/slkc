@@ -337,9 +337,11 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_expr(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out, int precedence);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_stmt(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_inheritance_slot(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
-			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_param(peff::Alloc *allocator, const GreenNodePin &param_node_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_generic_params(peff::Alloc *allocator, const GreenNodePin &parent);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_inheritance_slot(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_item(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_impl_list(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out);
 
 			[[nodiscard]] SLKC_API ParseCoroutine parse_operator_name(peff::Alloc *allocator, const GreenNodePin &parent_node);
 
@@ -397,7 +399,7 @@ namespace slkc {
 			return std::move(_).value();             \
 	} while (0)
 
-#define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode, ...) \
+#define SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(dest, subnode) \
 	if (!(dest)->push_child(subnode))                            \
 		co_return gen_oom_syntax_error();
 

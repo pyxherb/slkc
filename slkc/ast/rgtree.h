@@ -44,8 +44,6 @@ namespace slkc {
 				/// @brief Arguments passing to a function.
 				Args,
 
-				/// @brief A generic constraint applied to a generic parameter.
-				GenericConstraint,
 				/// @brief A generic parameter applied to a member.
 				GenericParam,
 
@@ -119,8 +117,8 @@ namespace slkc {
 				/// @brief An import item.
 				ImportItem,
 
-				/// @brief A global variable declaration.
-				GlobalVar,
+				/// @brief A variable declaration.
+				Var,
 
 				Max
 			};

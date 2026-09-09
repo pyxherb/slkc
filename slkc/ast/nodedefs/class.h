@@ -2,6 +2,7 @@
 #define _SLKC_AST_NODEDEFS_CLASS_H_
 
 #include "member.h"
+#include "expr.h"
 #include <peff/containers/bitarray.h>
 
 namespace slkc {
@@ -203,6 +204,23 @@ namespace slkc {
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
 
+		class EnumItemNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			/// @brief Enumeration item value specified by the user.
+			AstNodePtr<ExprNode> specified_value;
+
+			SLKC_API EnumItemNode(Global *global);
+			SLKC_API EnumItemNode(const EnumItemNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~EnumItemNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
 		class UnionEnumNode : public MemberNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
@@ -219,6 +237,21 @@ namespace slkc {
 			SLKC_API UnionEnumNode(Global *global);
 			SLKC_API UnionEnumNode(const UnionEnumNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~UnionEnumNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class UnionEnumItemNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			// No need to define members, every case field is a variable in its scope.
+			SLKC_API UnionEnumItemNode(Global *global);
+			SLKC_API UnionEnumItemNode(const UnionEnumItemNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~UnionEnumItemNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
@@ -256,6 +289,23 @@ namespace slkc {
 			SLKC_API ImportNode(Global *global);
 			SLKC_API ImportNode(const ImportNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
 			SLKC_API virtual ~ImportNode();
+
+			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
+		};
+
+		class VarNode : public MemberNode {
+		protected:
+			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
+
+			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
+
+		public:
+			AstNodePtr<ExprNode> init_value;
+			bool is_var_binding = false;
+
+			SLKC_API VarNode(Global *global);
+			SLKC_API VarNode(const VarNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~VarNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};

@@ -135,9 +135,9 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			if (!(args = make_green_node(get_global())))
 				co_return gen_oom_syntax_error();
 
-			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+			SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
 
-			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RBrace, TokenId::Comma)(this));
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::RBrace));
 			break;
@@ -171,6 +171,11 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, co_await parse_expr(allocator, lhs, nullptr, 0)(this));
 
 			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::RParenthesis));
+
+			if ((token = peek_token())->token_id == TokenId::ReturnTypeOp) {
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(allocator, lhs, nullptr)(this));
+			}
 
 			SLKC_PUSH_IF_PARSE_ERROR(syntax_errors, collect_and_expect_token(lhs, TokenId::LBrace));
 
@@ -231,7 +236,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				if (!(args = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
 
 				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
 
@@ -289,7 +294,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				if (!(args = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
 
 				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_args(allocator, args, TokenId::RParenthesis, TokenId::Comma)(this));
 
@@ -312,14 +317,12 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 
 				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 
-				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(lhs, TokenId::LBracket));
-
 				GreenNodePin args;
 
 				if (!(args = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
 
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args, 1);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, args);
 
 				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_subscript_args(allocator, args)(this));
 
@@ -345,7 +348,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				GreenNodePin inner_id_ref;
 				if (!(inner_id_ref = make_green_node(get_global())))
 					co_return gen_oom_syntax_error();
-				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, inner_id_ref, 1);
+				SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(lhs, inner_id_ref);
 
 				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_id_ref(allocator, inner_id_ref, true)(this));
 				break;

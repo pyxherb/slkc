@@ -220,10 +220,10 @@ SLKC_API ParseCoroutine Parser::parse_stmt(peff::Alloc *allocator, GreenNodePin 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(stmt_node_out));
 
 			while (true) {
-				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, stmt_node_out, nullptr)(this));
-
 				if ((token = peek_token())->token_id == TokenId::RBrace)
 					break;
+
+				SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_stmt(allocator, stmt_node_out, nullptr)(this));
 			}
 
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(stmt_node_out, TokenId::RBrace));
