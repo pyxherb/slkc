@@ -331,7 +331,7 @@ SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::shallow_dump_ast_no
 
 		dump_context.task_list = { resource_allocator.get() };
 
-		for (auto i : task_list) {
+		for (const auto &i : task_list) {
 			AstNodePtr<AstNode> node_ptr(this, i.src);
 			auto pinned_src = node_ptr.pin();
 			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, false));
@@ -355,7 +355,7 @@ SLKC_API peff::Result<wandjson::Value *, DumpResult> Global::deep_dump_ast_node(
 
 		dump_context.task_list = { resource_allocator.get() };
 
-		for (auto i : task_list) {
+		for (const auto &i : task_list) {
 			AstNodePtr<AstNode> node_ptr(this, i.src);
 			auto pinned_src = node_ptr.pin();
 			SLKC_RETURN_IF_DUMP_FAILED(pinned_src->do_dump(dump_context, i.dest, true));

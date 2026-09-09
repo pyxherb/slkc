@@ -1,9 +1,5 @@
 #include "ast/parser/parser.h"
-// #include "comp/compiler.h"
-#include <initializer_list>
-#include <cstdio>
-#include <cstdlib>
-#include <algorithm>
+#include "comp/rg2ast.h"
 
 #if SLKC_WITH_LANGUAGE_SERVER
 // #include "server/server.h"
@@ -834,7 +830,6 @@ int main(int argc, char *argv[]) {
 				return ENOMEM;
 			}
 
-
 			/* std::unique_ptr<slake::Runtime, peff::DeallocableDeleter<slake::Runtime>> runtime(
 				slake::Runtime::alloc(peff::default_allocator(), peff::default_allocator()));
 			if (!runtime) {
@@ -949,7 +944,7 @@ int main(int argc, char *argv[]) {
 					if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
 						std::terminate();*/
 
-					getchar();
+					/* getchar();
 
 					{
 						slkc::ast::TokenList token_list2(peff::default_allocator());
@@ -1094,7 +1089,7 @@ int main(int argc, char *argv[]) {
 
 						printf("Text width: %zu\n", root_module_tree2->text_width);
 
-						/* auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree2->get_node_index());
+						auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree2->get_node_index());
 
 						if (result.has_error())
 							std::terminate();
@@ -1104,11 +1099,30 @@ int main(int argc, char *argv[]) {
 						JsonANSIDumpWriter writer;
 
 						if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
-							std::terminate();*/
-					}
+							std::terminate();
+					}*/
 
-					/*slkc::CompileEnv compile_env(runtime.get(), document, &peff::g_null_alloc, peff::default_allocator());
-					if (module_name) {
+					slkc::comp::CompilationEnv compile_env(&global);
+
+					slkc::ast::RedNodePtr red_node = slkc::ast::build_red_root_node(global.get_allocator(), root_module_tree);
+					if (!red_node)
+						std::terminate();
+
+					slkc::ast::AstNodePin<slkc::ast::AstNode> root_node;
+					if (auto result = slkc::comp::lower_rg_node_to_ast_node(peff::default_allocator(), &compile_env, red_node); result.has_value())
+						root_node = std::move(result).value();
+					else
+						std::terminate();
+
+					JsonANSIDumpWriter writer;
+
+					if (auto result = global.deep_dump_ast_node(peff::default_allocator(), root_node.get_index()); result.has_value()) {
+						std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
+						if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
+							std::terminate();
+					} else
+						std::terminate();
+					/*if (module_name) {
 						if (auto e = complete_parent_modules(&compile_env, module_name.get(), mod); e) {
 							encountered_errors = true;
 							dump_compilation_error(parser, *e);

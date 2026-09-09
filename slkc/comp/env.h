@@ -127,7 +127,7 @@ namespace slkc {
 			peff::DynArray<CompilationError> _compilation_errors;
 
 		public:
-			SLKC_API CompilationEnv(ast::Global *global, const ast::AstNodePin<ast::ModuleNode> &target_module) noexcept;
+			SLKC_API CompilationEnv(ast::Global *global) noexcept;
 
 			PEFF_FORCEINLINE peff::Option<CompilationError> push_error(CompilationError &&error) noexcept {
 				if (!_compilation_errors.push_back(std::move(error)))
@@ -141,6 +141,10 @@ namespace slkc {
 
 			PEFF_FORCEINLINE std::span<CompilationError> get_errors() const noexcept {
 				return _compilation_errors;
+			}
+
+			PEFF_FORCEINLINE void set_target_module(const ast::AstNodePin<ast::ModuleNode> &mod) noexcept {
+				_target_module = mod;
 			}
 
 			PEFF_FORCEINLINE ast::AstNodePin<ast::ModuleNode> get_target_module() const noexcept {

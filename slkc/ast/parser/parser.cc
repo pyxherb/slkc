@@ -791,6 +791,36 @@ SLKC_API ParseCoroutine Parser::parse_operator_name(peff::Alloc *allocator, cons
 	co_return peff::NULLOPT;
 }
 
+[[nodiscard]] SLKC_API ParseCoroutine Parser::parse_param_list(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out) {
+	GreenNodePin binding_list_node_out;
+	if (!(binding_list_node_out = make_green_node(get_global())))
+		co_return gen_oom_syntax_error();
+	binding_list_node_out->node_kind = GreenNodeKind::VarBindings;
+
+	peff::Deferred put_node_pin_out_guard([node_pin_out, &binding_list_node_out]() noexcept {
+		if (node_pin_out)
+			*node_pin_out = binding_list_node_out;
+	});
+
+	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, binding_list_node_out);
+
+	Token *token;
+
+	while (true) {
+		if (peek_token()->token_id == TokenId::VarArg) {
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(binding_list_node_out));
+		} else
+			SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding(allocator, binding_list_node_out, nullptr, false)(this));
+
+		if ((token = peek_token())->token_id != TokenId::Comma)
+			break;
+
+		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(binding_list_node_out));
+	}
+
+	co_return peff::NULLOPT;
+}
+
 SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNodePin &fn_node) {
 	fn_node->node_kind = GreenNodeKind::FnDef;
 
@@ -814,7 +844,7 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::LParenthesis));
 
 	if ((token = peek_token())->token_id != TokenId::RParenthesis)
-		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_var_binding_list(allocator, fn_node, nullptr, true)(this));
+		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_param_list(allocator, fn_node, nullptr)(this));
 
 	SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_expect_token(fn_node, TokenId::RParenthesis));
 
@@ -1287,6 +1317,8 @@ SLKC_API ParseCoroutine Parser::parse_program(peff::Alloc *allocator, const Gree
 	peff::Option<SyntaxError> syntax_error;
 
 	Token *t;
+
+	module_node->node_kind = GreenNodeKind::Module;
 
 	if ((t = peek_token())->token_id == TokenId::ModuleKeyword) {
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(module_node));

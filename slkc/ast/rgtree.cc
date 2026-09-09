@@ -114,8 +114,8 @@ SLKC_API bool RedNodeChildIndices::index_children(const RedNodePtr &node) noexce
 		else
 			id = child->as_green_node()->node_kind;
 
-		if (_children_index.contains(id)) {
-			if (!_children_index.insert(+child->as_token()->token_id, peff::DynArray<size_t>(_self_allocator.get())))
+		if (!_children_index.contains(id)) {
+			if (!_children_index.insert(+id, peff::DynArray<size_t>(_self_allocator.get())))
 				return false;
 		}
 		if (!_children_index.at(id).push_back(+i))
@@ -221,6 +221,7 @@ SLKC_API GreenNodeDumpContext::GreenNodeDumpContext(
 }
 
 SLKC_API DumpResult GreenNodeDumpContext::push_task(wandjson::ObjectValue *dest, GreenNodeIndex src, bool deep) noexcept {
+	assert(src != INVALID_AST_NODE_INDEX);
 	if (!task_list.push_back({ src, dest, deep }))
 		return DumpResult::OutOfMemory;
 
