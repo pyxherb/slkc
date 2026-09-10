@@ -115,7 +115,7 @@ SLKC_API DumpResult FnNode::do_dump(AstNodeDumpContext &dump_context, wandjson::
 		for (const auto &i : overloadings) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 				return DumpResult::OutOfMemory;
-			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i, deep_dump));
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i.get_index(), deep_dump));
 			if (!av->push_back(v.release()))
 				return DumpResult::OutOfMemory;
 		}

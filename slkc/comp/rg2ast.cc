@@ -466,6 +466,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_id_ref(peff::Alloc 
 
 		assert(entry_node->is_green_node_facade());
 
+		SLKC_CO_RETURN_IF_COMP_ERROR(
+			_green_node_op_result_to_comp_error(
+				entry_node->build_children(env->get_global()->get_allocator())));
+
 		ast::IdRefEntry ast_entry(env->get_global()->get_allocator());
 
 		ast::RedNodeChildIndices entry_indices(state_allocator);
@@ -532,8 +536,11 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_nodes_to_ast_members(peff::Allo
 					ast::AstNodePin<ast::AstNode> ast_node;
 					SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, i, ast_node)(sched));
 
-					if (!node_out->get_scope()->push_member(std::move(ast_node).cast_to<ast::MemberNode>()))
+					if (node_out->get_scope()->push_member(ast_node.cast_to<ast::MemberNode>()) == SIZE_MAX)
 						co_return gen_oom_error_option();
+
+					ast_node.cast_to<ast::MemberNode>()->set_parent(node_out);
+					break;
 				}
 				case ast::GreenNodeKind::Var: {
 					bool is_var_binding = indices.get_classified_indices(ast::TokenId::VarKeyword).size();
@@ -562,8 +569,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_nodes_to_ast_members(peff::Allo
 						ast::AstNodePin<ast::VarNode> var_node;
 						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _lower_rg_var_binding_to_var_node(state_allocator, sched, env, binding_node, is_var_binding, var_node)(sched));
 
-						if (!node_out->get_scope()->push_member(std::move(var_node).cast_to<ast::MemberNode>()))
+						if (node_out->get_scope()->push_member(var_node.cast_to<ast::MemberNode>()) == SIZE_MAX)
 							co_return gen_oom_error_option();
+
+						var_node->set_parent(node_out);
 						break;
 					}
 					break;
@@ -1188,6 +1197,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 
 						ast::RedNodeChildIndices args_indices(state_allocator);
 
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								args_node->build_children(env->get_global()->get_allocator())));
+
 						if (!args_indices.index_children(args_node))
 							co_return gen_oom_error_option();
 
@@ -1233,6 +1246,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
 								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Args)[0], args_node)));
+
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								args_node->build_children(env->get_global()->get_allocator())));
 
 						ast::RedNodeChildIndices args_indices(state_allocator);
 
@@ -1282,6 +1299,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 							_green_node_op_result_to_comp_error(
 								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Args)[0], args_node)));
 
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								args_node->build_children(env->get_global()->get_allocator())));
+
 						ast::RedNodeChildIndices args_indices(state_allocator);
 
 						if (!args_indices.index_children(args_node))
@@ -1327,6 +1348,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
 								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Args)[0], args_node)));
+
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								args_node->build_children(env->get_global()->get_allocator())));
 
 						ast::RedNodeChildIndices args_indices(state_allocator);
 
@@ -1423,6 +1448,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 
 						assert(case_node->is_green_node_facade());
 
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								case_node->build_children(env->get_global()->get_allocator())));
+
 						ast::RedNodeChildIndices case_indices(state_allocator);
 
 						if (!case_indices.index_children(case_node))
@@ -1477,11 +1506,16 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 					if (!e)
 						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
 
+					if (auto index = indices.get_classified_indices(ast::GreenNodeKind::Args); index.size())
 					{
 						ast::RedNodePtr args_node;
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
-								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Args)[0], args_node)));
+								red_node->get_child_node(state_allocator, index[0], args_node)));
+
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								args_node->build_children(env->get_global()->get_allocator())));
 
 						ast::RedNodeChildIndices args_indices(state_allocator);
 
@@ -1514,11 +1548,12 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 					if (!e)
 						co_return _pin_fail_reason_to_comp_error(e.get_fail_reason());
 
+					if (auto index = indices.get_classified_indices(ast::GreenNodeKind::Expr); index.size())
 					{
 						ast::RedNodePtr result_node;
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
-								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::Expr)[0], result_node)));
+								red_node->get_child_node(state_allocator, index[0], result_node)));
 
 						ast::AstNodePin<ast::AstNode> result_expr;
 						SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_node(state_allocator, sched, env, result_node, result_expr)(sched));
@@ -1628,6 +1663,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
 								red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::VarBindings)[0], var_bindings_node)));
+
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								var_bindings_node->build_children(env->get_global()->get_allocator())));
 
 						ast::RedNodeChildIndices var_bindings_indices(state_allocator);
 
@@ -1805,6 +1844,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 						_green_node_op_result_to_comp_error(
 							red_node->get_child_node(state_allocator, indices.get_classified_indices(ast::GreenNodeKind::VarBindings)[0], var_bindings_node)));
 
+					SLKC_CO_RETURN_IF_COMP_ERROR(
+						_green_node_op_result_to_comp_error(
+							var_bindings_node->build_children(env->get_global()->get_allocator())));
+
 					ast::RedNodeChildIndices var_bindings_indices(state_allocator);
 
 					if (!var_bindings_indices.index_children(var_bindings_node))
@@ -1877,6 +1920,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 						SLKC_CO_RETURN_IF_COMP_ERROR(
 							_green_node_op_result_to_comp_error(
 								red_node->get_child_node(state_allocator, i, case_node)));
+
+						SLKC_CO_RETURN_IF_COMP_ERROR(
+							_green_node_op_result_to_comp_error(
+								case_node->build_children(env->get_global()->get_allocator())));
 
 						assert(case_node->is_green_node_facade());
 
@@ -1953,6 +2000,10 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_node(peff::Alloc *s
 				SLKC_CO_RETURN_IF_COMP_ERROR(
 					_green_node_op_result_to_comp_error(
 						red_node->get_child_node(state_allocator, index[0], inheritance_slot_node)));
+				
+				SLKC_CO_RETURN_IF_COMP_ERROR(
+					_green_node_op_result_to_comp_error(
+						inheritance_slot_node->build_children(env->get_global()->get_allocator())));
 
 				ast::RedNodeChildIndices slot_indices(state_allocator);
 

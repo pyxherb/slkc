@@ -106,6 +106,9 @@ namespace slkc {
 			Global *global;
 			peff::RcObjectPtr<peff::Alloc> allocator;
 			peff::List<DumpTask> task_list;
+#ifndef _NDEBUG
+			peff::Set<AstNodeIndex> dumped_nodes;
+#endif
 
 			wandjson::ObjectValue *root_value;
 

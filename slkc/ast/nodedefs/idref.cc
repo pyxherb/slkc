@@ -40,11 +40,20 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 	if (!target_object->insert("name", v.release()))
 		return DumpResult::OutOfMemory;
 
+	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue*>(v.get());
+	if (!target_object->insert("generic_args", v.release()))
+		return DumpResult::OutOfMemory;
+
 	if (id_ref_entry.generic_args.size()) {
 		for (auto &i : id_ref_entry.generic_args) {
 			v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()));
 
 			SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, i, deep_dump));
+
+			if (!av->push_back(v.release()))
+				return DumpResult::OutOfMemory;
 		}
 	}
 

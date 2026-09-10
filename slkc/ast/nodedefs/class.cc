@@ -651,11 +651,13 @@ SLKC_API DumpResult EnumItemNode::do_dump(AstNodeDumpContext &dump_context, wand
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), specified_value.get_index(), deep_dump));
-	if (!target_object->insert("specified_value", v.release()))
-		return DumpResult::OutOfMemory;
+	if (specified_value) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), specified_value.get_index(), deep_dump));
+		if (!target_object->insert("specified_value", v.release()))
+			return DumpResult::OutOfMemory;
+	}
 
 	return DumpResult::Ok;
 }

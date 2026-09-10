@@ -84,3 +84,8 @@ using `DCMT` instruction on that time point.
 
 We should restrict the variable's nullity and estimated value validity to local
 variables or synchronized variables.
+
+## Dumped Object Management
+
+Currently we use `.release()` for pushing and inserting subobjects in JSON.
+Use `.get()` then `.release()` instead.

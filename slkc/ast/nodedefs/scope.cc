@@ -247,10 +247,9 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const Scope *scope, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 
-	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-
 	{
+		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
 		wandjson::ArrayValue *members_array = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("members", v.release()))
 			return DumpResult::OutOfMemory;
@@ -280,7 +279,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 
 	{
 		wandjson::ArrayValue *anon_imports_array = static_cast<wandjson::ArrayValue *>(v.get());
-		if (!target_object->insert("members", v.release()))
+		if (!target_object->insert("anon_imports", v.release()))
 			return DumpResult::OutOfMemory;
 		for (auto &member : scope->anonymous_imports) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))

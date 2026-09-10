@@ -237,6 +237,10 @@ namespace slkc {
 				return std::string_view(_string->_ptr, _string->_length);
 			}
 
+			SLAKE_FORCEINLINE operator bool() const noexcept {
+				return _string;
+			}
+
 			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const GlobalSharedStringRef &rhs) const noexcept {
 				return _string <=> rhs._string;
 			}

@@ -1117,7 +1117,7 @@ int main(int argc, char *argv[]) {
 					JsonANSIDumpWriter writer;
 
 					if (auto result = global.deep_dump_ast_node(peff::default_allocator(), root_node.get_index()); result.has_value()) {
-						std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
+						peff::UniquePtr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
 						if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
 							std::terminate();
 					} else

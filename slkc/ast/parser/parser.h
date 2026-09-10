@@ -331,7 +331,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API ParseCoroutine parse_args(peff::Alloc *allocator, const GreenNodePin &args_node_out, TokenKind terminal_token, TokenKind separator_token);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_subscript_args(peff::Alloc *allocator, const GreenNodePin &args_node_out);
 
-			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out);
+			[[nodiscard]] SLKC_API ParseCoroutine parse_type_name(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref_entry(peff::Alloc *allocator, const GreenNodePin &id_ref_entry_node_out, bool requires_generic_distinguisher);
 			[[nodiscard]] SLKC_API ParseCoroutine parse_id_ref(peff::Alloc *allocator, const GreenNodePin &id_ref_node_out, bool requires_generic_distinguisher);
 

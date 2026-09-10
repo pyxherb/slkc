@@ -344,7 +344,7 @@ SLKC_API ParseCoroutine Parser::parse_subscript_args(peff::Alloc *allocator, con
 	co_return peff::NULLOPT;
 }
 
-SLKC_API ParseCoroutine Parser::parse_type_name(peff::Alloc *allocator, GreenNodePin parent, GreenNodePin *node_pin_out) {
+SLKC_API ParseCoroutine Parser::parse_type_name(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out) {
 	GreenNodePin type_name_node_out;
 	if (!(type_name_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
@@ -649,20 +649,20 @@ SLKC_API ParseCoroutine Parser::parse_generic_param(peff::Alloc *allocator, cons
 }
 
 SLKC_API ParseCoroutine Parser::parse_inheritance_slot(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out) {
-	GreenNodePin slot_out;
-	if (!(slot_out = make_green_node(get_global())))
-		co_return gen_oom_syntax_error();
-	slot_out->node_kind = GreenNodeKind::InheritanceSlot;
-
-	peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
-		if (node_pin_out)
-			*node_pin_out = slot_out;
-	});
-
-	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
-
 	Token *token;
 	if ((token = peek_token())->token_id == TokenId::LParenthesis) {
+		GreenNodePin slot_out;
+		if (!(slot_out = make_green_node(get_global())))
+			co_return gen_oom_syntax_error();
+		slot_out->node_kind = GreenNodeKind::InheritanceSlot;
+
+		peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
+			if (node_pin_out)
+				*node_pin_out = slot_out;
+		});
+
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
+
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
 
 		SLKC_CO_RETURN_IF_CO_AWAIT_ERROR(parse_type_name(allocator, slot_out, nullptr)(this));
@@ -697,20 +697,20 @@ SLKC_API ParseCoroutine Parser::parse_impl_item(peff::Alloc *allocator, const Gr
 }
 
 SLKC_API ParseCoroutine Parser::parse_impl_list(peff::Alloc *allocator, const GreenNodePin &parent, GreenNodePin *node_pin_out) {
-	GreenNodePin slot_out;
-	if (!(slot_out = make_green_node(get_global())))
-		co_return gen_oom_syntax_error();
-	slot_out->node_kind = GreenNodeKind::ImplItem;
-
-	peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
-		if (node_pin_out)
-			*node_pin_out = slot_out;
-	});
-
-	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
-
 	Token *token;
 	if ((token = peek_token())->token_id == TokenId::Colon) {
+		GreenNodePin slot_out;
+		if (!(slot_out = make_green_node(get_global())))
+			co_return gen_oom_syntax_error();
+		slot_out->node_kind = GreenNodeKind::ImplItem;
+
+		peff::Deferred put_node_pin_out_guard([node_pin_out, &slot_out]() noexcept {
+			if (node_pin_out)
+				*node_pin_out = slot_out;
+		});
+
+		SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent, slot_out);
+
 		SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(slot_out));
 
 		while (true) {
@@ -730,7 +730,7 @@ SLKC_API ParseCoroutine Parser::parse_operator_name(peff::Alloc *allocator, cons
 	GreenNodePin name_node_out;
 	if (!(name_node_out = make_green_node(get_global())))
 		co_return gen_oom_syntax_error();
-	name_node_out->node_kind = GreenNodeKind::TypeName;
+	name_node_out->node_kind = GreenNodeKind::OperatorName;
 
 	SLKC_CO_RETURN_IF_PUSH_RGNODE_FAILED(parent_node, name_node_out);
 

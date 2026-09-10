@@ -126,7 +126,9 @@ SLKC_API bool RedNodeChildIndices::index_children(const RedNodePtr &node) noexce
 }
 
 SLKC_API std::span<size_t> RedNodeChildIndices::get_classified_indices(TokenKind kind) {
-	return _children_index.at(kind);
+	if (auto it = _children_index.find(kind); it != _children_index.end())
+		return it.value();
+	return {};
 }
 
 SLKC_API RedNode::RedNode(peff::Alloc *allocator) : children(allocator) {
@@ -135,8 +137,6 @@ SLKC_API RedNode::RedNode(peff::Alloc *allocator) : children(allocator) {
 SLKC_API RedNodePtr ast::build_red_root_node(peff::Alloc *allocator, const GreenNodePin &green_node) {
 	RedNodePtr red_root = peff::make_shared<RedNode>(allocator, allocator);
 
-	if (!red_root->children.resize(green_node->children.size()))
-		return {};
 	red_root->offset = 0;
 	red_root->green_node_or_token = green_node;
 
@@ -181,6 +181,9 @@ SLAKE_API GreenNodeOperationResult RedNode::build_child(peff::Alloc *allocator, 
 }
 
 SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocator) {
+	children.clear();
+	if (!children.resize(as_green_node()->children.size()))
+		return GreenNodeOperationResult::OutOfMemory;
 	for (size_t j = 0; j < children.size(); ++j) {
 		if (children[j])
 			continue;
@@ -193,17 +196,19 @@ SLAKE_API GreenNodeOperationResult RedNode::build_children(peff::Alloc *allocato
 }
 
 SLAKE_API GreenNodeOperationResult RedNode::get_child_node(peff::Alloc *allocator, size_t index, RedNodePtr &red_node_out) noexcept {
-	size_t i = index + 1;
-	while (i) {
-		if (children[i - 1])
-			break;
-		--i;
-	}
+	if ((!children.size()) || !children.at(index)) {
+		size_t i = index + 1;
+		while (i) {
+			if (children[i - 1])
+				break;
+			--i;
+		}
 
-	for (size_t j = i - 1; j <= index; ++j) {
-		GreenNodeOperationResult result = build_child(allocator, j);
-		if (result != GreenNodeOperationResult::Success)
-			return result;
+		for (size_t j = i - 1; j <= index; ++j) {
+			GreenNodeOperationResult result = build_child(allocator, j);
+			if (result != GreenNodeOperationResult::Success)
+				return result;
+		}
 	}
 
 	red_node_out = children[index];

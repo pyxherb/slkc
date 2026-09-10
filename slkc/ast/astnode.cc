@@ -4,7 +4,7 @@ using namespace slkc;
 using namespace slkc::ast;
 
 SLKC_API bool ast::is_member_node_type(NodeType node_type) {
-	switch(node_type) {
+	switch (node_type) {
 		case NodeType::Class:
 		case NodeType::Struct:
 		case NodeType::Except:
@@ -60,13 +60,6 @@ SLKC_API peff::Result<AstNodeIndex, DuplicationError> AstNodeDuplicationContext:
 	if (node_index == INVALID_AST_NODE_INDEX)
 		return +INVALID_AST_NODE_INDEX;
 
-	if (!task_list.push_back({ INVALID_AST_NODE_INDEX, node_index }))
-		return DuplicationError::OutOfMemory;
-
-	peff::ScopeGuard sg([this]() noexcept {
-		task_list.pop_back();
-	});
-
 	auto result = global->map_ast_node(nullptr);
 
 	if (!result.has_value())
@@ -77,7 +70,8 @@ SLKC_API peff::Result<AstNodeIndex, DuplicationError> AstNodeDuplicationContext:
 
 	task_list.back().dest = *result;
 
-	sg.release();
+	if (!task_list.push_back({ *result, node_index }))
+		return DuplicationError::OutOfMemory;
 
 	return result.move();
 }
@@ -107,10 +101,19 @@ SLKC_API AstNodeDumpContext::AstNodeDumpContext(
 	: global(global),
 	  root_value(root_value),
 	  task_list(allocator),
-	  allocator(allocator) {
+	  allocator(allocator),
+	  dumped_nodes(allocator) {
 }
 
 SLKC_API DumpResult AstNodeDumpContext::push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept {
+	assert(src != INVALID_AST_NODE_INDEX);
+
+#ifndef _NDEBUG
+	assert(!dumped_nodes.contains(src));
+	if (!dumped_nodes.insert(+src))
+		return DumpResult::OutOfMemory;
+#endif
+
 	if (!task_list.push_back({ src, dest, deep }))
 		return DumpResult::OutOfMemory;
 

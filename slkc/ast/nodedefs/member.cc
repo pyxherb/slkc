@@ -15,16 +15,23 @@ SLKC_API DumpResult MemberNode::do_dump(AstNodeDumpContext &dump_context, wandjs
 			return DumpResult::OutOfMemory;
 	}
 
-	if (!(v = decltype(v)(dump_string(dump_context, self_name))))
-		return DumpResult::OutOfMemory;
+	if (self_name) {
+		if (!(v = decltype(v)(dump_string(dump_context, self_name))))
+			return DumpResult::OutOfMemory;
+	} else {
+		if (!(v = decltype(v)(dump_string(dump_context, ""))))
+			return DumpResult::OutOfMemory;
+	}
 	if (!target_object->insert("self_name", v.release()))
 		return DumpResult::OutOfMemory;
 
-	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_scope(static_cast<wandjson::ObjectValue*>(v.get()), dump_context, _self_scope.get(),deep_dump));
-	if (!target_object->insert("self_scope", v.release()))
-		return DumpResult::OutOfMemory;
+	if (_self_scope) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_scope(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, _self_scope.get(), deep_dump));
+		if (!target_object->insert("self_scope", v.release()))
+			return DumpResult::OutOfMemory;
+	}
 
 	return DumpResult::Ok;
 }
@@ -41,7 +48,7 @@ SLKC_API MemberNode::MemberNode(
 	: AstNode(other, context, node_index),
 	  self_name(other.self_name),
 	  access_modifier(other.access_modifier) {
-	if(other.member_relative_location.has_value())
+	if (other.member_relative_location.has_value())
 		member_relative_location = other.member_relative_location.value();
 }
 
@@ -49,7 +56,7 @@ SLKC_API MemberNode::~MemberNode() {
 }
 
 SLKC_API bool MemberNode::alloc_scope() noexcept {
-	if(!(_self_scope = Scope::alloc(this->get_node_index(), this->get_global())))
+	if (!(_self_scope = Scope::alloc(this->get_node_index(), this->get_global())))
 		return false;
 	return true;
 }
