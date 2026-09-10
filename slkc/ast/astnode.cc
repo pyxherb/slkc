@@ -47,8 +47,9 @@ SLKC_API DumpResult AstNode::do_dump(AstNodeDumpContext &dump_context, wandjson:
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_ast_node_type())))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("node_type", v.release()))
+	if (!target_object->insert("node_type", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	return DumpResult::Ok;
 }

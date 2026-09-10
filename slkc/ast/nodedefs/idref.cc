@@ -37,14 +37,16 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 
 	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), id_ref_entry.name.get_view()))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("name", v.release()))
+	if (!target_object->insert("name", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
 	wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue*>(v.get());
-	if (!target_object->insert("generic_args", v.release()))
+	if (!target_object->insert("generic_args", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	if (id_ref_entry.generic_args.size()) {
 		for (auto &i : id_ref_entry.generic_args) {
@@ -52,8 +54,9 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 
 			SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, i, deep_dump));
 
-			if (!av->push_back(v.release()))
+			if (!av->push_back(v.get()))
 				return DumpResult::OutOfMemory;
+			v.release();
 		}
 	}
 
@@ -69,8 +72,9 @@ SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, 
 
 		SLKC_RETURN_IF_DUMP_FAILED(dump_id_ref_entry(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, i, deep_dump));
 
-		if(!target_object->push_back(v.release()))
+		if(!target_object->push_back(v.get()))
 			return DumpResult::OutOfMemory;
+		v.release();
 	}
 
 	return DumpResult::Ok;

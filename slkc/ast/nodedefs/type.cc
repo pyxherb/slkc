@@ -27,8 +27,9 @@ SLKC_API DumpResult CustomTypeDefNode::do_dump(AstNodeDumpContext &dump_context,
 	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
 	SLKC_RETURN_IF_DUMP_FAILED(dump_id_ref(static_cast<wandjson::ArrayValue*>(v.get()), dump_context, referred_name, deep_dump));
-	if (!target_object->insert("referred_name", v.release()))
+	if (!target_object->insert("referred_name", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	return DumpResult::Ok;
 }
@@ -71,8 +72,9 @@ SLKC_API DumpResult ArrayTypeDefNode::do_dump(AstNodeDumpContext &dump_context, 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
 	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue*>(v.get()), dump_context, element_type, deep_dump));
-	if (!target_object->insert("element_type", v.release()))
+	if (!target_object->insert("element_type", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	return DumpResult::Ok;
 }

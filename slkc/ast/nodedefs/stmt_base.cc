@@ -11,13 +11,15 @@ SLKC_API DumpResult StmtNode::do_dump(AstNodeDumpContext &dump_context, wandjson
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_stmt_kind())))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("stmt_kind", v.release()))
+	if (!target_object->insert("stmt_kind", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), is_bad()))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("bad", v.release()))
+	if (!target_object->insert("bad", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	return DumpResult::Ok;
 }

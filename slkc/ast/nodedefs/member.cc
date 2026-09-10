@@ -11,8 +11,9 @@ SLKC_API DumpResult MemberNode::do_dump(AstNodeDumpContext &dump_context, wandjs
 	if (_parent_node_index != INVALID_AST_NODE_INDEX) {
 		if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), _parent_node_index))))
 			return DumpResult::OutOfMemory;
-		if (!target_object->insert("outer_node_index", v.release()))
+		if (!target_object->insert("outer_node_index", v.get()))
 			return DumpResult::OutOfMemory;
+		v.release();
 	}
 
 	if (self_name) {
@@ -22,15 +23,17 @@ SLKC_API DumpResult MemberNode::do_dump(AstNodeDumpContext &dump_context, wandjs
 		if (!(v = decltype(v)(dump_string(dump_context, ""))))
 			return DumpResult::OutOfMemory;
 	}
-	if (!target_object->insert("self_name", v.release()))
+	if (!target_object->insert("self_name", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	if (_self_scope) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		SLKC_RETURN_IF_DUMP_FAILED(dump_scope(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, _self_scope.get(), deep_dump));
-		if (!target_object->insert("self_scope", v.release()))
+		if (!target_object->insert("self_scope", v.get()))
 			return DumpResult::OutOfMemory;
+		v.release();
 	}
 
 	return DumpResult::Ok;
@@ -72,13 +75,15 @@ SLKC_API DumpResult ModuleNode::do_dump(AstNodeDumpContext &dump_context, wandjs
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_module_keyword))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("sti_module_keyword", v.release()))
+	if (!target_object->insert("sti_module_keyword", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_module_decl_semicolon))))
 		return DumpResult::OutOfMemory;
-	if (!target_object->insert("sti_module_decl_semicolon", v.release()))
+	if (!target_object->insert("sti_module_decl_semicolon", v.get()))
 		return DumpResult::OutOfMemory;
+	v.release();
 
 	return DumpResult::Ok;
 }
