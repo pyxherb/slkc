@@ -295,7 +295,9 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_var_binding(peff::A
 		ast::RedNodePtr tn_node;
 		SLKC_CO_RETURN_IF_COMP_ERROR(_green_node_op_result_to_comp_error(red_node->get_child_node(state_allocator, index[0], tn_node)));
 
-		SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_type_name(state_allocator, sched, env, tn_node, binding_out.type)(sched));
+		ast::TypeName tn;
+		SLKC_CO_RETURN_IF_COMP_ERROR(co_await _do_lower_rg_node_to_ast_type_name(state_allocator, sched, env, tn_node, tn)(sched));
+		binding_out.type = tn;
 	}
 
 	if (auto index = indices.get_classified_indices(ast::GreenNodeKind::Expr); index.size()) {

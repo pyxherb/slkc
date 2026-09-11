@@ -44,12 +44,13 @@ SLKC_API AstNode::~AstNode() {
 
 SLKC_API DumpResult AstNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_ast_node_type())))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("node_type", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	return DumpResult::Ok;
 }

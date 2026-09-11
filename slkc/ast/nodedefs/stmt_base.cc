@@ -8,18 +8,19 @@ SLKC_API DumpResult StmtNode::do_dump(AstNodeDumpContext &dump_context, wandjson
 	SLKC_RETURN_IF_DUMP_FAILED(AstNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(get_stmt_kind())))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("stmt_kind", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), is_bad()))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("bad", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	return DumpResult::Ok;
 }

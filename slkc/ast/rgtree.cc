@@ -235,37 +235,39 @@ SLKC_API DumpResult GreenNodeDumpContext::push_task(wandjson::ObjectValue *dest,
 
 SLKC_API DumpResult ast::dump_source_token(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const TokenPtr &token) noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
 	wandjson::ObjectValue *token_object = static_cast<wandjson::ObjectValue *>(v.get());
 	if (!target_object->insert("source_token", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), token->source_text.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!token_object->insert("source_text", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), token->token_id))))
 		return DumpResult::OutOfMemory;
 	if (!token_object->insert("token_id", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	return DumpResult::Ok;
 }
 
 SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, const GreenNodePin &node, bool deep) noexcept {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), node->node_kind))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("node_kind", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (!std::get_if<std::monostate>(&node->exdata)) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
@@ -273,19 +275,19 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 		wandjson::ObjectValue *exdata_object = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("exdata", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		if (auto exdata = std::get_if<TypeNameGreenNodeExData>(&node->exdata); exdata) {
 			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(exdata->type_name_kind)))))
 				return DumpResult::OutOfMemory;
 			if (!exdata_object->insert("type_name_kind", v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		} else if (auto exdata = std::get_if<ExprGreenNodeExData>(&node->exdata); exdata) {
 			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(exdata->expr_kind)))))
 				return DumpResult::OutOfMemory;
 			if (!exdata_object->insert("expr_kind", v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 
 			switch (exdata->expr_kind) {
 				case slkc::ast::GreenNodeExprKind::Unary:
@@ -293,14 +295,14 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 						return DumpResult::OutOfMemory;
 					if (!exdata_object->insert("unary_expr_op", v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 					break;
 				case slkc::ast::GreenNodeExprKind::Binary:
 					if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(exdata->binary_expr_op)))))
 						return DumpResult::OutOfMemory;
 					if (!exdata_object->insert("binary_expr_op", v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 					break;
 				default:
 					break;
@@ -310,7 +312,7 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 				return DumpResult::OutOfMemory;
 			if (!exdata_object->insert("stmt_kind", v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -320,7 +322,7 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 		wandjson::ArrayValue *children_array = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("children", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 
 		if (deep) {
 			for (size_t i = 0; i < node->children.size(); ++i) {
@@ -332,7 +334,7 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
 					if (!children_array->push_back(v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 					SLKC_RETURN_IF_DUMP_FAILED(dump_source_token(dump_context, node_obj, *t));
 				} else {
 					if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
@@ -340,7 +342,7 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
 					if (!children_array->push_back(v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 					SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(node_obj, std::get_if<GreenNodePtr>(&child)->get_index(), deep));
 				}
 			}
@@ -354,14 +356,14 @@ SLKC_API DumpResult ast::dump_green_node(GreenNodeDumpContext &dump_context, wan
 					wandjson::ObjectValue *node_obj = static_cast<wandjson::ObjectValue *>(v.get());
 					if (!children_array->push_back(v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 					SLKC_RETURN_IF_DUMP_FAILED(dump_source_token(dump_context, node_obj, *t));
 				} else {
 					if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), std::get_if<GreenNodePtr>(&child)->get_index()))))
 						return DumpResult::OutOfMemory;
 					if (!children_array->push_back(v.get()))
 						return DumpResult::OutOfMemory;
-					v.release();
+					discarded_v = v.release();
 				}
 			}
 		}

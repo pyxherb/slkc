@@ -246,6 +246,7 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 
 SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const Scope *scope, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	{
 		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
@@ -253,7 +254,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ArrayValue *members_array = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("members", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		for (auto &member : scope->members) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 				return DumpResult::OutOfMemory;
@@ -261,7 +262,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(ov, member.get_index(), deep_dump));
 			if (!members_array->push_back(v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -271,13 +272,13 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ObjectValue *members_index = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("members_index", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		for (auto [name, index] : scope->members_index) {
 			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), index))))
 				return DumpResult::OutOfMemory;
 			if (!members_index->insert(name, v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -287,7 +288,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ArrayValue *anon_imports_array = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("anon_imports", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		for (auto &member : scope->anonymous_imports) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 				return DumpResult::OutOfMemory;
@@ -295,7 +296,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(ov, member.get_index(), deep_dump));
 			if (!anon_imports_array->push_back(v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -305,7 +306,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("inherited_type", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->inherited_type.value(), deep_dump));
 	}
 
@@ -314,7 +315,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 	wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
 	if (!target_object->insert("implemented_types", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 	for (size_t i = 0; i < scope->implemented_types.size(); ++i) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
@@ -322,7 +323,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->implemented_types[i].type, deep_dump));
 		if (!av->push_back(ov))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 	}
 
 	if (scope->underlying_type.has_value()) {
@@ -331,7 +332,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("underlying_type", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->underlying_type.value(), deep_dump));
 	}
 
@@ -341,7 +342,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ArrayValue *members_array = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("generic_params", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		for (auto &member : scope->generic_params) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 				return DumpResult::OutOfMemory;
@@ -349,7 +350,7 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(ov, member.get_index(), deep_dump));
 			if (!members_array->push_back(v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -359,13 +360,13 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		wandjson::ObjectValue *generic_params_index = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("generic_params_index", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 		for (auto [name, index] : scope->generic_params_index) {
 			if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), index))))
 				return DumpResult::OutOfMemory;
 			if (!generic_params_index->insert(name, v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 

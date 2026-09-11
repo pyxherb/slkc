@@ -34,19 +34,20 @@ SLKC_API peff::Option<OwnedIdRef> OwnedIdRef::duplicate(peff::Alloc *new_allocat
 
 SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const IdRefEntry &id_ref_entry, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::StringValue::alloc(dump_context.get_allocator(), id_ref_entry.name.get_view()))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("name", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
 	wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue*>(v.get());
 	if (!target_object->insert("generic_args", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
 	if (id_ref_entry.generic_args.size()) {
 		for (auto &i : id_ref_entry.generic_args) {
@@ -56,7 +57,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 
 			if (!av->push_back(v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
@@ -65,6 +66,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 
 SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, AstNodeDumpContext &dump_context, const ConstIdRefView &id_ref, bool deep_dump) {
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	for (const auto &i : id_ref) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
@@ -74,7 +76,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref(wandjson::ArrayValue *target_object, 
 
 		if(!target_object->push_back(v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 	}
 
 	return DumpResult::Ok;

@@ -9,14 +9,68 @@ SLKC_API DumpResult FnOverloadingNode::do_dump(AstNodeDumpContext &dump_context,
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), sti_fn_keyword))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("sti_fn_keyword", v.get()))
 		return DumpResult::OutOfMemory;
-	v.release();
+	discarded_v = v.release();
 
-	// TODO: Dump the rest.
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(overloading_kind)))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("overloading_kind", v.get()))
+		return DumpResult::OutOfMemory;
+	discarded_v = v.release();
+
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), overloading_flags))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("overloading_flags", v.get()))
+		return DumpResult::OutOfMemory;
+	discarded_v = v.release();
+
+	// Dump the parameters.
+	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	auto av = static_cast<wandjson::ArrayValue *>(v.get());
+	if (!target_object->insert("params", v.get()))
+		return DumpResult::OutOfMemory;
+	discarded_v = v.release();
+	for (const auto &i : params) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(i.dump(dump_context, static_cast<wandjson::ObjectValue *>(v.get()), deep_dump));
+		if (!av->push_back(v.get()))
+			return DumpResult::OutOfMemory;
+		discarded_v = v.release();
+	}
+
+	// Dump the return type.
+	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+		return DumpResult::OutOfMemory;
+	if (!target_object->insert("return_type", v.get()))
+		return DumpResult::OutOfMemory;
+	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, return_type, deep_dump));
+	discarded_v = v.release();
+
+	if (overriden_type.has_value()) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		if (!target_object->insert("overriden_type", v.get()))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, overriden_type.value(), deep_dump));
+		discarded_v = v.release();
+	}
+
+	// Dump the function body (if exists).
+	if (body) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		if (!target_object->insert("body", v.get()))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), body.get_index(), deep_dump));
+		discarded_v = v.release();
+	}
 
 	return DumpResult::Ok;
 }
@@ -84,7 +138,7 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 		return;
 	}
 
-	if(other.overriden_type) {
+	if (other.overriden_type) {
 		auto overriden_type_result = context.push_task(*other.overriden_type);
 		if (!overriden_type_result.has_error()) {
 			error_out = std::move(overriden_type_result).error();
@@ -105,6 +159,7 @@ SLKC_API DumpResult FnNode::do_dump(AstNodeDumpContext &dump_context, wandjson::
 	SLKC_RETURN_IF_DUMP_FAILED(MemberNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
+	wandjson::Value *discarded_v;
 
 	{
 		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
@@ -112,7 +167,7 @@ SLKC_API DumpResult FnNode::do_dump(AstNodeDumpContext &dump_context, wandjson::
 		wandjson::ArrayValue *av = static_cast<wandjson::ArrayValue *>(v.get());
 		if (!target_object->insert("elements", v.get()))
 			return DumpResult::OutOfMemory;
-		v.release();
+		discarded_v = v.release();
 
 		for (const auto &i : overloadings) {
 			if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
@@ -120,7 +175,7 @@ SLKC_API DumpResult FnNode::do_dump(AstNodeDumpContext &dump_context, wandjson::
 			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i.get_index(), deep_dump));
 			if (!av->push_back(v.get()))
 				return DumpResult::OutOfMemory;
-			v.release();
+			discarded_v = v.release();
 		}
 	}
 
