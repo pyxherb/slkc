@@ -78,11 +78,30 @@ SLKC_API void Global::_clear_zero_ref_green_node_registry_list() noexcept {
 	}
 }
 
+SLKC_API bool Global::try_ref_ast_node(AstNodeIndex index) noexcept {
+	_clear_zero_ref_ast_node_registry_list();
+	auto &ref_count = _ast_node_registries.at(index).ref_count;
+	if (!ref_count)
+		return false;
+	++ref_count;
+	return true;
+}
+
 SLKC_API void Global::unref_ast_node(AstNodeIndex index) noexcept {
 	std::lock_guard g(this->_ast_node_registries_mutex);
 
 	auto &reg = _ast_node_registries.at(index);
-	if ((!--reg.ref_count) && (!reg.pin_count)) {
+	if ((!--reg.ref_count) && (!reg.weak_ref_count) && (!reg.pin_count)) {
+		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
+		_ast_node_registries.remove(index);
+	}
+}
+
+SLKC_API void Global::unref_ast_node_weak(AstNodeIndex index) noexcept {
+	std::lock_guard g(this->_ast_node_registries_mutex);
+
+	auto &reg = _ast_node_registries.at(index);
+	if ((!--reg.weak_ref_count) && (!reg.ref_count) && (!reg.pin_count)) {
 		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
 		_ast_node_registries.remove(index);
 	}
@@ -102,7 +121,7 @@ SLKC_API void Global::unpin_ast_node(AstNodeIndex index) noexcept {
 	std::lock_guard g(this->_ast_node_registries_mutex);
 
 	auto &reg = _ast_node_registries.at(index);
-	if ((!--reg.pin_count) && (!reg.ref_count)) {
+	if ((!--reg.pin_count) && (!reg.ref_count) && (!reg.weak_ref_count)) {
 		_add_ast_node_to_deferred_deleting_list(reg.in_memory);
 		_ast_node_registries.remove(index);
 	}
@@ -170,18 +189,37 @@ SLKC_API void Global::unmap_ast_node(AstNodeIndex node_index) noexcept {
 	this->_ast_node_registries.remove(node_index);
 }
 
+SLKC_API bool Global::try_ref_green_node(AstNodeIndex index) noexcept {
+	_clear_zero_ref_green_node_registry_list();
+	auto &ref_count = _green_node_registries.at(index).ref_count;
+	if (!ref_count)
+		return false;
+	++ref_count;
+	return true;
+}
+
 SLKC_API void Global::unref_green_node(AstNodeIndex index) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	auto &reg = _green_node_registries.at(index);
-	if ((!--reg.ref_count) && (!reg.pin_count)) {
+	if ((!--reg.ref_count) && (!reg.weak_ref_count) && (!reg.pin_count)) {
+		_add_green_node_to_deferred_deleting_list(reg.in_memory);
+		_green_node_registries.remove(index);
+	}
+}
+
+SLKC_API void Global::unref_green_node_weak(AstNodeIndex index) noexcept {
+	std::lock_guard g(this->_green_node_registries_mutex);
+
+	auto &reg = _green_node_registries.at(index);
+	if ((!--reg.weak_ref_count) && (!reg.ref_count) && (!reg.pin_count)) {
 		_add_green_node_to_deferred_deleting_list(reg.in_memory);
 		_green_node_registries.remove(index);
 	}
 }
 
 SLKC_API peff::Result<GreenNode *, PinFailReason> Global::pin_green_node(GreenNodeIndex index) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	auto &reg = _green_node_registries.at(index);
 
@@ -192,10 +230,10 @@ SLKC_API peff::Result<GreenNode *, PinFailReason> Global::pin_green_node(GreenNo
 }
 
 SLKC_API void Global::unpin_green_node(GreenNodeIndex index) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	auto &reg = _green_node_registries.at(index);
-	if ((!--reg.pin_count) && (!reg.ref_count)) {
+	if ((!--reg.pin_count) && (!reg.ref_count) && (!reg.weak_ref_count)) {
 		_add_green_node_to_deferred_deleting_list(reg.in_memory);
 		_green_node_registries.remove(index);
 	}
@@ -226,7 +264,7 @@ SLKC_API GreenNodeIndex Global::_alloc_green_node_index() noexcept {
 }
 
 SLKC_API peff::Option<GreenNodeIndex> Global::map_green_node(GreenNode *node, GreenNodeIndex node_index) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	if (node_index == INVALID_GREEN_NODE_INDEX) {
 		if ((node_index = _alloc_green_node_index()) == INVALID_GREEN_NODE_INDEX)
@@ -250,7 +288,7 @@ SLKC_API peff::Option<GreenNodeIndex> Global::map_green_node(GreenNode *node, Gr
 }
 
 SLKC_API void Global::remap_green_node(GreenNodeIndex node_index, GreenNode *node) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	assert(this->_green_node_registries.contains(node_index));
 
@@ -258,7 +296,7 @@ SLKC_API void Global::remap_green_node(GreenNodeIndex node_index, GreenNode *nod
 }
 
 SLKC_API void Global::unmap_green_node(GreenNodeIndex node_index) noexcept {
-	std::lock_guard g(this->_ast_node_registries_mutex);
+	std::lock_guard g(this->_green_node_registries_mutex);
 
 	this->_green_node_registries.remove(node_index);
 }

@@ -8,15 +8,16 @@
 namespace slkc {
 	namespace ast {
 		struct NodeRegistry final {
-			size_t ref_count = 0, pin_count = 0;
+			size_t ref_count = 0, weak_ref_count = 0, pin_count = 0;
 			AstNode *in_memory;
 			AstNodeIndex self_index;
 
 			SLAKE_FORCEINLINE NodeRegistry() {
 			}
 
-			SLAKE_FORCEINLINE NodeRegistry(NodeRegistry &&rhs) : in_memory(std::move(rhs.in_memory)), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
+			SLAKE_FORCEINLINE NodeRegistry(NodeRegistry &&rhs) : in_memory(std::move(rhs.in_memory)), ref_count(+rhs.ref_count), weak_ref_count(+rhs.weak_ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
 				rhs.ref_count = 0;
+				rhs.weak_ref_count = 0;
 				rhs.pin_count = 0;
 			}
 
@@ -26,8 +27,7 @@ namespace slkc {
 		struct GreenNode;
 
 		struct GreenNodeRegistry final {
-			size_t ref_count = 0, pin_count = 0;
-			// Use void* to avoid forward declaration issue.
+			size_t ref_count = 0, weak_ref_count = 0, pin_count = 0;
 			GreenNode *in_memory = nullptr;
 			GreenNodeIndex self_index;
 
@@ -36,9 +36,10 @@ namespace slkc {
 
 			SLKC_API ~GreenNodeRegistry();
 
-			SLAKE_FORCEINLINE GreenNodeRegistry(GreenNodeRegistry &&rhs) : in_memory(rhs.in_memory), ref_count(+rhs.ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
+			SLAKE_FORCEINLINE GreenNodeRegistry(GreenNodeRegistry &&rhs) : in_memory(rhs.in_memory), ref_count(+rhs.ref_count), weak_ref_count(+rhs.weak_ref_count), pin_count(+rhs.pin_count), self_index(rhs.self_index) {
 				rhs.in_memory = nullptr;
 				rhs.ref_count = 0;
+				rhs.weak_ref_count = 0;
 				rhs.pin_count = 0;
 				rhs.self_index = INVALID_GREEN_NODE_INDEX;
 			}
@@ -124,7 +125,13 @@ namespace slkc {
 				_clear_zero_ref_ast_node_registry_list();
 				++_ast_node_registries.at(index).ref_count;
 			}
+			SLKC_API bool try_ref_ast_node(AstNodeIndex index) noexcept;
+			SLAKE_FORCEINLINE void ref_ast_node_weak(AstNodeIndex index) noexcept {
+				_clear_zero_ref_ast_node_registry_list();
+				++_ast_node_registries.at(index).weak_ref_count;
+			}
 			SLKC_API void unref_ast_node(AstNodeIndex index) noexcept;
+			SLKC_API void unref_ast_node_weak(AstNodeIndex index) noexcept;
 			SLKC_API peff::Result<AstNode *, PinFailReason> pin_ast_node(AstNodeIndex index) noexcept;
 			SLKC_API void unpin_ast_node(AstNodeIndex index) noexcept;
 			///
@@ -150,7 +157,13 @@ namespace slkc {
 				_clear_zero_ref_green_node_registry_list();
 				++_green_node_registries.at(index).ref_count;
 			}
+			SLKC_API bool try_ref_green_node(AstNodeIndex index) noexcept;
+			SLAKE_FORCEINLINE void ref_green_node_weak(GreenNodeIndex index) noexcept {
+				_clear_zero_ref_green_node_registry_list();
+				++_green_node_registries.at(index).weak_ref_count;
+			}
 			SLKC_API void unref_green_node(GreenNodeIndex index) noexcept;
+			SLKC_API void unref_green_node_weak(GreenNodeIndex index) noexcept;
 			SLKC_API peff::Result<GreenNode *, PinFailReason> pin_green_node(GreenNodeIndex index) noexcept;
 			SLKC_API void unpin_green_node(GreenNodeIndex index) noexcept;
 			///

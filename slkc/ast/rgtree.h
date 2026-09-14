@@ -374,7 +374,7 @@ namespace slkc {
 			}
 			SLAKE_FORCEINLINE GreenNodePin(ThisType &&rhs) noexcept : _global(rhs._global), _green_node_index(rhs._green_node_index), _ptr(rhs._ptr) {
 				rhs._global = nullptr;
-				rhs._green_node_index = INVALID_AST_NODE_INDEX;
+				rhs._green_node_index = INVALID_GREEN_NODE_INDEX;
 				rhs._ptr = nullptr;
 			}
 
@@ -390,7 +390,7 @@ namespace slkc {
 				_green_node_index = rhs._green_node_index;
 				_ptr = rhs._ptr;
 				rhs._global = nullptr;
-				rhs._green_node_index = INVALID_AST_NODE_INDEX;
+				rhs._green_node_index = INVALID_GREEN_NODE_INDEX;
 				rhs._ptr = nullptr;
 
 				return *this;
@@ -469,11 +469,11 @@ namespace slkc {
 
 		public:
 			SLAKE_FORCEINLINE void reset() noexcept {
-				if (_node_index != INVALID_AST_NODE_INDEX)
+				if (_node_index != INVALID_GREEN_NODE_INDEX)
 					_global->unref_green_node(_node_index);
 			}
 
-			SLAKE_FORCEINLINE GreenNodePtr() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX) {}
+			SLAKE_FORCEINLINE GreenNodePtr() : _global(nullptr), _node_index(INVALID_GREEN_NODE_INDEX) {}
 			SLAKE_FORCEINLINE GreenNodePtr(const GreenNodePin &pin) : _global(pin.get_global()), _node_index(pin.get_index()) {
 				_global->ref_green_node(_node_index);
 			}
@@ -488,7 +488,7 @@ namespace slkc {
 				_global->ref_green_node(_node_index);
 			}
 			SLAKE_FORCEINLINE GreenNodePtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
-				rhs._node_index = INVALID_AST_NODE_INDEX;
+				rhs._node_index = INVALID_GREEN_NODE_INDEX;
 			}
 
 			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
@@ -502,7 +502,7 @@ namespace slkc {
 				_global = rhs._global;
 				_node_index = rhs._node_index;
 				rhs._global = nullptr;
-				rhs._node_index = INVALID_AST_NODE_INDEX;
+				rhs._node_index = INVALID_GREEN_NODE_INDEX;
 
 				return *this;
 			}
@@ -571,7 +571,115 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE operator bool() const noexcept {
-				return _node_index != INVALID_AST_NODE_INDEX;
+				return _node_index != INVALID_GREEN_NODE_INDEX;
+			}
+		};
+
+		template <typename T>
+		class GreenNodeWeakPtr final {
+		private:
+			using ThisType = GreenNodeWeakPtr<T>;
+			GreenNodeIndex _node_index;
+			Global *_global;
+
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, GreenNodeIndex node_index) {
+				_global = global;
+				_node_index = node_index;
+				global->ref_green_node_weak(node_index);
+			}
+
+		public:
+			SLAKE_FORCEINLINE void reset() noexcept {
+				if (_node_index != INVALID_GREEN_NODE_INDEX)
+					_global->unref_green_node_weak(_node_index);
+			}
+
+			SLAKE_FORCEINLINE GreenNodeWeakPtr() : _global(nullptr), _node_index(INVALID_GREEN_NODE_INDEX) {}
+			SLAKE_FORCEINLINE GreenNodeWeakPtr(const GreenNodeWeakPtr<T> &ptr) : _global(ptr.get_global()), _node_index(ptr.get_index()) {
+				if (_global)
+					assert(_node_index != INVALID_GREEN_NODE_INDEX);
+				_global->ref_green_node_weak(_node_index);
+			}
+			SLAKE_FORCEINLINE explicit GreenNodeWeakPtr(Global *global, GreenNodeIndex node_index) : _global(global), _node_index(node_index) {
+				if (_global)
+					assert(_node_index != INVALID_GREEN_NODE_INDEX);
+				global->ref_green_node_weak(node_index);
+			}
+			SLAKE_FORCEINLINE ~GreenNodeWeakPtr() {
+				reset();
+			}
+
+			SLAKE_FORCEINLINE GreenNodeWeakPtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				rhs._node_index = INVALID_GREEN_NODE_INDEX;
+			}
+
+			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
+				reset();
+				_set_and_inc_ref(rhs._global, rhs._node_index);
+
+				return *this;
+			}
+			SLAKE_FORCEINLINE ThisType &operator=(ThisType &&rhs) noexcept {
+				reset();
+				_global = rhs._global;
+				_node_index = rhs._node_index;
+				rhs._global = nullptr;
+				rhs._node_index = INVALID_GREEN_NODE_INDEX;
+
+				return *this;
+			}
+
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
+				return _global;
+			}
+
+			SLAKE_FORCEINLINE GreenNodeIndex get_index() const noexcept {
+				return _node_index;
+			}
+
+			///
+			/// @brief Pin the pointer.
+			///
+			/// @return A nonnull pointer to the pinned object if success, or a null pointer indicating that the pinning fails.
+			///
+			SLAKE_FORCEINLINE GreenNodeWeakPtr<T> reclaim() const noexcept {
+				if (_global->try_ref_green_node(_node_index))
+					return GreenNodeWeakPtr<T>(_global, _node_index);
+				return {};
+			}
+
+			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+
+				if (_node_index > rhs._node_index)
+					return 1;
+				if (_node_index < rhs._node_index)
+					return -1;
+				return 0;
+			}
+
+			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index < rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator>(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index > rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator==(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index == rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator!=(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index != rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE operator bool() const noexcept {
+				return reclaim();
 			}
 		};
 
@@ -656,7 +764,7 @@ namespace slkc {
 				auto result = global->map_green_node(node);
 				if (!result.has_value())
 					return GreenNodePin(PinFailReason::OutOfMemory);
-				if (result.value() == INVALID_AST_NODE_INDEX)
+				if (result.value() == INVALID_GREEN_NODE_INDEX)
 					return GreenNodePin(PinFailReason::OutOfNodeIndex);
 			}
 

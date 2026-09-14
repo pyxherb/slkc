@@ -10,12 +10,15 @@ namespace slkc {
 		class AstNodePin final {
 		private:
 			using ThisType = AstNodePin<T>;
-			Global *_global;
 			AstNodeIndex _node_index;
+			Global *_global;
 			union {
 				T *_ptr;
 				PinFailReason _fail_reason;
 			};
+
+			template<typename T>
+			friend class AstNodePtr;
 
 			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
@@ -134,8 +137,8 @@ namespace slkc {
 		class AstNodePtr final {
 		private:
 			using ThisType = AstNodePtr<T>;
-			Global *_global;
 			AstNodeIndex _node_index;
+			Global *_global;
 
 			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
 				_global = global;
@@ -251,6 +254,125 @@ namespace slkc {
 				static_assert(std::is_convertible_v<T *, T1 *>);
 
 				return AstNodePtr<T1>(_global, _node_index);
+			}
+		};
+
+		template <typename T>
+		class AstNodeWeakPtr final {
+		private:
+			using ThisType = AstNodeWeakPtr<T>;
+			AstNodeIndex _node_index;
+			Global *_global;
+
+			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
+				_global = global;
+				_node_index = node_index;
+				global->ref_ast_node_weak(node_index);
+			}
+
+		public:
+			SLAKE_FORCEINLINE void reset() noexcept {
+				if (_node_index != INVALID_AST_NODE_INDEX)
+					_global->unref_ast_node_weak(_node_index);
+			}
+
+			SLAKE_FORCEINLINE AstNodeWeakPtr() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX) {}
+			SLAKE_FORCEINLINE AstNodeWeakPtr(const AstNodePtr<T> &ptr) : _global(ptr.get_global()), _node_index(ptr.get_index()) {
+				if (_global)
+					assert(_node_index != INVALID_AST_NODE_INDEX);
+				_global->ref_ast_node_weak(_node_index);
+			}
+			SLAKE_FORCEINLINE explicit AstNodeWeakPtr(Global *global, AstNodeIndex node_index) : _global(global), _node_index(node_index) {
+				if (_global)
+					assert(_node_index != INVALID_AST_NODE_INDEX);
+				global->ref_ast_node_weak(node_index);
+			}
+			SLAKE_FORCEINLINE ~AstNodeWeakPtr() {
+				reset();
+			}
+
+			SLAKE_FORCEINLINE AstNodeWeakPtr(const ThisType &rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				if (_global)
+					_global->ref_ast_node_weak(_node_index);
+			}
+			SLAKE_FORCEINLINE AstNodeWeakPtr(ThisType &&rhs) noexcept : _global(rhs._global), _node_index(rhs._node_index) {
+				rhs._node_index = INVALID_AST_NODE_INDEX;
+			}
+
+			SLAKE_FORCEINLINE ThisType &operator=(const ThisType &rhs) noexcept {
+				reset();
+				_set_and_inc_ref(rhs._global, rhs._node_index);
+
+				return *this;
+			}
+			SLAKE_FORCEINLINE ThisType &operator=(ThisType &&rhs) noexcept {
+				reset();
+				_global = rhs._global;
+				_node_index = rhs._node_index;
+				rhs._global = nullptr;
+				rhs._node_index = INVALID_AST_NODE_INDEX;
+
+				return *this;
+			}
+
+			SLAKE_FORCEINLINE Global *get_global() const noexcept {
+				return _global;
+			}
+
+			SLAKE_FORCEINLINE AstNodeIndex get_index() const noexcept {
+				return _node_index;
+			}
+
+			///
+			/// @brief Pin the pointer.
+			///
+			/// @return A nonnull pointer to the pinned object if success, or a null pointer indicating that the pinning fails.
+			///
+			SLAKE_FORCEINLINE AstNodePtr<T> reclaim() const noexcept {
+				if (_global->try_ref_ast_node(_node_index))
+					return AstNodePtr<T>(_global, _node_index);
+				return {};
+			}
+
+			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+
+				if (_node_index > rhs._node_index)
+					return 1;
+				if (_node_index < rhs._node_index)
+					return -1;
+				return 0;
+			}
+
+			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index < rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator>(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index > rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator==(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index == rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE bool operator!=(const ThisType &rhs) const noexcept {
+				assert(_global == rhs._global);
+				return _node_index != rhs._node_index;
+			}
+
+			SLAKE_FORCEINLINE operator bool() const noexcept {
+				return reclaim();
+			}
+
+			template <typename T1>
+			SLAKE_FORCEINLINE AstNodeWeakPtr<T1> cast_to() const noexcept {
+				static_assert(std::is_convertible_v<T *, T1 *>);
+
+				return AstNodeWeakPtr<T1>(_global, _node_index);
 			}
 		};
 
