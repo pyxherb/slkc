@@ -11,7 +11,6 @@ The compiler has 3 main modules:
 * `ast/` - The AST framework
   * `ast/nodedefs/` - AST node definitions
   * `ast/parser/` - Implementation codes of parser that generates red-green tree nodes from source codes
-  * `ast/rgtree` - Red and green tree definitions
 * `comp/` - The compilation framework
   * `comp/rg2ast` - Module that lowers red-green trees into ASTs.
 
