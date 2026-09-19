@@ -145,14 +145,14 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "$";
 		case TokenId::AbstractKeyword:
 			return "abstract";
-		case TokenId::AllocaKeyword:
-			return "alloca";
 		case TokenId::AsKeyword:
 			return "as";
 		case TokenId::AttributeKeyword:
 			return "attribute";
 		case TokenId::AsyncKeyword:
 			return "async";
+		case TokenId::AutoKeyword:
+			return "auto";
 		case TokenId::AwaitKeyword:
 			return "await";
 		case TokenId::BaseKeyword:
@@ -199,6 +199,8 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "import";
 		case TokenId::InKeyword:
 			return "in";
+		case TokenId::IsKeyword:
+			return "is";
 		case TokenId::InterfaceKeyword:
 			return "interface";
 		case TokenId::LetKeyword:
@@ -241,6 +243,8 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "restrict";
 		case TokenId::ReturnKeyword:
 			return "return";
+		case TokenId::StackallocKeyword:
+			return "stackalloc";
 		case TokenId::StaticKeyword:
 			return "static";
 		case TokenId::StructKeyword:
@@ -257,6 +261,8 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "typeof";
 		case TokenId::TraitKeyword:
 			return "trait";
+		case TokenId::TransientKeyword:
+			return "transient";
 		case TokenId::TrueKeyword:
 			return "true";
 		case TokenId::TryKeyword:
@@ -275,6 +281,8 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "virtual";
 		case TokenId::WhileKeyword:
 			return "while";
+		case TokenId::WhereKeyword:
+			return "where";
 		case TokenId::WithKeyword:
 			return "with";
 		case TokenId::YieldKeyword:
@@ -307,8 +315,6 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "string";
 		case TokenId::BoolTypeName:
 			return "bool";
-		case TokenId::AutoTypeName:
-			return "auto";
 		case TokenId::VoidTypeName:
 			return "void";
 		case TokenId::ObjectTypeName:

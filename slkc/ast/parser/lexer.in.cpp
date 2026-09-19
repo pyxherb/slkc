@@ -82,10 +82,11 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"@"		{ token->token_id = TokenId::At; break; }
 
 				<InitialCondition>"abstract"	{ token->token_id = TokenId::AbstractKeyword; break; }
-				<InitialCondition>"alloca"		{ token->token_id = TokenId::AllocaKeyword; break; }
+				<InitialCondition>"alloca"		{ token->token_id = TokenId::StackallocKeyword; break; }
 				<InitialCondition>"as"			{ token->token_id = TokenId::AsKeyword; break; }
 				<InitialCondition>"attribute"	{ token->token_id = TokenId::AttributeKeyword; break; }
 				<InitialCondition>"async"		{ token->token_id = TokenId::AsyncKeyword; break; }
+				<InitialCondition>"auto"		{ token->token_id = TokenId::AutoKeyword; break; }
 				<InitialCondition>"await"		{ token->token_id = TokenId::AwaitKeyword; break; }
 				<InitialCondition>"base"		{ token->token_id = TokenId::BaseKeyword; break; }
 				<InitialCondition>"break"		{ token->token_id = TokenId::BreakKeyword; break; }
@@ -109,6 +110,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"import"		{ token->token_id = TokenId::ImportKeyword; break; }
 				<InitialCondition>"interface"	{ token->token_id = TokenId::InterfaceKeyword; break; }
 				<InitialCondition>"in"			{ token->token_id = TokenId::InKeyword; break; }
+				<InitialCondition>"is"			{ token->token_id = TokenId::IsKeyword; break; }
 				<InitialCondition>"let"			{ token->token_id = TokenId::LetKeyword; break; }
 				<InitialCondition>"local"		{ token->token_id = TokenId::LocalKeyword; break; }
 				<InitialCondition>"macro"		{ token->token_id = TokenId::MacroKeyword; break; }
@@ -137,6 +139,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"throw"		{ token->token_id = TokenId::ThrowKeyword; break; }
 				<InitialCondition>"typeof"		{ token->token_id = TokenId::TypeofKeyword; break; }
 				<InitialCondition>"trait"		{ token->token_id = TokenId::TraitKeyword; break; }
+				<InitialCondition>"transient"	{ token->token_id = TokenId::TransientKeyword; break; }
 				<InitialCondition>"true"		{ token->token_id = TokenId::TrueKeyword; break; }
 				<InitialCondition>"try"			{ token->token_id = TokenId::TryKeyword; break; }
 				<InitialCondition>"typename"	{ token->token_id = TokenId::TypenameKeyword; break; }
@@ -146,6 +149,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"var"			{ token->token_id = TokenId::VarKeyword; break; }
 				<InitialCondition>"virtual"		{ token->token_id = TokenId::VirtualKeyword; break; }
 				<InitialCondition>"with"		{ token->token_id = TokenId::WithKeyword; break; }
+				<InitialCondition>"where"		{ token->token_id = TokenId::WhereKeyword; break; }
 				<InitialCondition>"while"		{ token->token_id = TokenId::WhileKeyword; break; }
 				<InitialCondition>"yield"		{ token->token_id = TokenId::YieldKeyword; break; }
 
@@ -163,7 +167,6 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"f64"			{ token->token_id = TokenId::F64TypeName; break; }
 				<InitialCondition>"string"		{ token->token_id = TokenId::StringTypeName; break; }
 				<InitialCondition>"bool"		{ token->token_id = TokenId::BoolTypeName; break; }
-				<InitialCondition>"auto"		{ token->token_id = TokenId::AutoTypeName; break; }
 				<InitialCondition>"void"		{ token->token_id = TokenId::VoidTypeName; break; }
 				<InitialCondition>"object"		{ token->token_id = TokenId::ObjectTypeName; break; }
 				<InitialCondition>"any"			{ token->token_id = TokenId::AnyTypeName; break; }

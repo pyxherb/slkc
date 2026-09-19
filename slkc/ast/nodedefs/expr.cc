@@ -1311,9 +1311,9 @@ SLKC_API NewExprNode::~NewExprNode() {
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(NewExprNode);
 
-SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(AllocaExprNode);
+SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(StackallocExprNode);
 
-SLKC_API DumpResult AllocaExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
+SLKC_API DumpResult StackallocExprNode::do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept {
 	SLKC_RETURN_IF_DUMP_FAILED(ExprNode::do_dump(dump_context, target_object, deep_dump));
 
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
@@ -1382,13 +1382,13 @@ SLKC_API DumpResult AllocaExprNode::do_dump(AstNodeDumpContext &dump_context, wa
 	return DumpResult::Ok;
 }
 
-SLKC_API AllocaExprNode::AllocaExprNode(Global *global)
+SLKC_API StackallocExprNode::StackallocExprNode(Global *global)
 	: ExprNode(ExprKind::Null, global),
 	  args(global->get_allocator()),
 	  sti_arg_separators(global->get_allocator()) {
 }
 
-SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
+SLKC_API StackallocExprNode::StackallocExprNode(const StackallocExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out)
 	: ExprNode(other, context, node_index),
 	  args(context.get_global()->get_allocator()),
 	  sti_alloca_keyword(other.sti_alloca_keyword),
@@ -1426,10 +1426,10 @@ SLKC_API AllocaExprNode::AllocaExprNode(const AllocaExprNode &other, AstNodeDupl
 	}
 }
 
-SLKC_API AllocaExprNode::~AllocaExprNode() {
+SLKC_API StackallocExprNode::~StackallocExprNode() {
 }
 
-SLKC_SIMPLE_AST_DEALLOC_FN_DEF(AllocaExprNode);
+SLKC_SIMPLE_AST_DEALLOC_FN_DEF(StackallocExprNode);
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF_WITH_RESULT(CastExprNode);
 

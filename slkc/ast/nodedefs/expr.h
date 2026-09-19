@@ -35,14 +35,14 @@ namespace slkc {
 
 			New,  // New
 
-			Alloca,	 // Alloca
+			Stackalloc,	 // Stack allocation
 
 			Cast,  // Cast
 
 			Match,	// Match expression
 
-			Return,	 // Return
-			Yield,	 // Yield
+			Return,	   // Return
+			Yield,	   // Yield
 			Break,	   // Break
 			Continue,  // Continue
 
@@ -509,7 +509,7 @@ namespace slkc {
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
 
-		class AllocaExprNode final : public ExprNode {
+		class StackallocExprNode final : public ExprNode {
 		protected:
 			SLKC_SIMPLE_AST_DUPLICATE_FN_DECL();
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
@@ -523,9 +523,9 @@ namespace slkc {
 			TokenIndex sti_right_parenthesis = INVALID_TOKEN_INDEX;
 			peff::DynArray<TokenIndex> sti_arg_separators;
 
-			SLKC_API AllocaExprNode(Global *global);
-			SLKC_API AllocaExprNode(const AllocaExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
-			SLKC_API virtual ~AllocaExprNode();
+			SLKC_API StackallocExprNode(Global *global);
+			SLKC_API StackallocExprNode(const StackallocExprNode &other, AstNodeDuplicationContext &context, AstNodeIndex node_index, peff::Option<DuplicationError> &error_out);
+			SLKC_API virtual ~StackallocExprNode();
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();
 		};
