@@ -53,7 +53,7 @@ SLKC_API DumpResult slkc::ast::dump_id_ref_entry(wandjson::ObjectValue *target_o
 		for (auto &i : id_ref_entry.generic_args) {
 			v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()));
 
-			SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, i, deep_dump));
+			SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), i.get_index(), deep_dump));
 
 			if (!av->push_back(v.get()))
 				return DumpResult::OutOfMemory;

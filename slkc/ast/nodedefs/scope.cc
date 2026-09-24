@@ -162,8 +162,8 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 
 		const size_t limit = members.size();
 		for (size_t i = 0; i < limit; ++i) {
-			auto result = duplication_context.push_task(members[i]);
-			if (!result.has_error())
+			auto result = duplication_context.push_task(members[i].get_index());
+			if (!result.is_error())
 				return std::move(result).error();
 			new_scope->members[i] = AstNodePtr<MemberNode>(duplication_context.get_global(), std::move(result).value());
 		}
@@ -182,19 +182,19 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 
 		const size_t limit = anonymous_imports.size();
 		for (size_t i = 0; i < limit; ++i) {
-			auto result = duplication_context.push_task(anonymous_imports[i]);
-			if (!result.has_error())
+			auto result = duplication_context.push_task(anonymous_imports[i].get_index());
+			if (!result.is_error())
 				return std::move(result).error();
 			new_scope->anonymous_imports[i] = AstNodePtr<ImportNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 
 	// Duplicate inherited type.
-	if (inherited_type.has_value()) {
-		auto r = duplication_context.push_task(*inherited_type);
-		if (r.has_error())
+	if (inherited_type) {
+		auto r = duplication_context.push_task(inherited_type.get_index());
+		if (r.is_error())
 			return std::move(r).error();
-		new_scope->inherited_type = std::move(r).value();
+		new_scope->inherited_type= AstNodePtr<TypeNameNode>(duplication_context.get_global(), std::move(r).value());
 	}
 
 	// Duplicate implemented types.
@@ -206,19 +206,19 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 		for (size_t i = 0; i < limit; ++i) {
 			new_scope->implemented_types[i] = implemented_types[i];
 
-			auto result = duplication_context.push_task(implemented_types[i].type);
-			if (!result.has_error())
+			auto result = duplication_context.push_task(implemented_types[i].type.get_index());
+			if (!result.is_error())
 				return std::move(result).error();
-			new_scope->implemented_types[i].type = std::move(result).value();
+			new_scope->implemented_types[i].type = AstNodePtr<TypeNameNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 
 	// Duplicate underlying type.
-	if (underlying_type.has_value()) {
-		auto r = duplication_context.push_task(*underlying_type);
-		if (r.has_error())
+	if (underlying_type) {
+		auto r = duplication_context.push_task(underlying_type.get_index());
+		if (r.is_error())
 			return std::move(r).error();
-		new_scope->underlying_type = std::move(r).value();
+		new_scope->underlying_type = AstNodePtr<TypeNameNode>(duplication_context.get_global(), std::move(r).value());
 	}
 
 	// Duplicate generic parameters.
@@ -228,8 +228,8 @@ SLKC_API peff::Result<Scope *, DuplicationError> Scope::deep_duplicate(AstNodeIn
 
 		const size_t limit = generic_params.size();
 		for (size_t i = 0; i < limit; ++i) {
-			auto result = duplication_context.push_task(generic_params[i]);
-			if (!result.has_error())
+			auto result = duplication_context.push_task(generic_params[i].get_index());
+			if (!result.is_error())
 				return std::move(result).error();
 			new_scope->generic_params[i] = AstNodePtr<GenericParamNode>(duplication_context.get_global(), std::move(result).value());
 		}
@@ -300,14 +300,14 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		}
 	}
 
-	if (scope->inherited_type.has_value()) {
+	if (scope->inherited_type) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("inherited_type", v.get()))
 			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), scope->inherited_type.get_index(), deep_dump));
 		discarded_v = v.release();
-		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->inherited_type.value(), deep_dump));
 	}
 
 	if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
@@ -320,20 +320,20 @@ SLKC_API DumpResult slkc::ast::dump_scope(wandjson::ObjectValue *target_object, 
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
-		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->implemented_types[i].type, deep_dump));
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(ov, scope->implemented_types[i].type.get_index(), deep_dump));
 		if (!av->push_back(ov))
 			return DumpResult::OutOfMemory;
 		discarded_v = v.release();
 	}
 
-	if (scope->underlying_type.has_value()) {
+	if (scope->underlying_type) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		wandjson::ObjectValue *ov = static_cast<wandjson::ObjectValue *>(v.get());
 		if (!target_object->insert("underlying_type", v.get()))
 			return DumpResult::OutOfMemory;
 		discarded_v = v.release();
-		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(ov, dump_context, scope->underlying_type.value(), deep_dump));
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(ov, scope->underlying_type.get_index(), deep_dump));
 	}
 
 	{

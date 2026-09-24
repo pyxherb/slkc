@@ -206,7 +206,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 					if (!syntax_errors.push_back(
 							SyntaxError(
 								TokenRange{
-									module_node,
+									module_node.get_index(),
 									parse_context.idx_current_token },
 								ExpectingSingleTokenErrorExData{ TokenId::Comma })))
 						co_return gen_oom_syntax_error();
@@ -269,7 +269,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 		default:
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(lhs));
 			co_return SyntaxError(
-				TokenRange{ module_node, token->index },
+				TokenRange{ module_node.get_index(), token->index },
 				SyntaxErrorKind::ExpectingExpr);
 	}
 

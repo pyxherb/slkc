@@ -122,13 +122,7 @@ struct MatchUserData {
 	peff::DynArray<peff::String> *include_dirs;
 };
 
-bool is_bcmode = false;
-
 const ArglessOptionMap g_argless_options = {
-	{ "-bc", [](const OptionMatchContext &match_context, const char *option) -> int {
-		 is_bcmode = true;
-		 return 0;
-	 } }
 };
 
 const char *g_mod_file_name = nullptr, *g_output_file_name = nullptr;
@@ -800,7 +794,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	{
-		slkc::ast::Global global(peff::default_allocator());
+		slkc::Global global(peff::default_allocator());
 
 		{
 			/*peff::SharedPtr<slkc::FileSystemExternalModuleProvider> fs_external_mod_provider;
@@ -934,7 +928,7 @@ int main(int argc, char *argv[]) {
 
 					/* auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree->get_node_index());
 
-					if (result.has_error())
+					if (result.is_error())
 						std::terminate();
 
 					std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
@@ -1091,7 +1085,7 @@ int main(int argc, char *argv[]) {
 
 						auto result = global.deep_dump_green_node(peff::default_allocator(), root_module_tree2->get_node_index());
 
-						if (result.has_error())
+						if (result.is_error())
 							std::terminate();
 
 						std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
@@ -1109,14 +1103,14 @@ int main(int argc, char *argv[]) {
 						std::terminate();
 
 					slkc::ast::AstNodePin<slkc::ast::AstNode> root_node;
-					if (auto result = slkc::comp::lower_rg_node_to_ast_node(peff::default_allocator(), &compile_env, red_node); result.has_value())
+					if (auto result = slkc::comp::lower_rg_node_to_ast_node(peff::default_allocator(), &compile_env, red_node); result.is_ok())
 						root_node = std::move(result).value();
 					else
 						std::terminate();
 
 					JsonANSIDumpWriter writer;
 
-					if (auto result = global.deep_dump_ast_node(peff::default_allocator(), root_node.get_index()); result.has_value()) {
+					if (auto result = global.deep_dump_ast_node(peff::default_allocator(), root_node.get_index()); result.is_ok()) {
 						peff::UniquePtr<wandjson::Value, wandjson::ValueDeleter> v(std::move(result).value());
 						if (!wandjson::dump_value(peff::default_allocator(), &writer, v.get()))
 							std::terminate();

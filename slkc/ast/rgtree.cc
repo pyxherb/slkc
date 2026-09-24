@@ -16,11 +16,11 @@ SLKC_API GreenNode::~GreenNode() {
 
 SLKC_API GreenNodeOperationResult ast::pin_fail_reason_to_green_node_operation_result(PinFailReason reason) {
 	switch (reason) {
-		case slkc::ast::PinFailReason::IOError:
+		case slkc::PinFailReason::IOError:
 			return GreenNodeOperationResult::PinIOError;
-		case slkc::ast::PinFailReason::OutOfMemory:
+		case slkc::PinFailReason::OutOfMemory:
 			return GreenNodeOperationResult::OutOfMemory;
-		case slkc::ast::PinFailReason::OutOfNodeIndex:
+		case slkc::PinFailReason::OutOfNodeIndex:
 			return GreenNodeOperationResult::OutOfNodeIndex;
 		default:
 			std::terminate();

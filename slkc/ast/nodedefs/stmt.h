@@ -24,7 +24,7 @@ namespace slkc {
 			/// @brief The binding name.
 			GlobalSharedStringRef name;
 			/// @brief Type of the binding.
-			peff::Option<TypeName> type;
+			AstNodePtr<TypeNameNode> type;
 			/// @brief Initial value of the binding.
 			AstNodePtr<ExprNode> initial_value;
 

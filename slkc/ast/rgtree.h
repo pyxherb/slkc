@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_RGTREE_H_
 #define _SLKC_AST_RGTREE_H_
 
-#include "global.h"
+#include "../global.h"
 #include "parser/lexer.h"
 #include <peff/advutils/shared_ptr.h>
 #include <peff/containers/btree_map.h>
@@ -442,7 +442,7 @@ namespace slkc {
 				return _green_node_index != rhs._green_node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return _global;
 			}
 
@@ -522,7 +522,7 @@ namespace slkc {
 			///
 			SLAKE_FORCEINLINE GreenNodePin pin() const noexcept {
 				auto result = _global->pin_green_node(_node_index);
-				if (result.has_error())
+				if (result.is_error())
 					return GreenNodePin(std::move(result).error());
 				return GreenNodePin(_global, _node_index, std::move(result).value());
 			}
@@ -570,7 +570,7 @@ namespace slkc {
 				return _node_index != rhs._node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return _node_index != INVALID_GREEN_NODE_INDEX;
 			}
 		};
@@ -678,7 +678,7 @@ namespace slkc {
 				return _node_index != rhs._node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return reclaim();
 			}
 		};
@@ -720,7 +720,7 @@ namespace slkc {
 			Global *_global;
 			GreenNodeIndex _node_index;
 
-			friend class Global;
+			friend class slkc::Global;
 
 		public:
 			GreenNodeChildList children;
@@ -770,7 +770,7 @@ namespace slkc {
 
 			{
 				auto result = global->pin_green_node(node->get_node_index());
-				assert(!result.has_error());
+				assert(!result.is_error());
 			}
 
 			sg.release();
@@ -792,7 +792,7 @@ namespace slkc {
 
 			wandjson::ObjectValue *root_value;
 
-			friend class Global;
+			friend class slkc::Global;
 
 		public:
 			SLKC_API GreenNodeDumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);

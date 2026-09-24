@@ -46,19 +46,21 @@ SLKC_API DumpResult FnOverloadingNode::do_dump(AstNodeDumpContext &dump_context,
 	}
 
 	// Dump the return type.
-	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-	if (!target_object->insert("return_type", v.get()))
-		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, return_type, deep_dump));
-	discarded_v = v.release();
+	if (return_type) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		if (!target_object->insert("return_type", v.get()))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), return_type.get_index(), deep_dump));
+		discarded_v = v.release();
+	}
 
-	if (overriden_type.has_value()) {
+	if (overriden_type) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
 		if (!target_object->insert("overriden_type", v.get()))
 			return DumpResult::OutOfMemory;
-		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, overriden_type.value(), deep_dump));
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), overriden_type.get_index(), deep_dump));
 		discarded_v = v.release();
 	}
 
@@ -112,7 +114,7 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 
 	for (size_t i = 0; i < other.params.size(); ++i) {
 		auto result = other.params[i].duplicate(context);
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -120,12 +122,12 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 	}
 
 	{
-		auto element_type_result = context.push_task(other.return_type);
-		if (!element_type_result.has_error()) {
+		auto element_type_result = context.push_task(other.return_type.get_index());
+		if (!element_type_result.is_error()) {
 			error_out = std::move(element_type_result).error();
 			return;
 		}
-		this->return_type = std::move(element_type_result).value();
+		this->return_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(element_type_result).value());
 	}
 
 	if (!idx_param_comma_tokens.build(other.idx_param_comma_tokens)) {
@@ -139,12 +141,12 @@ SLKC_API FnOverloadingNode::FnOverloadingNode(
 	}
 
 	if (other.overriden_type) {
-		auto overriden_type_result = context.push_task(*other.overriden_type);
-		if (!overriden_type_result.has_error()) {
+		auto overriden_type_result = context.push_task(other.overriden_type.get_index());
+		if (!overriden_type_result.is_error()) {
 			error_out = std::move(overriden_type_result).error();
 			return;
 		}
-		overriden_type = std::move(overriden_type_result).value();
+		overriden_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(overriden_type_result).value());
 	}
 }
 
@@ -203,8 +205,8 @@ SLKC_API FnNode::FnNode(
 	}
 
 	for (size_t i = 0; i < overloadings.size(); ++i) {
-		auto result = context.push_task(other.overloadings[i]);
-		if (result.has_error()) {
+		auto result = context.push_task(other.overloadings[i].get_index());
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}

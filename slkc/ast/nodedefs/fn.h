@@ -30,8 +30,8 @@ namespace slkc {
 
 		public:
 			peff::DynArray<BindingEntry> params;
-			TypeName return_type;
-			peff::Option<TypeName> overriden_type;
+			AstNodePtr<TypeNameNode> return_type;
+			AstNodePtr<TypeNameNode> overriden_type;
 			AstNodePtr<BlockStmtNode> body;
 
 			FnOverloadingFlags overloading_flags = 0;

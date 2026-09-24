@@ -208,7 +208,7 @@ SLKC_API ParseCoroutine Parser::parse_stmt(peff::Alloc *allocator, GreenNodePin 
 					if (!syntax_errors.push_back(
 							SyntaxError(
 								TokenRange{
-									module_node,
+									module_node.get_index(),
 									parse_context.idx_current_token },
 								SyntaxErrorKind::UnexpectedToken)))
 						co_return gen_oom_syntax_error();

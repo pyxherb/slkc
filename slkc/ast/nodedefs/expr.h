@@ -494,7 +494,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_type;
+			AstNodePtr<TypeNameNode> target_type;
 			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_new_keyword = INVALID_TOKEN_INDEX;
@@ -515,7 +515,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_type;
+			AstNodePtr<TypeNameNode> target_type;
 			peff::DynArray<AstNodePtr<ExprNode>> args;
 
 			TokenIndex sti_alloca_keyword = INVALID_TOKEN_INDEX;
@@ -536,7 +536,7 @@ namespace slkc {
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
-			TypeName target_type;
+			AstNodePtr<TypeNameNode> target_type;
 			AstNodePtr<ExprNode> operand;
 			bool is_nullable = false;
 
@@ -572,7 +572,7 @@ namespace slkc {
 
 		public:
 			AstNodePtr<ExprNode> condition;
-			TypeName return_type;
+			AstNodePtr<TypeNameNode> return_type;
 			peff::DynArray<MatchExprBranch> branches;
 
 			TokenIndex sti_match_keyword = INVALID_TOKEN_INDEX;

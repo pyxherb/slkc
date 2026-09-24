@@ -120,14 +120,14 @@ namespace slkc {
 		struct CompilationEnv {
 		private:
 			/// @brief Associated global state.
-			ast::Global *_global;
+			Global *_global;
 			/// @brief Module to be compiled.
 			ast::AstNodePin<ast::ModuleNode> _target_module;
 			/// @brief Generated compilation errors.
 			peff::DynArray<CompilationError> _compilation_errors;
 
 		public:
-			SLKC_API CompilationEnv(ast::Global *global) noexcept;
+			SLKC_API CompilationEnv(Global *global) noexcept;
 
 			PEFF_FORCEINLINE peff::Option<CompilationError> push_error(CompilationError &&error) noexcept {
 				if (!_compilation_errors.push_back(std::move(error)))
@@ -135,7 +135,7 @@ namespace slkc {
 				return peff::NULLOPT;
 			}
 
-			PEFF_FORCEINLINE ast::Global *get_global() const noexcept {
+			PEFF_FORCEINLINE Global *get_global() const noexcept {
 				return _global;
 			}
 

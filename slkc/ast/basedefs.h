@@ -35,6 +35,12 @@ namespace slkc {
 			PinningFailed
 		};
 
+		enum class DuplicationError : uint8_t {
+			NoSlot,
+			OutOfMemory,
+			PinningFailed
+		};
+
 		struct AstNodeDumpContext;
 
 		SLKC_API DumpResult dump_token_range(wandjson::ObjectValue *target_object, AstNodeDumpContext &dump_context, const TokenRange &token_range);
@@ -44,7 +50,7 @@ namespace slkc {
 
 #define SLKC_RETURN_IF_DUMP_FAILED(e)                           \
 	do {                                                        \
-		if (slkc::ast::DumpResult _ = (e); _ != DumpResult::Ok) \
+		if (slkc::ast::DumpResult _ = (e); _ != slkc::ast::DumpResult::Ok) \
 			return _;                                           \
 	} while (0)
 

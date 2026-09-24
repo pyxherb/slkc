@@ -14,7 +14,7 @@ namespace slkc {
 		};
 
 		struct GenericConstraint {
-			peff::Option<TypeName> inherited_type;
+			AstNodePtr<TypeNameNode> inherited_type;
 			peff::DynArray<ImplementItem> implemented_types;
 
 			GenericVariance generic_variance;

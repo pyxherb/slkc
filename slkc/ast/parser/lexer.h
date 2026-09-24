@@ -1,13 +1,14 @@
 #ifndef _SLKC_AST_LEXER_H_
 #define _SLKC_AST_LEXER_H_
 
-#include <slkc/ast/global.h>
+#include <slkc/global.h>
 #include <slake/runtime.h>
 #include <peff/base/deallocable.h>
 #include <peff/containers/dynarray.h>
 #include <peff/containers/string.h>
 
 namespace slkc {
+	class Global;
 	namespace ast {
 		struct SourcePosition {
 			size_t line, column;
@@ -268,8 +269,6 @@ namespace slkc {
 
 			SLKC_API virtual void dealloc() override;
 		};
-
-		class Global;
 
 		class Token {
 		private:

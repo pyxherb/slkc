@@ -10,7 +10,7 @@ namespace slkc {
 		class GenericParamNode;
 
 		struct ImplementItem {
-			TypeName type;
+			AstNodePtr<TypeNameNode> type;
 			bool is_trait = false;
 
 			TokenIndex sti_trait_keyword = INVALID_TOKEN_INDEX;
@@ -34,10 +34,10 @@ namespace slkc {
 
 			peff::DynArray<AstNodePtr<ImportNode>> anonymous_imports;
 
-			peff::Option<TypeName> inherited_type;
+			AstNodePtr<TypeNameNode> inherited_type;
 			peff::DynArray<ImplementItem> implemented_types;
 
-			peff::Option<TypeName> underlying_type;
+			AstNodePtr<TypeNameNode> underlying_type;
 
 			peff::DynArray<AstNodePtr<GenericParamNode>> generic_params;
 			peff::HashMap<GlobalSharedStringRef, size_t, GlobalSharedStringRefEq> generic_params_index;
@@ -72,7 +72,7 @@ namespace slkc {
 			/// @return Whether the member is removed successfully.
 			SLKC_API void remove_member(const std::string_view &name) noexcept;
 			SLAKE_FORCEINLINE AstNodePtr<MemberNode> get_member(const std::string_view &name) const noexcept {
-				return AstNodePtr<MemberNode>(_global, members.at(members_index.at_alt<std::string_view>(name)));
+				return AstNodePtr<MemberNode>(_global, members.at(members_index.at_alt<std::string_view>(name)).get_index());
 			}
 			SLAKE_FORCEINLINE AstNodePtr<MemberNode> get_member(size_t index) const noexcept {
 				return members.at(index);

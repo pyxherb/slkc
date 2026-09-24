@@ -14,11 +14,11 @@ SLKC_API GenericConstraint::~GenericConstraint() {
 SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::deep_duplicate(AstNodeDuplicationContext &duplication_context) const noexcept {
 	GenericConstraint new_constraint(duplication_context.get_global());
 
-	if (inherited_type.has_value()) {
-		auto result = duplication_context.push_task(*inherited_type);
-		if (result.has_error())
+	if (inherited_type) {
+		auto result = duplication_context.push_task(inherited_type.get_index());
+		if (result.is_error())
 			return std::move(result).error();
-		new_constraint.inherited_type = std::move(result).value();
+		new_constraint.inherited_type = AstNodePtr<TypeNameNode>(duplication_context.get_global(), std::move(result).value());
 	}
 
 	{
@@ -29,10 +29,10 @@ SLKC_API peff::Result<GenericConstraint, DuplicationError> GenericConstraint::de
 		for (size_t i = 0; i < limit; ++i) {
 			new_constraint.implemented_types[i] = implemented_types[i];
 
-			auto result = duplication_context.push_task(implemented_types[i].type);
-			if (!result.has_error())
+			auto result = duplication_context.push_task(implemented_types[i].type.get_index());
+			if (!result.is_error())
 				return std::move(result).error();
-			new_constraint.implemented_types[i].type = std::move(result).value();
+			new_constraint.implemented_types[i].type = AstNodePtr<TypeNameNode>(duplication_context.get_global(), std::move(result).value());
 		}
 	}
 
@@ -86,7 +86,7 @@ SLKC_API GenericParamNode::GenericParamNode(
 
 	{
 		auto result = other.generic_constraint.deep_duplicate(context);
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -736,7 +736,7 @@ SLKC_API EnumItemNode::EnumItemNode(
 
 	{
 		auto result = context.push_task(other.specified_value.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1000,7 +1000,7 @@ SLKC_API VarNode::VarNode(
 
 	{
 		auto result = context.push_task(other.init_value.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}

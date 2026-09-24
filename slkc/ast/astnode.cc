@@ -78,24 +78,6 @@ SLKC_API peff::Result<AstNodeIndex, DuplicationError> AstNodeDuplicationContext:
 	return result.move();
 }
 
-SLKC_API peff::Result<TypeName, DuplicationError> AstNodeDuplicationContext::push_task(const TypeName &type_name) noexcept {
-	auto def = type_name.get_def();
-	if (!def)
-		return TypeName(type_name);
-
-	auto result_index = this->push_task(def.get_index());
-
-	if (result_index.has_error()) {
-		return std::move(result_index).error();
-	}
-
-	TypeName tn = type_name;
-
-	tn.set_def(AstNodePtr<TypeNameDefNode>(global, result_index.value()));
-
-	return tn;
-}
-
 SLKC_API AstNodeDumpContext::AstNodeDumpContext(
 	Global *global,
 	peff::Alloc *allocator,
@@ -109,6 +91,7 @@ SLKC_API AstNodeDumpContext::AstNodeDumpContext(
 
 SLKC_API DumpResult AstNodeDumpContext::push_task(wandjson::ObjectValue *dest, AstNodeIndex src, bool deep) noexcept {
 	assert(src != INVALID_AST_NODE_INDEX);
+	assert(dest);
 
 #ifndef _NDEBUG
 	assert(!dumped_nodes.contains(src));

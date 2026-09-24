@@ -85,7 +85,7 @@ SLKC_API UnaryExprNode::UnaryExprNode(const UnaryExprNode &other, AstNodeDuplica
 
 	{
 		auto result = context.push_task(other.operand.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -162,7 +162,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, AstNodeDupl
 
 	{
 		auto result = context.push_task(other.lhs.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -170,7 +170,7 @@ SLKC_API BinaryExprNode::BinaryExprNode(const BinaryExprNode &other, AstNodeDupl
 	}
 	{
 		auto result = context.push_task(other.rhs.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -239,7 +239,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, AstNodeD
 		return;
 	{
 		auto result = context.push_task(other.condition.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -247,7 +247,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, AstNodeD
 	}
 	{
 		auto result = context.push_task(other.true_branch.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -255,7 +255,7 @@ SLKC_API TernaryExprNode::TernaryExprNode(const TernaryExprNode &other, AstNodeD
 	}
 	{
 		auto result = context.push_task(other.false_branch.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -353,7 +353,7 @@ SLKC_API HeadedIdRefExprNode::HeadedIdRefExprNode(const HeadedIdRefExprNode &oth
 
 	{
 		auto result = context.push_task(other.head_expr.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -948,9 +948,9 @@ SLKC_API InitializerListExprNode::InitializerListExprNode(const InitializerListE
 	}
 
 	for (auto i = 0; i < elements.size(); i++) {
-		auto result = context.push_task(other.elements[i]);
+		auto result = context.push_task(other.elements[i].get_index());
 
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1046,7 +1046,7 @@ SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, AstNodeDuplicatio
 	  sti_arg_separators(context.get_global()->get_allocator()) {
 	{
 		auto result = context.push_task(other.target.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1059,9 +1059,9 @@ SLKC_API CallExprNode::CallExprNode(const CallExprNode &other, AstNodeDuplicatio
 	}
 
 	for (auto i = 0; i < args.size(); i++) {
-		auto result = context.push_task(other.args[i]);
+		auto result = context.push_task(other.args[i].get_index());
 
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1157,7 +1157,7 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, As
 	  sti_arg_separators(context.get_global()->get_allocator()) {
 	{
 		auto result = context.push_task(other.target.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1170,9 +1170,9 @@ SLKC_API SubscriptExprNode::SubscriptExprNode(const SubscriptExprNode &other, As
 	}
 
 	for (auto i = 0; i < args.size(); i++) {
-		auto result = context.push_task(other.args[i]);
+		auto result = context.push_task(other.args[i].get_index());
 
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1201,7 +1201,7 @@ SLKC_API DumpResult NewExprNode::do_dump(AstNodeDumpContext &dump_context, wandj
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), target_type.get_index(), deep_dump));
 	if (!target_object->insert("target_type", v.get()))
 		return DumpResult::OutOfMemory;
 	discarded_v = v.release();
@@ -1276,12 +1276,13 @@ SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, AstNodeDuplicationCo
 	  sti_right_parenthesis(other.sti_right_parenthesis),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
 	{
-		auto result = context.push_task(other.target_type);
-		if (result.has_error()) {
+		auto result = context.push_task(other.target_type.get_index());
+		if (!result.is_error()) {
+			target_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(result).value());
+		} else {
 			error_out = std::move(result).error();
 			return;
 		}
-		target_type = std::move(result).value();
 	}
 
 	if (!args.resize(other.args.size())) {
@@ -1290,9 +1291,9 @@ SLKC_API NewExprNode::NewExprNode(const NewExprNode &other, AstNodeDuplicationCo
 	}
 
 	for (auto i = 0; i < args.size(); i++) {
-		auto result = context.push_task(other.args[i]);
+		auto result = context.push_task(other.args[i].get_index());
 
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1321,7 +1322,7 @@ SLKC_API DumpResult StackallocExprNode::do_dump(AstNodeDumpContext &dump_context
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), target_type.get_index(), deep_dump));
 	if (!target_object->insert("target_type", v.get()))
 		return DumpResult::OutOfMemory;
 	discarded_v = v.release();
@@ -1396,12 +1397,13 @@ SLKC_API StackallocExprNode::StackallocExprNode(const StackallocExprNode &other,
 	  sti_right_parenthesis(other.sti_right_parenthesis),
 	  sti_arg_separators(context.get_global()->get_allocator()) {
 	{
-		auto result = context.push_task(other.target_type);
-		if (result.has_error()) {
+		auto result = context.push_task(other.target_type.get_index());
+		if (!result.is_error()) {
+			target_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(result).value());
+		} else {
 			error_out = std::move(result).error();
 			return;
 		}
-		target_type = std::move(result).value();
 	}
 
 	if (!args.resize(other.args.size())) {
@@ -1410,9 +1412,9 @@ SLKC_API StackallocExprNode::StackallocExprNode(const StackallocExprNode &other,
 	}
 
 	for (auto i = 0; i < args.size(); i++) {
-		auto result = context.push_task(other.args[i]);
+		auto result = context.push_task(other.args[i].get_index());
 
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1448,7 +1450,7 @@ SLKC_API DumpResult CastExprNode::do_dump(AstNodeDumpContext &dump_context, wand
 
 	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, target_type, deep_dump));
+	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), target_type.get_index(), deep_dump));
 	if (!target_object->insert("target_type", v.get()))
 		return DumpResult::OutOfMemory;
 	discarded_v = v.release();
@@ -1478,17 +1480,17 @@ SLKC_API CastExprNode::CastExprNode(const CastExprNode &other, AstNodeDuplicatio
 	  sti_as_keyword(other.sti_as_keyword),
 	  sti_nullable_token(other.sti_nullable_token) {
 	{
-		auto result = context.push_task(other.target_type);
-		if (result.has_error()) {
+		auto result = context.push_task(other.target_type.get_index());
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
-		target_type = std::move(result).value();
+		target_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(result).value());
 	}
 
 	{
 		auto result = context.push_task(other.operand.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1508,14 +1510,14 @@ SLKC_API peff::Result<MatchExprBranch, DuplicationError> MatchExprBranch::do_dup
 
 	{
 		auto result = context.push_task(pattern.get_index());
-		if (result.has_error())
+		if (result.is_error())
 			return std::move(result).error();
 		branch.pattern = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
 
 	{
 		auto result = context.push_task(result_value.get_index());
-		if (result.has_error())
+		if (result.is_error())
 			return std::move(result).error();
 		branch.result_value = AstNodePtr<ExprNode>(context.get_global(), result.value());
 	}
@@ -1576,19 +1578,23 @@ SLKC_API DumpResult MatchExprNode::do_dump(AstNodeDumpContext &dump_context, wan
 	std::unique_ptr<wandjson::Value, wandjson::ValueDeleter> v;
 	wandjson::Value *discarded_v;
 
-	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), condition.get_index(), deep_dump));
-	if (!target_object->insert("condition", v.get()))
-		return DumpResult::OutOfMemory;
-	discarded_v = v.release();
+	if (condition) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), condition.get_index(), deep_dump));
+		if (!target_object->insert("condition", v.get()))
+			return DumpResult::OutOfMemory;
+		discarded_v = v.release();
+	}
 
-	if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
-		return DumpResult::OutOfMemory;
-	SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, return_type, deep_dump));
-	if (!target_object->insert("return_type", v.get()))
-		return DumpResult::OutOfMemory;
-	discarded_v = v.release();
+	if (return_type) {
+		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
+			return DumpResult::OutOfMemory;
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), return_type.get_index(), deep_dump));
+		if (!target_object->insert("return_type", v.get()))
+			return DumpResult::OutOfMemory;
+		discarded_v = v.release();
+	}
 
 	{
 		if (!(v = decltype(v)(wandjson::ArrayValue::alloc(dump_context.get_allocator()))))
@@ -1668,7 +1674,7 @@ SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, AstNodeDuplica
 	  sti_case_separators(context.get_global()->get_allocator()) {
 	{
 		auto result = context.push_task(other.condition.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -1676,30 +1682,30 @@ SLKC_API MatchExprNode::MatchExprNode(const MatchExprNode &other, AstNodeDuplica
 	}
 
 	{
-		auto result = context.push_task(other.return_type);
-		if (result.has_error()) {
+		auto result = context.push_task(other.return_type.get_index());
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
-		return_type = std::move(result).value();
+		return_type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(result).value());
 	}
 
-	if(!branches.resize(other.branches.size())) {
+	if (!branches.resize(other.branches.size())) {
 		error_out = DuplicationError::OutOfMemory;
 		return;
 	}
 
-	for(size_t i = 0; i < branches.size(); ++i) {
+	for (size_t i = 0; i < branches.size(); ++i) {
 		auto result = other.branches[i].do_duplicate(context);
 
-		if(result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
 		branches[i] = std::move(result).value();
 	}
 
-	if(!sti_case_separators.build(other.sti_case_separators)) {
+	if (!sti_case_separators.build(other.sti_case_separators)) {
 		error_out = DuplicationError::OutOfMemory;
 		return;
 	}
@@ -1709,7 +1715,6 @@ SLKC_API MatchExprNode::~MatchExprNode() {
 }
 
 SLKC_SIMPLE_AST_DEALLOC_FN_DEF(MatchExprNode);
-
 
 SLKC_SIMPLE_AST_DUPLICATE_FN_DEF(BreakExprNode);
 
@@ -1810,7 +1815,7 @@ SLKC_API ContinueExprNode::ContinueExprNode(const ContinueExprNode &other, AstNo
 	}
 	for (size_t i = 0; i < continue_values.size(); ++i) {
 		auto result = context.push_task(other.continue_values[i].get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = result.error();
 			return;
 		}
@@ -1975,7 +1980,7 @@ SLKC_API GroupExprNode::GroupExprNode(const GroupExprNode &other, AstNodeDuplica
 	  sti_right_parenthesis(other.sti_right_parenthesis) {
 	{
 		auto result = context.push_task(other.operand.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}

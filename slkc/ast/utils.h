@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_UTILS_H_
 #define _SLKC_AST_UTILS_H_
 
-#include "global.h"
+#include "astnode.h"
 #include "rgtree.h"
 
 namespace slkc {
@@ -17,7 +17,7 @@ namespace slkc {
 				PinFailReason _fail_reason;
 			};
 
-			template<typename T>
+			template <typename T>
 			friend class AstNodePtr;
 
 			SLAKE_FORCEINLINE void _set_and_inc_ref(Global *global, AstNodeIndex node_index) {
@@ -33,7 +33,7 @@ namespace slkc {
 			}
 
 			SLAKE_FORCEINLINE AstNodePin() : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX), _ptr(nullptr) {}
-			SLAKE_FORCEINLINE explicit AstNodePin(Global *global, AstNodeIndex node_index, T *ptr) : _global(global), _node_index(node_index), _ptr(ptr) {
+			SLAKE_FORCEINLINE explicit AstNodePin(Global *global, AstNodeIndex node_index, T *const ptr) : _global(global), _node_index(node_index), _ptr(ptr) {
 			}
 			SLAKE_FORCEINLINE explicit AstNodePin(PinFailReason reason) : _global(nullptr), _node_index(INVALID_AST_NODE_INDEX), _fail_reason(reason) {
 			}
@@ -114,7 +114,7 @@ namespace slkc {
 				return _node_index != rhs._node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return _global;
 			}
 
@@ -206,7 +206,7 @@ namespace slkc {
 			///
 			SLAKE_FORCEINLINE AstNodePin<T> pin() const noexcept {
 				auto result = _global->pin_ast_node(_node_index);
-				if (result.has_error())
+				if (result.is_error())
 					return AstNodePin<T>(std::move(result).error());
 				return AstNodePin<T>(_global, _node_index, static_cast<T *>(std::move(result).value()));
 			}
@@ -245,7 +245,7 @@ namespace slkc {
 				return _node_index != rhs._node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return _node_index != INVALID_AST_NODE_INDEX;
 			}
 
@@ -364,7 +364,7 @@ namespace slkc {
 				return _node_index != rhs._node_index;
 			}
 
-			SLAKE_FORCEINLINE operator bool() const noexcept {
+			SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 				return reclaim();
 			}
 
@@ -425,7 +425,7 @@ namespace slkc {
 
 			{
 				auto result = global->pin_ast_node(node->get_node_index());
-				assert(!result.has_error());
+				assert(!result.is_error());
 			}
 
 			sg.release();

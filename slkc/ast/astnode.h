@@ -11,6 +11,7 @@
 #include <config.h>
 
 namespace slkc {
+	class Global;
 	namespace ast {
 		enum class NodeType : uint8_t {
 			Bad = 0,
@@ -48,22 +49,12 @@ namespace slkc {
 
 			This,
 
-			TypeNameDef,
+			TypeName,
 
 			Scope
 		};
 
 		SLKC_API bool is_member_node_type(NodeType node_type);
-
-		class Global;
-
-		enum class DuplicationError : uint8_t {
-			NoSlot,
-			OutOfMemory,
-			PinningFailed
-		};
-
-		struct TypeName;
 
 		class AstNodeDuplicationContextHook {
 		public:
@@ -81,12 +72,11 @@ namespace slkc {
 			peff::List<DuplicationTask> task_list;
 			peff::List<std::unique_ptr<AstNodeDuplicationContextHook, peff::DeallocableDeleter<AstNodeDuplicationContextHook>>> post_run_hooks;
 
-			friend class Global;
+			friend class slkc::Global;
 
 		public:
 			SLKC_API AstNodeDuplicationContext(Global *global);
 			SLKC_API peff::Result<AstNodeIndex, DuplicationError> push_task(AstNodeIndex node_index) noexcept;
-			SLKC_API peff::Result<TypeName, DuplicationError> push_task(const TypeName &type_name) noexcept;
 
 			[[nodiscard]] SLKC_API bool push_post_run_hook(AstNodeDuplicationContextHook *hook) noexcept;
 
@@ -112,7 +102,7 @@ namespace slkc {
 
 			wandjson::ObjectValue *root_value;
 
-			friend class Global;
+			friend class slkc::Global;
 
 		public:
 			SLKC_API AstNodeDumpContext(Global *global, peff::Alloc *allocator, wandjson::ObjectValue *root_value);

@@ -300,7 +300,7 @@ SLKC_API ParseCoroutine Parser::parse_args(peff::Alloc *allocator, const GreenNo
 			if (!syntax_errors.push_back(
 					SyntaxError(
 						TokenRange{
-							module_node,
+							module_node.get_index(),
 							parse_context.idx_current_token },
 						ExpectingSingleTokenErrorExData{ separator_token })))
 				co_return gen_oom_syntax_error();
@@ -332,7 +332,7 @@ SLKC_API ParseCoroutine Parser::parse_subscript_args(peff::Alloc *allocator, con
 			if (!syntax_errors.push_back(
 					SyntaxError(
 						TokenRange{
-							module_node,
+							module_node.get_index(),
 							parse_context.idx_current_token },
 						ExpectingSingleTokenErrorExData{ TokenId::Comma })))
 				co_return gen_oom_syntax_error();
@@ -448,7 +448,7 @@ SLKC_API ParseCoroutine Parser::parse_type_name(peff::Alloc *allocator, const Gr
 			break;
 		}
 		default:
-			co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+			co_return SyntaxError{ TokenRange{ module_node.get_index(), token->index }, SyntaxErrorKind::UnexpectedToken };
 	}
 
 	if ((token = peek_token())->token_id == TokenId::ObjectTypeName) {
@@ -783,7 +783,7 @@ SLKC_API ParseCoroutine Parser::parse_operator_name(peff::Alloc *allocator, cons
 			if (!syntax_errors.push_back(
 					SyntaxError(
 						TokenRange{
-							module_node,
+							module_node.get_index(),
 							parse_context.idx_current_token },
 						SyntaxErrorKind::UnexpectedToken)))
 				co_return gen_oom_syntax_error();
@@ -900,7 +900,7 @@ SLKC_API ParseCoroutine Parser::parse_fn(peff::Alloc *allocator, const GreenNode
 			if (!syntax_errors.push_back(
 					SyntaxError(
 						TokenRange{
-							module_node,
+							module_node.get_index(),
 							parse_context.idx_current_token },
 						SyntaxErrorKind::UnexpectedToken)))
 				co_return gen_oom_syntax_error();
@@ -1286,7 +1286,7 @@ SLKC_API ParseCoroutine Parser::parse_program_stmt(peff::Alloc *allocator, const
 					break;
 				}
 				default:
-					co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+					co_return SyntaxError{ TokenRange{ module_node.get_index(), token->index }, SyntaxErrorKind::UnexpectedToken };
 			}
 			break;
 		}
@@ -1307,7 +1307,7 @@ SLKC_API ParseCoroutine Parser::parse_program_stmt(peff::Alloc *allocator, const
 		}
 		default:
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(member));
-			co_return SyntaxError{ TokenRange{ module_node, token->index }, SyntaxErrorKind::UnexpectedToken };
+			co_return SyntaxError{ TokenRange{ module_node.get_index(), token->index }, SyntaxErrorKind::UnexpectedToken };
 	}
 
 	co_return peff::NULLOPT;

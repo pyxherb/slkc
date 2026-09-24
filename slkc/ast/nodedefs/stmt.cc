@@ -70,10 +70,10 @@ SLKC_API DumpResult BindingEntry::dump(AstNodeDumpContext &dump_context, wandjso
 		return DumpResult::OutOfMemory;
 	discarded_v = v.release();
 
-	if (type.has_value()) {
+	if (type) {
 		if (!(v = decltype(v)(wandjson::ObjectValue::alloc(dump_context.get_allocator()))))
 			return DumpResult::OutOfMemory;
-		SLKC_RETURN_IF_DUMP_FAILED(dump_typename(static_cast<wandjson::ObjectValue *>(v.get()), dump_context, type.value(), deep_dump));
+		SLKC_RETURN_IF_DUMP_FAILED(dump_context.push_task(static_cast<wandjson::ObjectValue *>(v.get()), type.get_index(), deep_dump));
 		if (!target_object->insert("type", v.get()))
 			return DumpResult::OutOfMemory;
 		discarded_v = v.release();
@@ -119,18 +119,18 @@ SLKC_API peff::Result<BindingEntry, DuplicationError> BindingEntry::duplicate(As
 	BindingEntry entry;
 
 	entry.name = name;
-	if (type.has_value())
+	if (type)
 	{
-		auto result = context.push_task(type.value());
-		if (!result.has_error()) {
-			entry.type = std::move(result).value();
+		auto result = context.push_task(type.get_index());
+		if (!result.is_error()) {
+			entry.type = AstNodePtr<TypeNameNode>(context.get_global(), std::move(result).value());
 		} else {
 			return std::move(result).error();
 		}
 	}
 	{
-		auto result = context.push_task(initial_value);
-		if (!result.has_error()) {
+		auto result = context.push_task(initial_value.get_index());
+		if (!result.is_error()) {
 			entry.initial_value = AstNodePtr<ExprNode>(context.get_global(), std::move(result).value());
 		} else {
 			return std::move(result).error();
@@ -213,7 +213,7 @@ SLKC_API VarDefStmtNode::VarDefStmtNode(const VarDefStmtNode &other, AstNodeDupl
 
 	for (size_t i = 0; i < bindings.size(); ++i) {
 		auto result = other.bindings[i].duplicate(context);
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = result.error();
 			return;
 		}
@@ -344,7 +344,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, AstNodeDuplicationCo
 	}
 	for (size_t i = 0; i < loop_vars.size(); ++i) {
 		auto result = loop_vars[i].duplicate(context);
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = result.error();
 			return;
 		}
@@ -352,7 +352,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, AstNodeDuplicationCo
 	}
 	{
 		auto result = context.push_task(other.condition_expr.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
@@ -375,7 +375,7 @@ SLKC_API ForStmtNode::ForStmtNode(const ForStmtNode &other, AstNodeDuplicationCo
 
 	{
 		auto result = context.push_task(other.body.get_index());
-		if (result.has_error()) {
+		if (result.is_error()) {
 			error_out = std::move(result).error();
 			return;
 		}
