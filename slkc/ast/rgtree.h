@@ -412,14 +412,14 @@ namespace slkc {
 				return _ptr;
 			}
 
-			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 
 				if (_green_node_index > rhs._green_node_index)
-					return 1;
+					return std::strong_ordering::greater;
 				if (_green_node_index < rhs._green_node_index)
-					return -1;
-				return 0;
+					return std::strong_ordering::less;
+				return std::strong_ordering::equivalent;
 			}
 
 			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
@@ -531,25 +531,16 @@ namespace slkc {
 				return GreenNodePtr(pin.get_global(), pin.get_index());
 			}
 
-			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 
 				if (_node_index > rhs._node_index)
-					return 1;
-				if (_node_index < rhs._node_index)
-					return -1;
-				return 0;
-			}
-
-			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const ThisType &rhs) const noexcept {
-				assert(_global == rhs._global);
-				int result = compares_to(rhs);
-				if (result < 0)
-					return std::strong_ordering::less;
-				if (result > 0)
 					return std::strong_ordering::greater;
+				if (_node_index < rhs._node_index)
+					return std::strong_ordering::less;
 				return std::strong_ordering::equivalent;
 			}
+
 			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 				return _node_index < rhs._node_index;
@@ -648,14 +639,14 @@ namespace slkc {
 				return {};
 			}
 
-			SLAKE_FORCEINLINE int compares_to(const ThisType &rhs) const noexcept {
+			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const ThisType &rhs) const noexcept {
 				assert(_global == rhs._global);
 
 				if (_node_index > rhs._node_index)
-					return 1;
+					return std::strong_ordering::greater;
 				if (_node_index < rhs._node_index)
-					return -1;
-				return 0;
+					return std::strong_ordering::less;
+				return std::strong_ordering::equivalent;
 			}
 
 			SLAKE_FORCEINLINE bool operator<(const ThisType &rhs) const noexcept {

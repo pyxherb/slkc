@@ -14,8 +14,8 @@ SLKC_API AstNodeRegistry::~AstNodeRegistry() {
 SLKC_API GreenNodeRegistry::~GreenNodeRegistry() {
 }
 
-SLKC_API TypeDefRegistry::~TypeDefRegistry() {
-}
+/* SLKC_API TypeDefRegistry::~TypeDefRegistry() {
+}*/
 
 SLKC_API GlobalSharedString::GlobalSharedString() noexcept {
 }
@@ -35,24 +35,24 @@ SLKC_API void Global::_add_green_node_to_deferred_deleting_list(ast::GreenNode *
 	_zero_ref_green_node_registry_list = green_node;
 }
 
-SLKC_API void Global::_add_type_def_to_deferred_deleting_list(comp::TypeDef* type_def) noexcept {
+/* SLKC_API void Global::_add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept {
 
-}
+}*/
 
 SLKC_API Global::Global(peff::Alloc *allocator) noexcept
 	: resource_allocator(allocator),
 	  _ast_node_registries(allocator),
 	  _green_node_registries(allocator),
-	  _type_def_registries(allocator),
+	  _registered_type_def_set(allocator),
 	  _shared_strings(allocator) {
 }
 
 SLKC_API Global::~Global() noexcept {
-	_clear_zero_ref_type_def_registry_list();
+	//_clear_zero_ref_type_def_registry_list();
 	_clear_zero_ref_ast_node_registry_list();
 	_clear_zero_ref_green_node_registry_list();
-	if (_type_def_registries.size())
-		std::terminate();
+	/* if (_type_def_registries.size())
+		std::terminate();*/
 	if (_ast_node_registries.size())
 		std::terminate();
 	if (_green_node_registries.size())
@@ -90,14 +90,14 @@ SLKC_API void Global::_clear_zero_ref_green_node_registry_list() noexcept {
 }
 
 SLKC_API void Global::_clear_zero_ref_type_def_registry_list() noexcept {
-	while (_zero_ref_type_def_registry_list) {
-		comp::TypeDef *i = _zero_ref_type_def_registry_list;
-		_zero_ref_type_def_registry_list = nullptr;
+	while (_deletable_type_def_registry_list) {
+		comp::TypeDef *i = _deletable_type_def_registry_list;
+		_deletable_type_def_registry_list = nullptr;
 		for (comp::TypeDef *next = nullptr; i; i = next) {
 			std::lock_guard g(_type_def_registries_mutex);
 			next = i->_next_destructible;
-			if (i->_type_def_index < _min_free_type_def_index)
-				_min_free_type_def_index = i->_type_def_index;
+			/* if (i->_type_def_index < _min_free_type_def_index)
+				_min_free_type_def_index = i->_type_def_index;*/
 			i->dealloc();
 		}
 	}
@@ -476,8 +476,21 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::deep_dump_gree
 	return root_value.release();
 }
 
+SLKC_API comp::TypeDef* Global::register_type_def(comp::TypeDef* new_type_def) {
+	std::lock_guard g(_type_def_registries_mutex);
+	if (auto it = _registered_type_def_set.find(new_type_def); it != _registered_type_def_set.end()) {
+		(*it)->inc_ref();
+		return *it;
+	}
+	if (!_registered_type_def_set.insert(+new_type_def))
+		return nullptr;
 
-SLKC_API bool Global::try_ref_type_def(comp::TypeDefIndex index) noexcept {
+	new_type_def->inc_ref();
+	return new_type_def;
+}
+
+
+/* SLKC_API bool Global::try_ref_type_def(comp::TypeDefIndex index) noexcept {
 	_clear_zero_ref_type_def_registry_list();
 	auto &ref_count = _type_def_registries.at(index).ref_count;
 	if (!ref_count)
@@ -587,7 +600,7 @@ SLKC_API void Global::unmap_type_def(comp::TypeDefIndex node_index) noexcept {
 	std::lock_guard g(this->_type_def_registries_mutex);
 
 	this->_type_def_registries.remove(node_index);
-}
+}*/
 
 /* SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::shallow_dump_type_def(peff::Alloc *allocator, comp::TypeDefIndex node_index) noexcept {
 	std::unique_ptr<wandjson::ObjectValue, wandjson::ValueDeleter> root_value(wandjson::ObjectValue::alloc(allocator));

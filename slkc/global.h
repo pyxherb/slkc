@@ -6,6 +6,7 @@
 #include <atomic>
 #include <peff/containers/hashmap.h>
 #include <peff/containers/map.h>
+#include <peff/containers/btree_set.h>
 #include <peff/utils/result.h>
 
 namespace slkc {
@@ -52,7 +53,7 @@ namespace slkc {
 		}
 	};
 
-	namespace comp {
+	/* namespace comp {
 		class TypeDef;
 	}
 
@@ -73,7 +74,7 @@ namespace slkc {
 			rhs.pin_count = 0;
 			rhs.self_index = comp::INVALID_TYPE_DEF_INDEX;
 		}
-	};
+	};*/
 
 	class Global;
 
@@ -126,10 +127,11 @@ namespace slkc {
 		std::recursive_mutex _green_node_registries_mutex;
 		ast::GreenNodeIndex _min_free_green_node_index = 0;
 
-		peff::Map<comp::TypeDefIndex, TypeDefRegistry> _type_def_registries;
-		comp::TypeDef *_zero_ref_type_def_registry_list = nullptr;
+		peff::BTreeSet<comp::TypeDef *, comp::TypeDefComparator, true> _registered_type_def_set;
+		// peff::Map<comp::TypeDefIndex, TypeDefRegistry> _type_def_registries;
+		comp::TypeDef *_deletable_type_def_registry_list = nullptr;
 		std::recursive_mutex _type_def_registries_mutex;
-		comp::TypeDefIndex _min_free_type_def_index = 0;
+		//comp::TypeDefIndex _min_free_type_def_index = 0;
 
 		ast::AstNodeIndex _root_module = ast::INVALID_AST_NODE_INDEX;
 
@@ -145,11 +147,11 @@ namespace slkc {
 		///
 		[[nodiscard]] SLKC_API ast::AstNodeIndex _alloc_ast_node_index() noexcept;
 		[[nodiscard]] SLKC_API ast::GreenNodeIndex _alloc_green_node_index() noexcept;
-		[[nodiscard]] SLKC_API comp::TypeDefIndex _alloc_type_def_index() noexcept;
+		/* [[nodiscard]] SLKC_API comp::TypeDefIndex _alloc_type_def_index() noexcept;*/
 
 		SLKC_API void _add_ast_node_to_deferred_deleting_list(ast::AstNode *node) noexcept;
 		SLKC_API void _add_green_node_to_deferred_deleting_list(ast::GreenNode *green_node) noexcept;
-		SLKC_API void _add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept;
+		/* SLKC_API void _add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept;*/
 
 		friend struct GreenNodeRegistry;
 
@@ -224,7 +226,7 @@ namespace slkc {
 		SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> shallow_dump_green_node(peff::Alloc *allocator, ast::GreenNodeIndex node_index) noexcept;
 		SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> deep_dump_green_node(peff::Alloc *allocator, ast::GreenNodeIndex node_index) noexcept;
 
-		SLAKE_FORCEINLINE void ref_type_def(comp::TypeDefIndex index) noexcept {
+		/* SLAKE_FORCEINLINE void ref_type_def(comp::TypeDefIndex index) noexcept {
 			_clear_zero_ref_type_def_registry_list();
 			++_type_def_registries.at(index).ref_count;
 		}
@@ -253,7 +255,9 @@ namespace slkc {
 		SLKC_API void remap_type_def(comp::TypeDefIndex node_index, comp::TypeDef *node) noexcept;
 		SLKC_API void unmap_type_def(comp::TypeDefIndex node_index) noexcept;
 		SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> shallow_dump_type_def(peff::Alloc *allocator, comp::TypeDefIndex node_index) noexcept;
-		SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> deep_dump_type_def(peff::Alloc *allocator, comp::TypeDefIndex node_index) noexcept;
+		SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> deep_dump_type_def(peff::Alloc *allocator, comp::TypeDefIndex node_index) noexcept;*/
+
+		SLKC_API comp::TypeDef *register_type_def(comp::TypeDef *new_type_def);
 
 		SLKC_API GlobalSharedString *register_shared_string(std::string_view sv) noexcept;
 		SLKC_API void unregister_shared_string(std::string_view s) noexcept;
