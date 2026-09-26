@@ -483,8 +483,12 @@ SLKC_API ParseCoroutine Parser::parse_type_name(peff::Alloc *allocator, const Gr
 				break;
 		}
 
-		if ((token = peek_token())->token_id == TokenId::Question) {
-			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+		switch ((token = peek_token())->token_id) {
+			case TokenId::Question:
+			case TokenId::LNotOp:
+				SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(type_name_node_out));
+			default:
+				break;
 		}
 
 		if ((token = peek_token())->token_id == TokenId::LBracket) {
@@ -584,6 +588,12 @@ SLKC_API ParseCoroutine Parser::parse_id_ref(peff::Alloc *allocator, const Green
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
 			break;
 		case TokenId::ScopeOp:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
+			break;
+		case TokenId::SuperKeyword:
+			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
+			if ((token = peek_token())->token_id != TokenId::Dot)
+				co_return peff::NULLOPT;
 			SLKC_CO_RETURN_IF_PARSE_ERROR(collect_and_next_token(id_ref_node_out));
 			break;
 		default:

@@ -43,6 +43,12 @@ namespace slkc {
 			Bad
 		};
 
+		enum class TypeNameNullability : uint8_t {
+			Unspecified = 0,
+			Nullable,
+			NonNullable,
+		};
+
 		enum class TypeNameShareability : uint8_t {
 			Unspecified = 0,
 			Multi,
@@ -56,7 +62,7 @@ namespace slkc {
 
 			bool _is_const : 1;
 			bool _is_final : 1;
-			bool _is_nullable : 1;
+			TypeNameNullability _nullability : 2;
 			TypeNameShareability _shareability : 2;
 
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
@@ -86,12 +92,12 @@ namespace slkc {
 				_is_final = flag;
 			}
 
-			SLAKE_FORCEINLINE bool is_nullable() const noexcept {
-				return _is_nullable;
+			SLAKE_FORCEINLINE TypeNameNullability get_nullability() const noexcept {
+				return _nullability;
 			}
 
-			SLAKE_FORCEINLINE void set_nullable(bool flag) noexcept {
-				_is_nullable = flag;
+			SLAKE_FORCEINLINE void set_nullability(TypeNameNullability nullability) noexcept {
+				_nullability = nullability;
 			}
 
 			SLAKE_FORCEINLINE TypeNameShareability get_shareability() const noexcept {

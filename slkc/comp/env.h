@@ -1,8 +1,8 @@
 #ifndef _SLKC_COMP_ENV_H_
 #define _SLKC_COMP_ENV_H_
 
-#include <slkc/ast/rgtree.h>
 #include <slkc/ast/utils.h>
+#include <slkc/ast/rgtree.h>
 #include <slkc/ast/nodedefs.h>
 
 namespace slkc {

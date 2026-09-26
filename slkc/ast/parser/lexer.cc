@@ -155,8 +155,6 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "auto";
 		case TokenId::AwaitKeyword:
 			return "await";
-		case TokenId::BaseKeyword:
-			return "base";
 		case TokenId::BreakKeyword:
 			return "break";
 		case TokenId::CaseKeyword:
@@ -249,6 +247,8 @@ SLKC_API std::string_view ast::get_token_name(uint32_t token_id) {
 			return "static";
 		case TokenId::StructKeyword:
 			return "struct";
+		case TokenId::SuperKeyword:
+			return "super";
 		case TokenId::SwitchKeyword:
 			return "switch";
 		case TokenId::SynchronizedKeyword:

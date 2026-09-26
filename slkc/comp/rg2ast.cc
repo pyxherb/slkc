@@ -382,7 +382,9 @@ SLKC_API CompilationCoroutine comp::_do_lower_rg_node_to_ast_type_name(peff::All
 	if (indices.get_classified_indices(ast::TokenId::FinalKeyword).size())
 		type_name_out->set_final(true);
 	if (indices.get_classified_indices(ast::TokenId::Question).size())
-		type_name_out->set_nullable(true);
+		type_name_out->set_nullability(ast::TypeNameNullability::Nullable);
+	else if (indices.get_classified_indices(ast::TokenId::LNotOp).size())
+		type_name_out->set_nullability(ast::TypeNameNullability::NonNullable);
 	/* if (indices.get_classified_indices(ast::TokenId::RefKeyword).size())
 		type_name_out.set_ref(true);
 	if (indices.get_classified_indices(ast::TokenId::ReadonlyKeyword).size())

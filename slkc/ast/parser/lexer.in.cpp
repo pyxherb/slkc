@@ -88,7 +88,6 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"async"		{ token->token_id = TokenId::AsyncKeyword; break; }
 				<InitialCondition>"auto"		{ token->token_id = TokenId::AutoKeyword; break; }
 				<InitialCondition>"await"		{ token->token_id = TokenId::AwaitKeyword; break; }
-				<InitialCondition>"base"		{ token->token_id = TokenId::BaseKeyword; break; }
 				<InitialCondition>"break"		{ token->token_id = TokenId::BreakKeyword; break; }
 				<InitialCondition>"case"		{ token->token_id = TokenId::CaseKeyword; break; }
 				<InitialCondition>"catch"		{ token->token_id = TokenId::CatchKeyword; break; }
@@ -133,6 +132,7 @@ SLKC_API peff::Option<LexicalError> Lexer::lex(Global *global, AstNodeIndex modu
 				<InitialCondition>"return"		{ token->token_id = TokenId::ReturnKeyword; break; }
 				<InitialCondition>"static"		{ token->token_id = TokenId::StaticKeyword; break; }
 				<InitialCondition>"struct"		{ token->token_id = TokenId::StructKeyword; break; }
+				<InitialCondition>"super"		{ token->token_id = TokenId::SuperKeyword; break; }
 				<InitialCondition>"switch"		{ token->token_id = TokenId::SwitchKeyword; break; }
 				<InitialCondition>"synchronized"	{ token->token_id = TokenId::SynchronizedKeyword; break; }
 				<InitialCondition>"this"		{ token->token_id = TokenId::ThisKeyword; break; }

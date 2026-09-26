@@ -42,12 +42,8 @@ namespace slkc {
 			Bad
 		};
 
-		enum class TypeNameShareability : uint8_t {
-			Unspecified = 0,
-			Multi,
-			Restrict,
-			Synchronized,
-		};
+		using TypeNullability = ast::TypeNameNullability;
+		using TypeShareability = ast::TypeNameShareability;
 
 		enum class TypeDefKind : uint8_t {
 			Custom,
@@ -111,13 +107,13 @@ namespace slkc {
 			TypeKind _kind;
 			bool _is_const : 1;
 			bool _is_final : 1;
-			bool _is_nullable : 1;
-			TypeNameShareability _shareability : 2;
+			TypeNullability _nullability : 2;
+			TypeShareability _shareability : 2;
 
 		public:
-			SLAKE_FORCEINLINE TypeRef() : _kind(TypeKind::Invalid), _is_const(false), _is_final(false), _is_nullable(false), _shareability(TypeNameShareability::Unspecified) {}
-			SLAKE_FORCEINLINE TypeRef(TypeKind kind) : _kind(kind), _is_const(false), _is_final(false), _is_nullable(false), _shareability(TypeNameShareability::Unspecified) {}
-			SLAKE_FORCEINLINE TypeRef(TypeKind kind, const TypeDefPtr<TypeDef> &type_def) : _kind(TypeKind::Invalid), _type_def(type_def), _is_const(false), _is_final(false), _is_nullable(false), _shareability(TypeNameShareability::Unspecified) {}
+			SLAKE_FORCEINLINE TypeRef() : _kind(TypeKind::Invalid), _is_const(false), _is_final(false), _nullability(TypeNullability::Nullable), _shareability(TypeShareability::Unspecified) {}
+			SLAKE_FORCEINLINE TypeRef(TypeKind kind) : _kind(kind), _is_const(false), _is_final(false), _nullability(TypeNullability::Nullable), _shareability(TypeShareability::Unspecified) {}
+			SLAKE_FORCEINLINE TypeRef(TypeKind kind, const TypeDefPtr<TypeDef> &type_def) : _kind(TypeKind::Invalid), _type_def(type_def), _is_const(false), _is_final(false), _nullability(TypeNullability::Unspecified), _shareability(TypeShareability::Unspecified) {}
 
 			SLAKE_FORCEINLINE void set_kind(TypeKind kind) noexcept {
 				_kind = kind;
@@ -143,11 +139,19 @@ namespace slkc {
 				_is_final = flag;
 			}
 
-			SLAKE_FORCEINLINE TypeNameShareability get_shareability() const noexcept {
+			SLAKE_FORCEINLINE TypeNullability get_nullability() const noexcept {
+				return _nullability;
+			}
+
+			SLAKE_FORCEINLINE void set_nullability(TypeNullability nullability) noexcept {
+				_nullability = nullability;
+			}
+
+			SLAKE_FORCEINLINE TypeShareability get_shareability() const noexcept {
 				return _shareability;
 			}
 
-			SLAKE_FORCEINLINE void set_shareability(TypeNameShareability shareability) noexcept {
+			SLAKE_FORCEINLINE void set_shareability(TypeShareability shareability) noexcept {
 				_shareability = shareability;
 			}
 
@@ -174,7 +178,7 @@ namespace slkc {
 					return result;
 				if (auto result = _is_final <=> rhs._is_final; result != 0)
 					return result;
-				if (auto result = _is_nullable <=> rhs._is_nullable; result != 0)
+				if (auto result = _nullability <=> rhs._nullability; result != 0)
 					return result;
 				if (auto result = _shareability <=> rhs._shareability; result != 0)
 					return result;
@@ -249,6 +253,11 @@ namespace slkc {
 
 			SLKC_API virtual void dealloc() noexcept override;
 		};
+
+		template<typename T>
+		SLAKE_FORCEINLINE T* alloc_type_def(Global *global) {
+			return peff::alloc_and_construct<T>(global->get_allocator(), alignof(T), global);
+		}
 	}
 }
 

@@ -1,7 +1,6 @@
 #ifndef _SLKC_AST_RGTREE_H_
 #define _SLKC_AST_RGTREE_H_
 
-#include "../global.h"
 #include "parser/lexer.h"
 #include <peff/advutils/shared_ptr.h>
 #include <peff/containers/btree_map.h>

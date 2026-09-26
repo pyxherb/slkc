@@ -43,7 +43,7 @@ SLKC_API DumpResult TypeNameNode::do_dump(AstNodeDumpContext &dump_context, wand
 		return DumpResult::OutOfMemory;
 	discarded_v = v.release();
 
-	if (!(v = decltype(v)(wandjson::BooleanValue::alloc(dump_context.get_allocator(), static_cast<bool>(_is_nullable)))))
+	if (!(v = decltype(v)(wandjson::NumberValue::alloc_int(dump_context.get_allocator(), static_cast<uint8_t>(_nullability)))))
 		return DumpResult::OutOfMemory;
 	if (!target_object->insert("is_nullable", v.get()))
 		return DumpResult::OutOfMemory;
