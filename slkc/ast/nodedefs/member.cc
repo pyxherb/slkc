@@ -41,7 +41,8 @@ SLKC_API DumpResult MemberNode::do_dump(AstNodeDumpContext &dump_context, wandjs
 }
 
 SLKC_API MemberNode::MemberNode(NodeType ast_node_type, Global *global)
-	: AstNode(ast_node_type, global) {
+	: AstNode(ast_node_type, global),
+	  _generic_args(global->get_allocator()) {
 }
 
 SLKC_API MemberNode::MemberNode(
@@ -51,12 +52,16 @@ SLKC_API MemberNode::MemberNode(
 	peff::Option<DuplicationError> &error_out)
 	: AstNode(other, context, node_index),
 	  self_name(other.self_name),
-	  access_modifier(other.access_modifier) {
+	  access_modifier(other.access_modifier),
+	  _generic_args(context.get_global()->get_allocator()) {
 	if (other.member_relative_location.has_value())
 		member_relative_location = other.member_relative_location.value();
+	// DO NOT copy generic arguments.
 }
 
 SLKC_API MemberNode::~MemberNode() {
+	// TODO: Use public API instead of this after we designed them.
+	get_global()->remove_instantiated_generic_ast_node(this->get_node_index());
 }
 
 SLKC_API bool MemberNode::alloc_scope() noexcept {

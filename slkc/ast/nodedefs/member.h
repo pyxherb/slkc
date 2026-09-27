@@ -2,6 +2,7 @@
 #define _SLKC_AST_NODEDEFS_MEMBER_H_
 
 #include "scope.h"
+#include <slkc/comp/type_base.h>
 #include <slake/access.h>
 #include <slkc/ast/parser/lexer.h>
 
@@ -40,11 +41,13 @@ namespace slkc {
 		private:
 			AstNodeIndex _parent_node_index = INVALID_AST_NODE_INDEX;
 			peff::UniquePtr<Scope, peff::DeallocableDeleter<Scope>> _self_scope;
+			peff::DynArray<comp::TypeRef> _generic_args;
 
 		protected:
 			[[nodiscard]] SLKC_API virtual DumpResult do_dump(AstNodeDumpContext &dump_context, wandjson::ObjectValue *target_object, bool deep_dump) const noexcept override;
 
 		public:
+
 			peff::Option<AstMemberRelativeLocation> member_relative_location;
 
 			GlobalSharedStringRef self_name;
@@ -69,20 +72,30 @@ namespace slkc {
 				_parent_node_index = node;
 			}
 
-			SLAKE_FORCEINLINE bool set_name(std::string_view name) {
+			SLAKE_FORCEINLINE bool set_name(std::string_view name) noexcept {
 				assert(_parent_node_index == INVALID_AST_NODE_INDEX);
 				if (!(self_name = GlobalSharedStringRef(get_global()->register_shared_string(name))))
 					return false;
 				return true;
 			}
 
-			SLAKE_FORCEINLINE void set_name(const GlobalSharedStringRef &name) {
+			SLAKE_FORCEINLINE void set_name(const GlobalSharedStringRef &name) noexcept {
 				assert(_parent_node_index == INVALID_AST_NODE_INDEX);
 				self_name = name;
 			}
 
 			SLAKE_FORCEINLINE GlobalSharedStringRef get_name() const noexcept {
 				return self_name;
+			}
+
+			SLAKE_FORCEINLINE bool set_generic_args(comp::GenericArgListView type_args) noexcept {
+				if (!_generic_args.build(type_args))
+					return false;
+				return true;
+			}
+
+			SLAKE_FORCEINLINE comp::GenericArgListView get_generic_args() const noexcept {
+				return _generic_args;
 			}
 
 			SLKC_SIMPLE_AST_DEALLOC_FN_DECL();

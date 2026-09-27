@@ -1,4 +1,5 @@
 #include "type.h"
+#include "../global.h"
 
 using namespace slkc;
 using namespace slkc::comp;
@@ -10,6 +11,8 @@ SLKC_API void CustomTypeDef::dealloc() noexcept {
 SLKC_API void UnpackingTypeDef::dealloc() noexcept {
 	peff::destroy_and_release<UnpackingTypeDef>(get_global()->get_allocator(), this, alignof(UnpackingTypeDef));
 }
+
+SLAKE_API FnTypeDef::FnTypeDef(Global *global) : TypeDef(global, TypeDefKind::Fn), capture_types(global->get_allocator()), param_types(global->get_allocator()) {}
 
 SLKC_API void FnTypeDef::dealloc() noexcept {
 	peff::destroy_and_release<FnTypeDef>(get_global()->get_allocator(), this, alignof(FnTypeDef));
@@ -33,9 +36,6 @@ SLKC_API void RefTypeDef::dealloc() noexcept {
 
 SLKC_API std::strong_ordering comp::_compare_type_defs(const TypeDef *lhs, const TypeDef *rhs) {
 	assert(lhs->get_global() == rhs->get_global());
-
-	if (auto result = lhs->get_type_def_index() <=> rhs->get_type_def_index(); result != 0)
-		return result;
 
 	if (auto result = lhs->get_type_def_kind() <=> rhs->get_type_def_kind(); result != 0)
 		return result;

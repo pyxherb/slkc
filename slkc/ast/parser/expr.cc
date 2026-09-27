@@ -451,7 +451,7 @@ SLKC_API ParseCoroutine Parser::parse_expr(peff::Alloc *allocator, GreenNodePin 
 				break;
 			}
 			case TokenId::SubOp: {
-				if (precedence > 120)
+				if (precedence > 110)
 					goto end;
 
 				GreenNodePin old_lhs = std::move(lhs);

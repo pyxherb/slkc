@@ -110,6 +110,9 @@ namespace slkc {
 		OutOfNodeIndex,
 	};
 
+	using GenericCacheArgLookupTable = peff::BTreeMap<comp::GenericArgListView, ast::AstNodePtr<ast::AstNode>>;
+	using GenericCacheMemberLookupTable = peff::BTreeMap<ast::AstNodeIndex, GenericCacheArgLookupTable>;
+
 	class Global final {
 	private:
 		peff::RcObjectPtr<peff::Alloc> resource_allocator;
@@ -133,7 +136,12 @@ namespace slkc {
 		std::recursive_mutex _type_def_registries_mutex;
 		//comp::TypeDefIndex _min_free_type_def_index = 0;
 
+		GenericCacheMemberLookupTable _generic_cache_table;
+
 		ast::AstNodeIndex _root_module = ast::INVALID_AST_NODE_INDEX;
+
+		friend class slkc::ast::MemberNode;
+		friend class slkc::comp::TypeDef;
 
 		SLKC_API void _clear_zero_ref_ast_node_registry_list() noexcept;
 		SLKC_API void _clear_zero_ref_green_node_registry_list() noexcept;
@@ -151,7 +159,7 @@ namespace slkc {
 
 		SLKC_API void _add_ast_node_to_deferred_deleting_list(ast::AstNode *node) noexcept;
 		SLKC_API void _add_green_node_to_deferred_deleting_list(ast::GreenNode *green_node) noexcept;
-		/* SLKC_API void _add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept;*/
+		SLKC_API void _add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept;
 
 		friend struct GreenNodeRegistry;
 
@@ -267,6 +275,10 @@ namespace slkc {
 		SLAKE_FORCEINLINE ast::AstNodeIndex get_root_module_node_index() noexcept {
 			return _root_module;
 		}
+
+		SLKC_API ast::AstNodePtr<ast::AstNode> lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) const noexcept;
+		SLKC_API void remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept;
+		SLKC_API void remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index) noexcept;
 	};
 
 	struct GlobalSharedStringRef {

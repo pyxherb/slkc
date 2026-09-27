@@ -14,6 +14,8 @@ The compiler has 3 main modules:
 * `comp/` - The compilation framework
   * `comp/rg2ast` - Module that lowers red-green trees into ASTs.
 
+**NOTE: ast/nodedefs/member.h has dependency of comp/type_base.h, be cautious of this.**
+
 ## Issues
 
 ### Path-based Null Checker

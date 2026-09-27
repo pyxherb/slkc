@@ -35,20 +35,22 @@ SLKC_API void Global::_add_green_node_to_deferred_deleting_list(ast::GreenNode *
 	_zero_ref_green_node_registry_list = green_node;
 }
 
-/* SLKC_API void Global::_add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept {
-
-}*/
+SLKC_API void Global::_add_type_def_to_deferred_deleting_list(comp::TypeDef *type_def) noexcept {
+	type_def->_next_destructible = _deletable_type_def_registry_list;
+	_deletable_type_def_registry_list = type_def;
+}
 
 SLKC_API Global::Global(peff::Alloc *allocator) noexcept
 	: resource_allocator(allocator),
 	  _ast_node_registries(allocator),
 	  _green_node_registries(allocator),
 	  _registered_type_def_set(allocator),
-	  _shared_strings(allocator) {
+	  _shared_strings(allocator),
+	  _generic_cache_table(allocator) {
 }
 
 SLKC_API Global::~Global() noexcept {
-	//_clear_zero_ref_type_def_registry_list();
+	_clear_zero_ref_type_def_registry_list();
 	_clear_zero_ref_ast_node_registry_list();
 	_clear_zero_ref_green_node_registry_list();
 	/* if (_type_def_registries.size())
@@ -476,7 +478,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::deep_dump_gree
 	return root_value.release();
 }
 
-SLKC_API comp::TypeDef* Global::register_type_def(comp::TypeDef* new_type_def) {
+SLKC_API comp::TypeDef *Global::register_type_def(comp::TypeDef *new_type_def) {
 	std::lock_guard g(_type_def_registries_mutex);
 	if (auto it = _registered_type_def_set.find(new_type_def); it != _registered_type_def_set.end()) {
 		(*it)->inc_ref();
@@ -488,7 +490,6 @@ SLKC_API comp::TypeDef* Global::register_type_def(comp::TypeDef* new_type_def) {
 	new_type_def->inc_ref();
 	return new_type_def;
 }
-
 
 /* SLKC_API bool Global::try_ref_type_def(comp::TypeDefIndex index) noexcept {
 	_clear_zero_ref_type_def_registry_list();
@@ -697,4 +698,29 @@ SLKC_API bool Global::init_root_module() noexcept {
 	_root_module = raw_node_ptr->get_node_index();
 
 	return true;
+}
+
+SLKC_API ast::AstNodePtr<ast::AstNode> Global::lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) const noexcept {
+	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
+		if (auto jt = it.value().find(generic_args); jt != it.value().end()) {
+			return jt.value();
+		}
+	}
+	return {};
+}
+
+SLKC_API void Global::remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept {
+	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
+		if (auto jt = it.value().find(generic_args); jt != it.value().end()) {
+			it.value().remove(jt);
+			if (!it.value().size())
+				_generic_cache_table.remove(it);
+		}
+	}
+}
+
+SLKC_API void Global::remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index) noexcept {
+	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
+		_generic_cache_table.remove(it);
+	}
 }
