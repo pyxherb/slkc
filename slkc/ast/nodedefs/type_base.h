@@ -1,7 +1,7 @@
 #ifndef _SLKC_AST_NODEDEFS_TYPE_BASE_H_
 #define _SLKC_AST_NODEDEFS_TYPE_BASE_H_
 
-#include "../utils.h"
+#include "../astnode.h"
 
 namespace slkc {
 	namespace ast {

@@ -2,6 +2,7 @@
 #define _SLKC_COMP_AST2TYPE_H_
 
 #include "type.h"
+#include "env.h"
 #include <slkc/ast/nodedefs/class.h>
 
 namespace slkc {

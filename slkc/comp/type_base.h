@@ -160,7 +160,7 @@ namespace slkc {
 
 			template <typename T>
 			SLAKE_FORCEINLINE void set_type_def(const TypeDefPtr<T> &td) noexcept {
-				this->_type_def = td.cast_to<TypeDef>();
+				this->_type_def = static_cast<TypeDef *>(td.get());
 			}
 
 			SLAKE_FORCEINLINE std::strong_ordering operator<=>(const TypeRef &rhs) const noexcept {
@@ -180,7 +180,6 @@ namespace slkc {
 			}
 		};
 
-
 		SLKC_API std::strong_ordering _compare_type_defs(const TypeDef *lhs, const TypeDef *rhs);
 
 		struct TypeDefComparator {
@@ -190,6 +189,19 @@ namespace slkc {
 		};
 
 		using GenericArgListView = std::span<comp::TypeRef>;
+
+		struct GenericArgListComparator {
+			SLAKE_FORCEINLINE std::strong_ordering operator()(const GenericArgListView &lhs, const GenericArgListView &rhs) const noexcept {
+				if (auto result = lhs.size() <=> rhs.size(); result != 0)
+					return result;
+				size_t sz = lhs.size();
+				for (size_t i = 0; i < sz; ++i) {
+					if (auto result = lhs[i] <=> rhs[i]; result != 0)
+						return result;
+				}
+				return std::strong_ordering::equivalent;
+			}
+		};
 	}
 }
 

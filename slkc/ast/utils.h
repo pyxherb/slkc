@@ -1,8 +1,7 @@
 #ifndef _SLKC_AST_UTILS_H_
 #define _SLKC_AST_UTILS_H_
 
-#include "astnode.h"
-#include "rgtree.h"
+#include "../global.h"
 
 namespace slkc {
 	namespace ast {

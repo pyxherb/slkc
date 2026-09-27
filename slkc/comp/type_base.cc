@@ -1,4 +1,4 @@
-#include "type_base.h"
+#include "../global.h"
 
 using namespace slkc;
 using namespace slkc::comp;

@@ -2,6 +2,7 @@
 #define _SLKC_AST_NODEDEFS_IDREF_H_
 
 #include "type_base.h"
+#include "../utils.h"
 #include <peff/containers/dynarray.h>
 #include <peff/containers/string.h>
 

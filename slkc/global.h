@@ -3,15 +3,17 @@
 
 #include "ast/basedefs.h"
 #include "comp/basedefs.h"
+#include "comp/type_base.h"
 #include <atomic>
 #include <peff/containers/hashmap.h>
 #include <peff/containers/map.h>
-#include <peff/containers/btree_set.h>
+#include <peff/containers/btree_map.h>
 #include <peff/utils/result.h>
 
 namespace slkc {
 	namespace ast {
 		class AstNode;
+		class MemberNode;
 	}
 	struct AstNodeRegistry final {
 		size_t ref_count = 0, weak_ref_count = 0, pin_count = 0;
@@ -110,8 +112,19 @@ namespace slkc {
 		OutOfNodeIndex,
 	};
 
-	using GenericCacheArgLookupTable = peff::BTreeMap<comp::GenericArgListView, ast::AstNodePtr<ast::AstNode>>;
+	// We must maintain the reference counting of the generic objects here due to C++'s recursive inclusion rules.
+	// SO C++, FUCK YOU.
+	using GenericCacheArgLookupTable = peff::BTreeMap<comp::GenericArgListView, ast::AstNodeIndex, comp::GenericArgListComparator, true>;
 	using GenericCacheMemberLookupTable = peff::BTreeMap<ast::AstNodeIndex, GenericCacheArgLookupTable>;
+
+	// Also fuck C++ the shit.
+	namespace ast {
+		template <typename T>
+		class AstNodePtr;
+
+		template <typename T>
+		class AstNodePin;
+	}
 
 	class Global final {
 	private:
@@ -137,6 +150,7 @@ namespace slkc {
 		//comp::TypeDefIndex _min_free_type_def_index = 0;
 
 		GenericCacheMemberLookupTable _generic_cache_table;
+		std::mutex _generic_cache_mutex;
 
 		ast::AstNodeIndex _root_module = ast::INVALID_AST_NODE_INDEX;
 
@@ -276,7 +290,8 @@ namespace slkc {
 			return _root_module;
 		}
 
-		SLKC_API ast::AstNodePtr<ast::AstNode> lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) const noexcept;
+		SLKC_API peff::Option<comp::CompilationError> instantiate_generic_ast_node(const ast::AstNodePin<ast::AstNode> &original_node, comp::GenericArgListView generic_args, ast::AstNodePtr<ast::TypeNameNode> *generic_args_payloads, ast::AstNodePtr<ast::AstNode> &node_out) noexcept;
+		SLKC_API ast::AstNodePtr<ast::AstNode> lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept;
 		SLKC_API void remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept;
 		SLKC_API void remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index) noexcept;
 	};
@@ -337,7 +352,7 @@ namespace slkc {
 			return std::string_view(_string->_ptr, _string->_length);
 		}
 
-		SLAKE_FORCEINLINE operator bool() const noexcept {
+		SLAKE_FORCEINLINE explicit operator bool() const noexcept {
 			return _string;
 		}
 

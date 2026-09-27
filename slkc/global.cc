@@ -3,7 +3,7 @@
 #include "ast/rgtree.h"
 #include "ast/astnode.h"
 #include "comp/type.h"
-#include "comp/env.h"
+#include "comp/rg2ast.h"
 #include <numeric>
 
 using namespace slkc;
@@ -246,7 +246,7 @@ SLKC_API peff::Result<ast::AstNodeIndex, ast::DuplicationError> Global::duplicat
 	while (!context.task_list.size()) {
 		auto old_task_list = std::move(context.task_list);
 
-		context.task_list = { resource_allocator.get() };
+		context.task_list = { get_allocator() };
 
 		while (old_task_list.size()) {
 			auto task = old_task_list.front();
@@ -282,7 +282,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::shallow_dump_a
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { get_allocator() };
 
 		for (const auto &i : task_list) {
 			ast::AstNodePtr<ast::AstNode> node_ptr(this, i.src);
@@ -306,7 +306,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::deep_dump_ast_
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { get_allocator() };
 
 		for (const auto &i : task_list) {
 			ast::AstNodePtr<ast::AstNode> node_ptr(this, i.src);
@@ -442,7 +442,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::shallow_dump_g
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { get_allocator() };
 
 		for (auto i : task_list) {
 			ast::GreenNodePtr node_ptr(this, i.src);
@@ -466,7 +466,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::deep_dump_gree
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { get_allocator() };
 
 		for (auto i : task_list) {
 			ast::GreenNodePtr node_ptr(this, i.src);
@@ -615,7 +615,7 @@ SLKC_API void Global::unmap_type_def(comp::TypeDefIndex node_index) noexcept {
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { resource_get_allocator() };
 
 		for (auto i : task_list) {
 			TypeDefPtr node_ptr(this, i.src);
@@ -639,7 +639,7 @@ SLKC_API peff::Result<wandjson::Value *, ast::DumpResult> Global::deep_dump_type
 	while (dump_context.task_list.size()) {
 		auto task_list = std::move(dump_context.task_list);
 
-		dump_context.task_list = { resource_allocator.get() };
+		dump_context.task_list = { resource_get_allocator() };
 
 		for (auto i : task_list) {
 			TypeDefPtr node_ptr(this, i.src);
@@ -700,27 +700,712 @@ SLKC_API bool Global::init_root_module() noexcept {
 	return true;
 }
 
-SLKC_API ast::AstNodePtr<ast::AstNode> Global::lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) const noexcept {
+SLKC_API ast::AstNodePtr<ast::AstNode> Global::lookup_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept {
+	std::lock_guard g(_generic_cache_mutex);
 	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
 		if (auto jt = it.value().find(generic_args); jt != it.value().end()) {
-			return jt.value();
+			return ast::AstNodePtr<ast::AstNode>(this, jt.value());
 		}
 	}
 	return {};
 }
 
 SLKC_API void Global::remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index, comp::GenericArgListView generic_args) noexcept {
+	std::lock_guard g(_generic_cache_mutex);
 	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
 		if (auto jt = it.value().find(generic_args); jt != it.value().end()) {
-			it.value().remove(jt);
+			unref_ast_node(jt.value());
+
+			// We unreference the cached nodes manually here, see the notes of the cache types.
+			it.value().remove(jt.key());
+
 			if (!it.value().size())
-				_generic_cache_table.remove(it);
+				_generic_cache_table.remove(it.key());
 		}
 	}
 }
 
 SLKC_API void Global::remove_instantiated_generic_ast_node(ast::AstNodeIndex original_node_index) noexcept {
+	std::lock_guard g(_generic_cache_mutex);
 	if (auto it = _generic_cache_table.find(original_node_index); it != _generic_cache_table.end()) {
-		_generic_cache_table.remove(it);
+		{
+			// Also, unreference the cached nodes manually here.
+			for (const auto &i : it.value()) {
+				unref_ast_node(i.second);
+			}
+			_generic_cache_table.remove(it.key());
+		}
 	}
+}
+
+struct GenericInstantiationContext;
+
+class GenericInstantiationDispatcher;
+
+struct GenericInstantiationContext {
+	peff::RcObjectPtr<peff::Alloc> allocator;
+	std::span<ast::AstNodePtr<ast::TypeNameNode>> payload_list;
+	peff::HashMap<GlobalSharedStringRef, ast::AstNodePtr<ast::TypeNameNode>> mapped_generic_args;
+	ast::AstNodePtr<ast::MemberNode> mapped_node;
+	GenericInstantiationDispatcher *dispatcher = nullptr;
+	std::atomic_size_t ref_count = 0;
+
+	SLAKE_FORCEINLINE GenericInstantiationContext(
+		peff::Alloc *allocator,
+		std::span<ast::AstNodePtr<ast::TypeNameNode>> payload_list,
+		GenericInstantiationDispatcher *dispatcher)
+		: allocator(allocator),
+		  payload_list(payload_list),
+		  mapped_generic_args(allocator),
+		  dispatcher(dispatcher) {
+	}
+
+	SLAKE_FORCEINLINE void inc_ref(size_t ignored = 0) {
+		++ref_count;
+	}
+
+	SLAKE_FORCEINLINE void dec_ref(size_t ignored = 0) {
+		if (!--ref_count)
+			peff::destroy_and_release<GenericInstantiationContext>(allocator.get(), this, alignof(GenericInstantiationContext));
+	}
+};
+
+struct MemberGenericInstantiationTask {
+	peff::RcObjectPtr<GenericInstantiationContext> context;
+	ast::AstNodePtr<ast::MemberNode> member;
+};
+
+struct TypeSlotGenericInstantiationTask {
+	peff::RcObjectPtr<GenericInstantiationContext> context;
+	ast::AstNodePtr<ast::TypeNameNode> &type_name;
+};
+
+struct AstNodeGenericInstantiationTask {
+	peff::RcObjectPtr<GenericInstantiationContext> context;
+	ast::AstNodePtr<ast::TypeNameNode> &node;
+};
+
+struct GenericInstantiationDispatcher {
+	Global *global;
+	peff::List<MemberGenericInstantiationTask> member_tasks;
+	peff::List<TypeSlotGenericInstantiationTask> type_tasks;
+	peff::List<AstNodeGenericInstantiationTask> ast_node_tasks;
+	peff::Set<ast::AstNodePin<ast::FnOverloadingNode>> collected_overloads;
+	peff::Set<ast::AstNodePin<ast::FnNode>> collected_fns;
+
+	SLAKE_FORCEINLINE GenericInstantiationDispatcher(Global *global) : global(global), member_tasks(global->get_allocator()), ast_node_tasks(global->get_allocator()), type_tasks(global->get_allocator()), collected_overloads(global->get_allocator()), collected_fns(global->get_allocator()) {}
+
+	[[nodiscard]] SLAKE_FORCEINLINE peff::Option<comp::CompilationError> push_member_task(MemberGenericInstantiationTask &&task) noexcept {
+		return member_tasks.push_back(std::move(task)) ? peff::NULLOPT : comp::gen_oom_error_option();
+	}
+
+	[[nodiscard]] SLAKE_FORCEINLINE peff::Option<comp::CompilationError> push_type_slot_task(TypeSlotGenericInstantiationTask &&task) noexcept {
+		return type_tasks.push_back(std::move(task)) ? peff::NULLOPT : comp::gen_oom_error_option();
+	}
+
+	[[nodiscard]] SLAKE_FORCEINLINE peff::Option<comp::CompilationError> push_ast_node_task(AstNodeGenericInstantiationTask &&task) noexcept {
+		return ast_node_tasks.push_back(std::move(task)) ? peff::NULLOPT : comp::gen_oom_error_option();
+	}
+};
+
+static peff::Option<comp::CompilationError> _walk_type_name_for_generic_instantiation(
+	ast::AstNodePtr<ast::TypeNameNode> &type_name,
+	const GenericInstantiationContext &context);
+
+static peff::Option<comp::CompilationError> _walk_type_name_for_generic_instantiation(
+	ast::AstNodePtr<ast::TypeNameNode> &type_name,
+	const peff::RcObjectPtr<GenericInstantiationContext> &context) {
+	if (!type_name) {
+		return peff::NULLOPT;
+	}
+
+	SLKC_RETURN_IF_COMP_ERROR(context->dispatcher->push_type_slot_task(TypeSlotGenericInstantiationTask{ context, type_name }));
+
+	return peff::NULLOPT;
+}
+
+static peff::Option<comp::CompilationError> _walk_node_for_generic_instantiation(
+	ast::AstNodePtr<ast::MemberNode> ast_node,
+	const peff::RcObjectPtr<GenericInstantiationContext> &context) {
+	if (!ast_node) {
+		return peff::NULLOPT;
+	}
+
+	SLKC_RETURN_IF_COMP_ERROR(context->dispatcher->push_member_task(MemberGenericInstantiationTask{ context, ast_node }));
+
+	return peff::NULLOPT;
+}
+
+SLKC_API peff::Option<comp::CompilationError> Global::instantiate_generic_ast_node(const ast::AstNodePin<ast::AstNode> &original_node, comp::GenericArgListView generic_args, ast::AstNodePtr<ast::TypeNameNode> *generic_args_payloads, ast::AstNodePtr<ast::AstNode> &node_out) noexcept {
+	if ((node_out = lookup_instantiated_generic_ast_node(original_node.get_index(), generic_args)))
+		return peff::NULLOPT;
+
+	std::lock_guard g(_generic_cache_mutex);
+
+	/* {
+		bool recursed;
+		SLKC_RETURN_IF_COMP_ERROR(is_higher_ranked_cyclic_inherited(shared_from_this(), original_node, recursed));
+		if (recursed) {
+			ModuleNode *mod = generic_args.back()->token_range.module_node;
+
+			// TODO: Placeholder, use a proper one.
+			return CompilationError(TokenRange{ mod, idx_name_token },
+				CompilationErrorKind::CyclicInheritedClass);
+		}
+	}*/
+
+	ast::AstNodePin<ast::AstNode> duplicated_object;
+
+	{
+		auto result = duplicate_ast_node(original_node.get_index());
+		if (result.is_error()) {
+			switch (std::move(result).error()) {
+				case ast::DuplicationError::NoSlot:
+					return comp::gen_out_of_node_index_error_option();
+				case ast::DuplicationError::OutOfMemory:
+					return comp::gen_oom_error_option();
+				case ast::DuplicationError::PinningFailed:
+					return comp::gen_pinning_io_error_option();
+			}
+			std::terminate();
+		}
+
+		ast::AstNodePtr<ast::AstNode> dup = ast::AstNodePtr<ast::AstNode>(this, std::move(result).value());
+
+		if ((duplicated_object = dup.pin()).is_fail())
+			return comp::_pin_fail_reason_to_comp_error(duplicated_object.get_fail_reason());
+	}
+
+	{
+		{
+			// Map generic arguments.
+			GenericInstantiationDispatcher dispatcher(this);
+			peff::RcObjectPtr<GenericInstantiationContext> context;
+
+			if (!(context = peff::alloc_and_construct<GenericInstantiationContext>(get_allocator(), alignof(GenericInstantiationContext), get_allocator(), std::span(generic_args_payloads, generic_args.size()), &dispatcher)))
+				return comp::gen_oom_error_option();
+
+			switch (original_node->get_ast_node_type()) {
+				case ast::NodeType::Fn: {
+					ast::AstNodePin<ast::FnNode> obj = duplicated_object.cast_to<ast::FnNode>();
+
+					peff::DynArray<ast::AstNodePtr<ast::FnOverloadingNode>> overloadings(get_allocator());
+
+					for (auto i : obj->overloadings) {
+						context->mapped_node = i.cast_to<ast::MemberNode>();
+
+						auto pinned = i.pin();
+						if (pinned.is_fail())
+							return comp::_pin_fail_reason_to_comp_error(pinned.get_fail_reason());
+
+						if (generic_args.size() != pinned->get_scope()->generic_params.size())
+							continue;
+
+						for (auto [k, v] : pinned->get_scope()->generic_params_index) {
+							if (!context->mapped_generic_args.insert(
+									GlobalSharedStringRef(k),
+									ast::AstNodePtr<ast::TypeNameNode>(generic_args_payloads[v]))) {
+								return comp::gen_oom_error_option();
+							}
+						}
+
+						SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(i.cast_to<ast::MemberNode>(), context));
+
+						if (!overloadings.push_back(ast::AstNodePtr<ast::FnOverloadingNode>(i))) {
+							return comp::gen_oom_error_option();
+						}
+					fn_overloading_mismatched:;
+					}
+
+					if (!overloadings.shrink_to_fit()) {
+						return comp::gen_oom_error_option();
+					}
+
+					obj->overloadings = std::move(overloadings);
+
+					break;
+				}
+				case ast::NodeType::Class: {
+					ast::AstNodePin<ast::ClassNode> obj = duplicated_object.cast_to<ast::ClassNode>();
+
+					context->mapped_node = obj.cast_to<ast::MemberNode>();
+
+					if (generic_args.size() != obj->get_scope()->generic_params.size()) {
+						std::terminate();
+						// TODO: return a mismatched generic argument number error.
+					}
+
+					for (auto [k, v] : obj->get_scope()->generic_params_index) {
+						if (!context->mapped_generic_args.insert(
+								GlobalSharedStringRef(k),
+								ast::AstNodePtr<ast::TypeNameNode>(generic_args_payloads[v]))) {
+							return comp::gen_oom_error_option();
+						}
+					}
+
+					SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(duplicated_object.cast_to<ast::MemberNode>(), context));
+					break;
+				}
+				case ast::NodeType::Interface: {
+					ast::AstNodePin<ast::InterfaceNode> obj = duplicated_object.cast_to<ast::InterfaceNode>();
+
+					context->mapped_node = obj.cast_to<ast::MemberNode>();
+
+					if (generic_args.size() != obj->get_scope()->generic_params.size()) {
+						std::terminate();
+						// TODO: return a mismatched generic argument number error.
+					}
+
+					for (auto [k, v] : obj->get_scope()->generic_params_index) {
+						if (!context->mapped_generic_args.insert(
+								GlobalSharedStringRef(k),
+								ast::AstNodePtr<ast::TypeNameNode>(generic_args_payloads[v]))) {
+							return comp::gen_oom_error_option();
+						}
+					}
+
+					SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(duplicated_object.cast_to<ast::MemberNode>(), context));
+					break;
+				}
+				case ast::NodeType::Struct: {
+					ast::AstNodePin<ast::StructNode> obj = duplicated_object.cast_to<ast::StructNode>();
+
+					context->mapped_node = obj.cast_to<ast::MemberNode>();
+
+					if (generic_args.size() != obj->get_scope()->generic_params.size()) {
+						std::terminate();
+						// TODO: return a mismatched generic argument number error.
+					}
+
+					for (auto [k, v] : obj->get_scope()->generic_params_index) {
+						if (!context->mapped_generic_args.insert(
+								GlobalSharedStringRef(k),
+								ast::AstNodePtr<ast::TypeNameNode>(generic_args_payloads[v]))) {
+							return comp::gen_oom_error_option();
+						}
+					}
+
+					SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(duplicated_object.cast_to<ast::MemberNode>(), context));
+					break;
+				}
+				default:
+					std::terminate();
+					// TODO: return a mismatched generic argument number error.
+			}
+
+			while (true) {
+				auto type_name_tasks = std::move(dispatcher.type_tasks);
+				auto member_tasks = std::move(dispatcher.member_tasks);
+				auto ast_node_tasks = std::move(dispatcher.ast_node_tasks);
+
+				dispatcher.type_tasks = { get_allocator() };
+				dispatcher.member_tasks = { get_allocator() };
+				dispatcher.ast_node_tasks = { get_allocator() };
+
+				if ((!type_name_tasks.size() &&
+						(!member_tasks.size())) &&
+					(!ast_node_tasks.size()))
+					break;
+
+				for (auto &task : type_name_tasks) {
+					auto &type_name = task.type_name;
+
+					auto pinned = type_name.pin();
+					if (pinned.is_fail())
+						return comp::_pin_fail_reason_to_comp_error(pinned.get_fail_reason());
+
+					switch (pinned->get_tn_kind()) {
+						case ast::TypeNameKind::Array: {
+							ast::AstNodePin<ast::ArrayTypeNameNode> tn = pinned.cast_to<ast::ArrayTypeNameNode>();
+
+							SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->element_type, task.context));
+							break;
+						}
+						case ast::TypeNameKind::Ref: {
+							ast::AstNodePin<ast::RefTypeNameNode> tn = pinned.cast_to<ast::RefTypeNameNode>();
+
+							SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->element_type, task.context));
+							break;
+						} /*
+						case ast::TypeNameKind::Fn: {
+							ast::AstNodePin<ast::FnTypeNameNode> tn = pinned.cast_to<ast::FnTypeNameNode>();
+
+							for (size_t i = 0; i < tn->param_types.size(); ++i) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->param_types.at(i), task.context));
+							}
+							SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->return_type, task.context));
+							break;
+						}*/
+						case ast::TypeNameKind::Custom: {
+							ast::AstNodePin<ast::CustomTypeNameNode> tn = pinned.cast_to<ast::CustomTypeNameNode>();
+
+							if (tn->referred_name.entries.size() == 1) {
+								ast::IdRefEntry &entry = tn->referred_name.entries.at(0);
+
+								if (!entry.generic_args.size()) {
+									if (auto it = task.context->mapped_generic_args.find(entry.name);
+										it != task.context->mapped_generic_args.end()) {
+										ast::AstNodePin<ast::TypeNameNode> tn;
+										{
+											auto result = duplicate_ast_node(it.value().get_index());
+											if (result.is_error()) {
+												switch (std::move(result).error()) {
+													case ast::DuplicationError::NoSlot:
+														return comp::gen_out_of_node_index_error_option();
+													case ast::DuplicationError::OutOfMemory:
+														return comp::gen_oom_error_option();
+													case ast::DuplicationError::PinningFailed:
+														return comp::gen_pinning_io_error_option();
+												}
+												std::terminate();
+											}
+
+											ast::AstNodePtr<ast::TypeNameNode> dup = ast::AstNodePtr<ast::TypeNameNode>(this, std::move(result).value());
+
+											if ((tn = dup.pin()).is_fail())
+												return comp::_pin_fail_reason_to_comp_error(duplicated_object.get_fail_reason());
+										}
+										tn->set_nullability(pinned->get_nullability());
+
+										type_name = std::move(tn);
+
+										break;
+									}
+								}
+							}
+
+							for (size_t i = 0; i < tn->referred_name.entries.size(); ++i) {
+								auto &generic_args = tn->referred_name.entries.at(i).generic_args;
+								for (size_t j = 0; j < generic_args.size(); ++j) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(generic_args.at(j), task.context));
+								}
+							}
+							break;
+						} /*
+						case ast::TypeNameKind::Unpacking: {
+							ast::AstNodePin<ast::UnpackingTypeNameNode> tn = pinned.cast_to<ast::UnpackingTypeNameNode>();
+
+							SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->inner_type_name, task.context));
+							break;
+						}
+						case ast::TypeNameKind::ParamTypeList: {
+							ast::AstNodePin<ast::ParamTypeListTypeNameNode> tn = pinned.cast_to<ast::ParamTypeListTypeNameNode>();
+
+							for (size_t i = 0; i < tn->param_types.size(); ++i) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(tn->param_types.at(i), task.context));
+							}
+							break;
+						}*/
+						default:
+							break;
+					}
+				}
+
+				for (auto &task : member_tasks) {
+					auto &ast_node = task.member;
+
+					auto pinned = ast_node.pin();
+					if (pinned.is_fail())
+						return comp::_pin_fail_reason_to_comp_error(pinned.get_fail_reason());
+
+					if (task.context->mapped_node == ast_node) {
+						if (!pinned->set_generic_args(generic_args)) {
+							return comp::gen_oom_error_option();
+						}
+					}
+
+					switch (pinned->get_ast_node_type()) {
+						case ast::NodeType::FnOverloading: {
+							ast::AstNodePin<ast::FnOverloadingNode> fn_slot = pinned.cast_to<ast::FnOverloadingNode>();
+
+							for (auto i : fn_slot->get_scope()->generic_params) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(i.cast_to<ast::MemberNode>(), task.context));
+							}
+
+							if ((task.context->mapped_node != ast_node) && (fn_slot->get_scope()->generic_params.size())) {
+								peff::RcObjectPtr<GenericInstantiationContext> inner_context;
+
+								if (!(context = peff::alloc_and_construct<GenericInstantiationContext>(get_allocator(), alignof(GenericInstantiationContext), get_allocator(), std::span(generic_args_payloads, generic_args.size()), &dispatcher)))
+									return comp::gen_oom_error_option();
+
+								for (auto [k, v] : task.context->mapped_generic_args) {
+									if (auto it = fn_slot->get_scope()->generic_params_index.find(k);
+										it == fn_slot->get_scope()->generic_params_index.end()) {
+										if (!inner_context->mapped_generic_args.insert(GlobalSharedStringRef(k), ast::AstNodePtr<ast::TypeNameNode>(v))) {
+											return comp::gen_oom_error_option();
+										}
+									}
+								}
+
+								for (auto &i : fn_slot->params) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(i.type, inner_context));
+								}
+
+								SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(fn_slot->return_type, inner_context));
+
+								// No need to substitute the function body, we just care about the declaration.
+							} else {
+								for (auto &i : fn_slot->params) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(i.type, task.context));
+								}
+
+								SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(fn_slot->return_type, task.context));
+							}
+
+							if (!dispatcher.collected_overloads.contains(fn_slot))
+								if (!dispatcher.collected_overloads.insert(std::move(fn_slot)))
+									return comp::gen_oom_error_option();
+							break;
+						}
+						case ast::NodeType::Fn: {
+							ast::AstNodePin<ast::FnNode> fn_slot = pinned.cast_to<ast::FnNode>();
+
+							for (auto i : fn_slot->overloadings) {
+								ast::AstNodePtr<ast::MemberNode> a = i.cast_to<ast::MemberNode>();
+								SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(a, task.context));
+							}
+
+							if (!dispatcher.collected_fns.contains(fn_slot))
+								if (!dispatcher.collected_fns.insert(std::move(fn_slot)))
+									return comp::gen_oom_error_option();
+							break;
+						}
+						case ast::NodeType::Var: {
+							ast::AstNodePin<ast::VarNode> var_node = pinned.cast_to<ast::VarNode>();
+
+							// TODO: Complete it after added the 'type' member.
+							// SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(var_node->type, task.context));
+							break;
+						}
+						case ast::NodeType::Class: {
+							ast::AstNodePin<ast::ClassNode> cls = pinned.cast_to<ast::ClassNode>();
+
+							for (auto j : cls->get_scope()->generic_params) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j.cast_to<ast::MemberNode>(), task.context));
+							}
+
+							if ((task.context->mapped_node != ast_node) && (cls->get_scope()->generic_params.size())) {
+								peff::RcObjectPtr<GenericInstantiationContext> inner_context;
+
+								if (!(context = peff::alloc_and_construct<GenericInstantiationContext>(get_allocator(), alignof(GenericInstantiationContext), get_allocator(), std::span(generic_args_payloads, generic_args.size()), &dispatcher)))
+									return comp::gen_oom_error_option();
+
+								for (auto [k, v] : task.context->mapped_generic_args) {
+									if (auto it = cls->get_scope()->generic_params_index.find(k);
+										it == cls->get_scope()->generic_params_index.end()) {
+										if (!inner_context->mapped_generic_args.insert(GlobalSharedStringRef(k), ast::AstNodePtr<ast::TypeNameNode>(v))) {
+											return comp::gen_oom_error_option();
+										}
+									}
+								}
+
+								if (auto &t = cls->get_scope()->inherited_type; t)
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(t, inner_context));
+
+								for (auto &k : cls->get_scope()->implemented_types) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(k.type, inner_context));
+								}
+
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, inner_context));
+								}
+							} else {
+								if (auto &t = cls->get_scope()->inherited_type; t)
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(t, task.context));
+
+								for (auto &k : cls->get_scope()->implemented_types) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(k.type, task.context));
+								}
+
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, task.context));
+								}
+							}
+							break;
+						}
+						case ast::NodeType::Struct: {
+							ast::AstNodePin<ast::StructNode> cls = pinned.cast_to<ast::StructNode>();
+
+							for (auto j : cls->get_scope()->generic_params) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j.cast_to<ast::MemberNode>(), task.context));
+							}
+
+							if ((task.context->mapped_node != ast_node) && (cls->get_scope()->generic_params.size())) {
+								peff::RcObjectPtr<GenericInstantiationContext> inner_context;
+
+								if (!(context = peff::alloc_and_construct<GenericInstantiationContext>(get_allocator(), alignof(GenericInstantiationContext), get_allocator(), std::span(generic_args_payloads, generic_args.size()), &dispatcher)))
+									return comp::gen_oom_error_option();
+
+								for (auto [k, v] : task.context->mapped_generic_args) {
+									if (auto it = cls->get_scope()->generic_params_index.find(k);
+										it == cls->get_scope()->generic_params_index.end()) {
+										if (!inner_context->mapped_generic_args.insert(GlobalSharedStringRef(k), ast::AstNodePtr<ast::TypeNameNode>(v))) {
+											return comp::gen_oom_error_option();
+										}
+									}
+								}
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, inner_context));
+								}
+							} else {
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, task.context));
+								}
+							}
+							break;
+						}
+						case ast::NodeType::Interface: {
+							ast::AstNodePin<ast::InterfaceNode> cls = pinned.cast_to<ast::InterfaceNode>();
+
+							for (auto j : cls->get_scope()->generic_params) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j.cast_to<ast::MemberNode>(), task.context));
+							}
+
+							if ((task.context->mapped_node != ast_node) && (cls->get_scope()->generic_params.size())) {
+								peff::RcObjectPtr<GenericInstantiationContext> inner_context;
+
+								if (!(context = peff::alloc_and_construct<GenericInstantiationContext>(get_allocator(), alignof(GenericInstantiationContext), get_allocator(), std::span(generic_args_payloads, generic_args.size()), &dispatcher)))
+									return comp::gen_oom_error_option();
+
+								for (auto [k, v] : task.context->mapped_generic_args) {
+									if (auto it = cls->get_scope()->generic_params_index.find(k);
+										it == cls->get_scope()->generic_params_index.end()) {
+										if (!inner_context->mapped_generic_args.insert(GlobalSharedStringRef(k), ast::AstNodePtr<ast::TypeNameNode>(v))) {
+											return comp::gen_oom_error_option();
+										}
+									}
+								}
+
+								for (auto &k : cls->get_scope()->implemented_types) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(k.type, inner_context));
+								}
+
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, inner_context));
+								}
+							} else {
+								for (auto &k : cls->get_scope()->implemented_types) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(k.type, task.context));
+								}
+
+								for (auto j : cls->get_scope()->members) {
+									SLKC_RETURN_IF_COMP_ERROR(_walk_node_for_generic_instantiation(j, task.context));
+								}
+							}
+							break;
+						}
+						case ast::NodeType::GenericParam: {
+							ast::AstNodePin<ast::GenericParamNode> g = pinned.cast_to<ast::GenericParamNode>();
+
+							SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(g->generic_constraint.inherited_type, task.context));
+
+							for (auto &k : g->generic_constraint.implemented_types) {
+								SLKC_RETURN_IF_COMP_ERROR(_walk_type_name_for_generic_instantiation(k.type, task.context));
+							}
+							break;
+						}
+						default:;
+					}
+				}
+			}
+
+			/* for (auto fn_slot : dispatcher.collected_overloads) {
+			rescan_params:
+				for (size_t i = 0; i < fn_slot->params.size(); ++i) {
+					auto cur_param = fn_slot->params.at(i);
+					ast::AstNodePin<ast::TypeNameNode> cur_param_type = fn_slot->params.at(i)->type;
+
+					if (cur_param_type) {
+						if (cur_param_type->get_tn_kind() == ast::TypeNameKind::Unpacking) {
+							ast::AstNodePin<ast::UnpackingTypeNameNode> unpacking_type = cur_param_type.cast_to<ast::UnpackingTypeNameNode>();
+
+							if (unpacking_type->inner_type_name->get_tn_kind() == ast::TypeNameKind::ParamTypeList) {
+								ast::AstNodePin<ast::ParamTypeListTypeNameNode> inner_type_name = unpacking_type->inner_pinned.cast_to<ast::ParamTypeListTypeNameNode>();
+
+								if (!fn_slot->params.erase_range_and_shrink(i, i + 1))
+									return comp::gen_oom_error_option();
+
+								if (!fn_slot->params.insert_range_init(i, inner_type_name->param_types.size())) {
+									return comp::gen_oom_error_option();
+								}
+
+								for (size_t k = 0; k < inner_type_name->param_types.size(); ++k) {
+									ast::AstNodePin<VarNode> p = cur_param->duplicate<VarNode>(get_allocator());
+
+									if (!p) {
+										return comp::gen_oom_error_option();
+									}
+
+									constexpr static size_t len_name = sizeof("arg_") + (sizeof(size_t) << 1) + 1;
+									char name_buf[len_name] = { 0 };
+
+									snprintf(name_buf, len_name - 1, "arg_%.02zx", i + k);
+
+									if (!p->name.build(name_buf)) {
+										return comp::gen_oom_error_option();
+									}
+
+									p->type = inner_type_name->param_types.at(k);
+
+									fn_slot->params.at(i + k) = p;
+								}
+
+								// Note that we use nullptr for we assuming that errors that require a compile task.context will never happen.
+								SLKC_RETURN_IF_COMP_ERROR(reindex_fn_params(nullptr, fn_slot));
+
+								if (inner_type_name->has_var_args) {
+									if (i + 1 != fn_slot->params.size()) {
+										return CompilationError(inner_type_name->token_range, CompilationErrorKind::InvalidVarArgHintDuringInstantiation);
+									}
+
+									fn_slot->fn_flags |= FN_VARG;
+								}
+							}
+
+							goto rescan_params;
+						}
+					}
+				}
+			}*/
+
+			// TODO: Do the signature duplication check after we finished all infrastructures.
+			/* for (auto fn_slot : dispatcher.collected_fns) {
+				for (auto it = fn_slot->overloadings.begin(); it != fn_slot->overloadings.end(); ++it) {
+					for (auto jt = it + 1; jt != fn_slot->overloadings.end(); ++jt) {
+						bool whether;
+						SLKC_RETURN_IF_COMP_ERROR(is_fn_signature_duplicated(*it, *jt, whether));
+
+						if (whether) {
+							ModuleNode *mod = nullptr;
+							size_t idx_min_token = SIZE_MAX, idx_max_token = 0;
+
+							for (auto i : *context->generic_args) {
+								if (!mod) {
+									mod = i->token_range.module_node;
+								} else if (i->token_range.module_node != mod)
+									std::terminate();
+								idx_min_token = (std::min)(i->token_range.begin_index, idx_min_token);
+								idx_max_token = (std::max)(i->token_range.end_index, idx_max_token);
+							}
+
+							return CompilationError(
+								TokenRange(mod, idx_min_token, idx_max_token),
+								CompilationErrorKind::FunctionOverloadingDuplicatedDuringInstantiation);
+						}
+					}
+				}
+			}*/
+
+			if (!_generic_cache_table.insert(original_node.get_index(), { get_allocator() }))
+				return comp::gen_oom_error_option();
+			if (!_generic_cache_table.at(original_node.get_index()).insert(std::move(original_node.cast_to<ast::MemberNode>()->get_generic_args()), duplicated_object.get_index())) {
+				return comp::gen_oom_error_option();
+			}
+
+			ref_ast_node(duplicated_object.get_index());
+		}
+	}
+
+	node_out = duplicated_object;
+	return peff::NULLOPT;
 }

@@ -3,6 +3,7 @@
 
 #include "lexer.h"
 #include <slkc/ast/nodedefs.h>
+#include "../rgtree.h"
 #include <coroutine>
 
 namespace slkc {

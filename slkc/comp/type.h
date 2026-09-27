@@ -2,6 +2,7 @@
 #define _SLKC_COMP_TYPE_H_
 
 #include "type_base.h"
+#include "../ast/nodedefs/member.h"
 
 namespace slkc {
 	namespace comp {
